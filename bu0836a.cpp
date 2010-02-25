@@ -1,48 +1,92 @@
 #include <iostream>
+#include <vector>
 #include <libusb.h>
 
-using std::cout;
-using std::endl;
+using namespace std;
+
+
+#define BCD2CHAR6(s, n) s[0] = '0' + ((n >> 12) & 0xf), s[1] = '0' + ((n >> 8) & 0xf), s[2] = '.', \
+		s[3] = '0' + ((n >> 4) & 0xf), s[4] = '0' + (n & 0xf), s[5] = '\0';
+
+
+static const char *usb_perror(int errno)
+{
+	switch (errno) {
+	case LIBUSB_SUCCESS: return "success";
+	case LIBUSB_ERROR_IO: return "input/output error";
+	case LIBUSB_ERROR_INVALID_PARAM: return "invalid parameter";
+	case LIBUSB_ERROR_ACCESS: return "access denied (insufficient permissions)";
+	case LIBUSB_ERROR_NO_DEVICE: return "no such device (it may have been disconnected)";
+	case LIBUSB_ERROR_NOT_FOUND: return "entity not found";
+	case LIBUSB_ERROR_BUSY: return "resource busy";
+	case LIBUSB_ERROR_TIMEOUT: return "operation timed out";
+	case LIBUSB_ERROR_OVERFLOW: return "overflow";
+	case LIBUSB_ERROR_PIPE: return "pipe error";
+	case LIBUSB_ERROR_INTERRUPTED: return "system call interrupted (perhaps due to signal)";
+	case LIBUSB_ERROR_NO_MEM: return "insufficient memory";
+	case LIBUSB_ERROR_NOT_SUPPORTED: return "operation not supported or unimplemented on this platform";
+	case LIBUSB_ERROR_OTHER: return "other error";
+	default: return "unknown error code";
+	}
+}
+
+
+class bu0836a {
+public:
+	bu0836a(int debug_level = 3) {
+		int ret = libusb_init(0);
+		if (ret)
+			throw;
+		libusb_set_debug(0, 3);
+
+		libusb_device **list;
+		for (int i = 0; i < libusb_get_device_list(0, &list); i++) {
+			cerr << "#" << i << ":" << endl;
+			libusb_device_handle *handle;
+			int ret = libusb_open(list[i], &handle);
+
+			if (ret) {
+				cerr << "\topen: " << usb_perror(ret) << endl;
+				continue;
+			}
+
+			libusb_device *dev = libusb_get_device(handle);
+
+			libusb_device_descriptor desc;
+			ret = libusb_get_device_descriptor(dev, &desc);
+			if (ret)
+				cerr << "error: get_descriptor: " << usb_perror(ret) << endl;
+			else
+				cerr << "\tvendor = " << desc.idVendor << "  product = " << desc.idProduct << "  serial = " << 0+desc.iSerialNumber << endl;
+
+			if (desc.idVendor == _vendor && desc.idProduct == _product) {
+				cerr << "\t\tFOUND" << endl;
+				_devices.push_back(list[i]);
+			}
+
+			char s[6];
+			BCD2CHAR6(s, desc.bcdDevice);
+			cerr << s << endl;
+
+			libusb_close(handle);
+		}
+		libusb_free_device_list(list, 1);
+	}
+
+	~bu0836a()
+	{
+		libusb_exit(0);
+	}
+
+private:
+	static const int _vendor = 0x1130;
+	static const int _product = 0xf211;
+	vector<libusb_device *> _devices;
+};
+
 
 int main(int argc, char *argv[])
 {
-	libusb_context *ctx;
-	int ret = libusb_init(&ctx);
-	if (ret) {
-		cout << "ret=" << ret << endl;
-		return ret;
-	}
-
-	libusb_set_debug(ctx, 3);
-
-	libusb_device **list;
-	ssize_t num = libusb_get_device_list(ctx, &list);
-	for (int i = 0; i < num; i++) {
-		libusb_device_handle *handle;
-		int ret = libusb_open(list[i], &handle);
-
-		cout << "#" << i << " ret=" << ret;
-		if (ret) {
-			cout << endl;
-			continue;
-		}
-
-		libusb_device *dev = libusb_get_device(handle);
- 		cout << " dev=" << dev;
-
-		libusb_device_descriptor desc;
-		ret = libusb_get_device_descriptor(dev, &desc);
-		if (!ret) {
-			cout << "  " << desc.idVendor << " : " << desc.idProduct;
-		}
-
-		cout << endl;
-		libusb_close(handle);
-	}
-
-	cout << "searching " << 0x06a3 << " : " << 0x0006 << endl;
-
-	libusb_free_device_list(list, 1);
-	libusb_exit(ctx);
+	bu0836a usb;
 	return 0;
 }
