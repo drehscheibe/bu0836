@@ -1,12 +1,12 @@
+#include <cstdio>
 #include <iostream>
-#include <vector>
 #include <libusb.h>
+#include <vector>
 
 using namespace std;
 
 
-#define BCD2CHAR6(s, n) s[0] = '0' + ((n >> 12) & 0xf), s[1] = '0' + ((n >> 8) & 0xf), s[2] = '.', \
-		s[3] = '0' + ((n >> 4) & 0xf), s[4] = '0' + (n & 0xf), s[5] = '\0';
+#define BCD2STR(s, n) snprintf(s, 6, "%x%x:%x%x", (n >> 12) & 0xf, (n >> 8) & 0xf, (n >> 4) & 0xf, n & 0xf)
 
 
 static const char *usb_perror(int errno)
@@ -46,7 +46,7 @@ public:
 			int ret = libusb_open(list[i], &handle);
 
 			if (ret) {
-				cerr << "\topen: " << usb_perror(ret) << endl;
+				cerr << "\terror: libusb_open: " << usb_perror(ret) << endl;
 				continue;
 			}
 
@@ -54,19 +54,35 @@ public:
 
 			libusb_device_descriptor desc;
 			ret = libusb_get_device_descriptor(dev, &desc);
-			if (ret)
-				cerr << "error: get_descriptor: " << usb_perror(ret) << endl;
-			else
-				cerr << "\tvendor = " << desc.idVendor << "  product = " << desc.idProduct << "  serial = " << 0+desc.iSerialNumber << endl;
+			if (ret) {
+				cerr << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
+			} else {
+				char release[6];
+				BCD2STR(release, desc.bcdDevice);
+				cerr
+						<< "\t" << 0+libusb_get_bus_number(dev) << ":" << 0+libusb_get_device_address(dev)
+						<< "\tvendor = " << desc.idVendor
+						<< "\tproduct = " << desc.idProduct
+						<< "\tversion = " << release
+						<< "\tserial = " << 0 + desc.iSerialNumber
+						<< endl;
 
-			if (desc.idVendor == _vendor && desc.idProduct == _product) {
-				cerr << "\t\tFOUND" << endl;
-				_devices.push_back(list[i]);
+				unsigned char buf[256];
+#define STRING(x) libusb_get_string_descriptor_ascii(handle, desc.i##x, buf, sizeof(buf))
+				if (desc.iManufacturer && STRING(Manufacturer) > 0)
+					cerr << "\tmanufacturer = " << buf << endl;
+
+				if (desc.iProduct && STRING(Product) > 0)
+					cerr << "\tproduct = " << buf << endl;
+
+				if (desc.iSerialNumber && STRING(SerialNumber) > 0)
+					cerr << "\tserial number = " << buf << endl;
+#undef STRING
+				if (desc.idVendor == _vendor && desc.idProduct == _product) {
+					cerr << "\t\tFOUND" << endl;
+					_devices.push_back(list[i]);
+				}
 			}
-
-			char s[6];
-			BCD2CHAR6(s, desc.bcdDevice);
-			cerr << s << endl;
 
 			libusb_close(handle);
 		}
