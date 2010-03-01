@@ -1,7 +1,11 @@
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <libusb.h>
 #include <vector>
+
+#include "options.h"
 
 using namespace std;
 
@@ -101,8 +105,45 @@ private:
 };
 
 
-int main(int argc, char *argv[])
+
+struct Options options[] = {
+	{ "--help", "-h", 0 },
+	{ "--verbose", "-v", 0 },
+	{ "--eat", "-e", 1 },
+	{ 0, 0, 0 },
+};
+
+enum { HELP_OPT, VERBOSE_OPT, EAT_OPT };
+
+
+int option_handler(int index, const char *arg)
 {
-	bu0836a usb;
+	cerr << "\033[33m";
+	switch (index) {
+	case HELP_OPT: cerr << "Help!" << endl; break;
+	case VERBOSE_OPT: cerr << "Verbose!" << endl; break;
+	case EAT_OPT: cerr << "Eating " << arg << endl; break;
+
+	case OPTIONS_TERMINATOR: cerr << "... ------!!------\033[m" << endl; return OPTIONS_ABORT; break;
+	case OPTIONS_ARGUMENT: cerr << "... normal arg: " << arg << endl; break;
+
+	case OPTIONS_UNKNOWN: cerr << "... Unknown Option " << arg << endl; break;
+	case OPTIONS_EXCESS_ARGUMENT: cerr << "... eeew: " << arg << endl; break;
+	case OPTIONS_MISSING_ARGUMENT: cerr << "... missing arg for " << arg << endl; break;
+	default: cerr << "... option #" << index << " not handled!" << endl; break;
+	}
+	cerr << "\033[m";
+	return OPTIONS_CONTINUE;
+}
+
+
+int main(int argc, const char *argv[])
+{
+	int next = parse_options(argc, argv, options, option_handler);
+
+	for (int i = next; i < argc; i++)
+		cerr << "\033[32mARG: " << argv[i] << "\033[m" << endl;
+
+	//bu0836a usb;
 	return 0;
 }
