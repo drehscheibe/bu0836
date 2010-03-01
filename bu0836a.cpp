@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <libusb.h>
+#include <stdlib.h>
 #include <vector>
 
 #include "options.h"
@@ -109,11 +110,15 @@ private:
 struct Options options[] = {
 	{ "--help", "-h", 0 },
 	{ "--verbose", "-v", 0 },
+	{ "--normal", "-n", 1 },
+	{ "--invert", "-i", 1 },
 	{ "--eat", "-e", 1 },
+	{ "--long", 0, 0 },
+	{ 0, "-s", 0 },
 	{ 0, 0, 0 },
 };
 
-enum { HELP_OPT, VERBOSE_OPT, EAT_OPT };
+enum { HELP_OPT, VERBOSE_OPT, NORMAL_OPT, INVERT_OPT, EAT_OPT, LONG_OPT, SHORT_OPT };
 
 
 int option_handler(int index, const char *arg)
@@ -122,15 +127,19 @@ int option_handler(int index, const char *arg)
 	switch (index) {
 	case HELP_OPT: cerr << "Help!" << endl; break;
 	case VERBOSE_OPT: cerr << "Verbose!" << endl; break;
+	case NORMAL_OPT: cerr << "set axis " << arg << " to normal" << endl; break;
+	case INVERT_OPT: cerr << "set axis " << arg << " to inverted" << endl; break;
 	case EAT_OPT: cerr << "Eating " << arg << endl; break;
+	case LONG_OPT: cerr << "long" << endl; break;
+	case SHORT_OPT: cerr << "short" << endl; break;
 
 	case OPTIONS_TERMINATOR: cerr << "... ------!!------\033[m" << endl; return OPTIONS_ABORT; break;
-	case OPTIONS_ARGUMENT: cerr << "... normal arg: " << arg << endl; break;
+	case OPTIONS_ARGUMENT: cerr << "\033[33;1mARG: " << arg << endl; break;
 
-	case OPTIONS_UNKNOWN: cerr << "... Unknown Option " << arg << endl; break;
+	case OPTIONS_UNKNOWN_OPTION: cerr << "... Unknown Option " << arg << endl; break;
 	case OPTIONS_EXCESS_ARGUMENT: cerr << "... eeew: " << arg << endl; break;
 	case OPTIONS_MISSING_ARGUMENT: cerr << "... missing arg for " << arg << endl; break;
-	default: cerr << "... option #" << index << " not handled!" << endl; break;
+	default: cerr << "\033[31;1mOPTIONS BUG! " << index << "/" << arg << "\033[m" << endl; break;
 	}
 	cerr << "\033[m";
 	return OPTIONS_CONTINUE;
