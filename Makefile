@@ -3,6 +3,9 @@ FLAGS=-mtune=native -pipe -g -O0 -Wall
 all: bu0836a Makefile
 	./bu0836a; read key
 
+check: bu0836a
+	cppcheck -f --enable=all .
+
 bu0836a: options.o bu0836a.o
 	g++ -g -o bu0836a options.o bu0836a.o -lusb
 

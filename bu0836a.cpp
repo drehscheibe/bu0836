@@ -110,49 +110,52 @@ private:
 struct Options options[] = {
 	{ "--help", "-h", 0 },
 	{ "--verbose", "-v", 0 },
+	{ "--device", "-d", 1 },
+	{ "--list", "-l", 0 },
 	{ "--normal", "-n", 1 },
 	{ "--invert", "-i", 1 },
-	{ "--eat", "-e", 1 },
-	{ "--long", 0, 0 },
-	{ 0, "-s", 0 },
+	{ "--button", "-b", 1 },
+	{ "--rotary", "-r", 1 },
 	{ 0, 0, 0 },
 };
 
-enum { HELP_OPT, VERBOSE_OPT, NORMAL_OPT, INVERT_OPT, EAT_OPT, LONG_OPT, SHORT_OPT };
+enum { HELP_OPT, VERBOSE_OPT, DEVICE_OPT, LIST_OPT, NORMAL_OPT, INVERT_OPT, BUTTON_OPT, ROTARY_OPT };
 
 
 int option_handler(int index, const char *arg)
 {
-	cerr << "\033[33m";
 	switch (index) {
-	case HELP_OPT: cerr << "Help!" << endl; break;
+	case HELP_OPT:
+		cerr << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
+		exit(0);
+		break;
 	case VERBOSE_OPT: cerr << "Verbose!" << endl; break;
+	case DEVICE_OPT: cerr << "select device " << arg << endl; break;
+	case LIST_OPT: cerr << "show device list" << endl; break;
 	case NORMAL_OPT: cerr << "set axis " << arg << " to normal" << endl; break;
 	case INVERT_OPT: cerr << "set axis " << arg << " to inverted" << endl; break;
-	case EAT_OPT: cerr << "Eating " << arg << endl; break;
-	case LONG_OPT: cerr << "long" << endl; break;
-	case SHORT_OPT: cerr << "short" << endl; break;
+	case BUTTON_OPT: cerr << "set up button " << arg << " for button function" << endl; break;
+	case ROTARY_OPT: cerr << "set up button " << arg << " for rotary switch" << endl; break;
 
-	case OPTIONS_TERMINATOR: cerr << "... ------!!------\033[m" << endl; return OPTIONS_ABORT; break;
-	case OPTIONS_ARGUMENT: cerr << "\033[33;1mARG: " << arg << endl; break;
+	case OPTIONS_TERMINATOR: break;
+	case OPTIONS_ARGUMENT: cerr << "\033[33;1mARG: " << arg << "\033[m" << endl; break;
 
-	case OPTIONS_UNKNOWN_OPTION: cerr << "... Unknown Option " << arg << endl; break;
-	case OPTIONS_EXCESS_ARGUMENT: cerr << "... eeew: " << arg << endl; break;
-	case OPTIONS_MISSING_ARGUMENT: cerr << "... missing arg for " << arg << endl; break;
-	default: cerr << "\033[31;1mOPTIONS BUG! " << index << "/" << arg << "\033[m" << endl; break;
+	case OPTIONS_EXCESS_ARGUMENT: cerr << "Ignoring assignment " << arg << endl; break;
+	case OPTIONS_UNKNOWN_OPTION: cerr << "Unknown Option " << arg << endl; return OPTIONS_ABORT;
+	case OPTIONS_MISSING_ARGUMENT: cerr << "Missing arg for " << arg << endl; return OPTIONS_ABORT;
+	default: cerr << "\033[31;1mThis can't happen: " << index << "/" << arg << "\033[m" << endl; return OPTIONS_ABORT;
 	}
-	cerr << "\033[m";
 	return OPTIONS_CONTINUE;
 }
 
 
 int main(int argc, const char *argv[])
 {
+	//bu0836a usb;
 	int next = parse_options(argc, argv, options, option_handler);
 
 	for (int i = next; i < argc; i++)
 		cerr << "\033[32mARG: " << argv[i] << "\033[m" << endl;
 
-	//bu0836a usb;
 	return 0;
 }
