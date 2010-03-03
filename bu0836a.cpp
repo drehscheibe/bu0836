@@ -1,11 +1,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
-#include <libusb.h>
-#include <stdlib.h>
+#include <sstream>
 #include <vector>
 
+#include <libusb.h>
 #include "options.h"
 
 using namespace std;
@@ -36,6 +37,84 @@ static const char *usb_perror(int errno)
 }
 
 
+static string strip(string s)
+{
+	const char space[] = " \t\n\r\b";
+	string::size_type start = s.find_first_not_of(space, 0);
+	string::size_type end = s.find_last_not_of(space, string::npos);
+	return start == string::npos || end == string::npos ? "" : s.substr(start, end - start + 1);
+}
+
+
+class controller {
+public:
+	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc) :
+		_handle(handle),
+		_device(device),
+		_desc(desc)
+	{
+		ostringstream s;
+		s << int(libusb_get_bus_number(_device)) << ":" << int(libusb_get_device_address(_device));
+		_bus_address = s.str();
+
+		s.str("");
+		s << hex << setw(4) << setfill('0') << _desc.idVendor << ':' << setw(4) << setfill('0') << _desc.idProduct;
+		_id = s.str();
+
+		char release[6];
+		BCD2STR(release, desc.bcdDevice);
+		_release = string(release);
+
+		unsigned char buf[256];
+		if (desc.iManufacturer && libusb_get_string_descriptor_ascii(_handle, desc.iManufacturer, buf, sizeof(buf)) > 0)
+			_manufacturer = strip(string((char *)buf));
+
+		if (desc.iProduct && libusb_get_string_descriptor_ascii(_handle, desc.iProduct, buf, sizeof(buf)) > 0)
+			_product = strip(string((char *)buf));
+
+		if (desc.iSerialNumber && libusb_get_string_descriptor_ascii(_handle, desc.iSerialNumber, buf, sizeof(buf)) > 0)
+			_serial = strip(string((char *)buf));
+
+		_jsid = _manufacturer;
+		if (!_manufacturer.empty() && !_product.empty())
+			_jsid += " ";
+		_jsid += _product;
+		if (!_jsid.empty() && !_serial.empty())
+			_jsid += " ";
+		_jsid += _serial;
+		print_info();
+	}
+
+	~controller() {
+		libusb_close(_handle);
+	}
+
+	void print_info() const {
+		cout << _bus_address
+				<< "  " << _id
+				<< "  version = '" << _release << '\''
+				<< "  class = " << int(_desc.bDeviceClass)    // must be LIBUSB_CLASS_HID = 3
+				<< "  manu = '" << _manufacturer << '\''
+				<< "  prod = '" << _product << '\''
+				<< "  serial = '" << _serial << '\''
+				<< "  jsid = '" << _jsid << '\''
+				<< endl;
+	}
+
+private:
+	string _bus_address;
+	string _id;
+	string _release;
+	string _manufacturer;
+	string _product;
+	string _serial;
+	string _jsid;
+	libusb_device_handle *_handle;
+	libusb_device *_device;
+	libusb_device_descriptor _desc;
+};
+
+
 class bu0836a {
 public:
 	bu0836a(int debug_level = 3) {
@@ -46,7 +125,6 @@ public:
 
 		libusb_device **list;
 		for (int i = 0; i < libusb_get_device_list(0, &list); i++) {
-			cerr << "#" << i << ":" << endl;
 			libusb_device_handle *handle;
 			int ret = libusb_open(list[i], &handle);
 
@@ -61,50 +139,30 @@ public:
 			ret = libusb_get_device_descriptor(dev, &desc);
 			if (ret) {
 				cerr << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
+			} else if (desc.idVendor == _vendor) {
+				_devices.push_back(new controller(handle, dev, desc));
 			} else {
-				char release[6];
-				BCD2STR(release, desc.bcdDevice);
-				cerr
-						<< "\t" << 0+libusb_get_bus_number(dev) << ":" << 0+libusb_get_device_address(dev)
-						<< "\tvendor = " << desc.idVendor
-						<< "\tproduct = " << desc.idProduct
-						<< "\tversion = " << release
-						<< "\tserial = " << 0 + desc.iSerialNumber
-						<< endl;
-
-				unsigned char buf[256];
-#define STRING(x) libusb_get_string_descriptor_ascii(handle, desc.i##x, buf, sizeof(buf))
-				if (desc.iManufacturer && STRING(Manufacturer) > 0)
-					cerr << "\tmanufacturer = " << buf << endl;
-
-				if (desc.iProduct && STRING(Product) > 0)
-					cerr << "\tproduct = " << buf << endl;
-
-				if (desc.iSerialNumber && STRING(SerialNumber) > 0)
-					cerr << "\tserial number = " << buf << endl;
-#undef STRING
-				if (desc.idVendor == _vendor && desc.idProduct == _product) {
-					cerr << "\t\tFOUND" << endl;
-					_devices.push_back(list[i]);
-				}
+				libusb_close(handle);
 			}
-
-			libusb_close(handle);
 		}
 		libusb_free_device_list(list, 1);
 	}
 
 	~bu0836a()
 	{
+		vector<controller *>::const_iterator it, end = _devices.end();
+		for (it = _devices.begin(); it != end; ++it)
+			delete *it;
 		libusb_exit(0);
 	}
 
-private:
-	static const int _vendor = 0x1130;
-	static const int _product = 0xf211;
-	vector<libusb_device *> _devices;
-};
+	vector<controller *> &devices() { return _devices; }
 
+private:
+	static const int _vendor = 0x1d6b;
+	static const int _product = 0xf211;
+	vector<controller *> _devices;
+};
 
 
 struct Options options[] = {
@@ -151,7 +209,7 @@ int option_handler(int index, const char *arg)
 
 int main(int argc, const char *argv[])
 {
-	//bu0836a usb;
+	bu0836a usb;
 	int next = parse_options(argc, argv, options, option_handler);
 
 	for (int i = next; i < argc; i++)
