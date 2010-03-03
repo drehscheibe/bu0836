@@ -8,8 +8,8 @@ int parse_options(int argc, const char *argv[], struct Options *options, int (*h
 	char buf[3] = "-?";
 	int index, found;
 
-	if (argc < 1)
-		return 1;
+	if (argc < 2)
+		return argc;
 
 	for (index = 1; index < argc || *aggregate; ) {
 		struct Options *opt = options;
@@ -38,6 +38,7 @@ int parse_options(int argc, const char *argv[], struct Options *options, int (*h
 		}
 
 		for (found = 0; opt->long_opt || opt->short_opt; opt++, found++) {
+			int len;
 			if (opt->short_opt && !strcmp(opt->short_opt, arg)) {
 				if (opt->has_arg) {
 					if (*aggregate) {
@@ -48,7 +49,7 @@ int parse_options(int argc, const char *argv[], struct Options *options, int (*h
 					}
 				}
 				break;
-			} else if (opt->long_opt && !strncmp(opt->long_opt, arg, strlen(opt->long_opt)) && arg[strlen(opt->long_opt)] == '=') {
+			} else if (opt->long_opt && !strncmp(opt->long_opt, arg, len = strlen(opt->long_opt)) && arg[len] == '=') {
 				if (opt->has_arg)
 					optarg = arg + strlen(opt->long_opt) + 1;
 				else if (handler(OPTIONS_EXCESS_ARGUMENT, arg) == OPTIONS_ABORT)
@@ -81,7 +82,7 @@ int parse_options(int argc, const char *argv[], struct Options *options, int (*h
 			return OPTIONS_ABORT;
 	}
 
-	if (!strcmp(arg, "--") && handler(OPTIONS_TERMINATOR, 0) == OPTIONS_CONTINUE) {
+	if (!strcmp(arg, "--") && handler(OPTIONS_TERMINATOR, arg) == OPTIONS_CONTINUE) {
 		while (index < argc && handler(OPTIONS_ARGUMENT, argv[index]) == OPTIONS_CONTINUE)
 			index++;
 	}

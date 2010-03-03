@@ -9,6 +9,11 @@
 #define OPTIONS_MISSING_ARGUMENT -4
 #define OPTIONS_UNKNOWN_OPTION -5
 
+/*
+   An option hander gets the index of an entry in the options struc array or a negative signal,
+   and an optional argument. The hander returns OPTIONS_CONTINUE or OPTIONS_ABORT.
+*/
+
 
 struct Options {
 	const char *long_opt;
