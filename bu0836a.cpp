@@ -93,7 +93,6 @@ public:
 		cout << _bus_address
 				<< "  " << _id
 				<< "  version = '" << _release << '\''
-				<< "  class = " << int(_desc.bDeviceClass)    // must be LIBUSB_CLASS_HID = 3
 				<< "  manu = '" << _manufacturer << '\''
 				<< "  prod = '" << _product << '\''
 				<< "  serial = '" << _serial << '\''
@@ -137,13 +136,12 @@ public:
 
 			libusb_device_descriptor desc;
 			ret = libusb_get_device_descriptor(dev, &desc);
-			if (ret) {
+			if (ret)
 				cerr << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
-			} else if (desc.idVendor == _vendor) {
+			else if (libusb_cpu_to_le16(desc.idVendor) == _vendor && libusb_cpu_to_le16(desc.idProduct) == _product)
 				_devices.push_back(new controller(handle, dev, desc));
-			} else {
+			else
 				libusb_close(handle);
-			}
 		}
 		libusb_free_device_list(list, 1);
 	}
@@ -159,8 +157,8 @@ public:
 	vector<controller *> &devices() { return _devices; }
 
 private:
-	static const int _vendor = 0x1d6b;
-	static const int _product = 0xf211;
+	static const int _vendor = 0x16c0;
+	static const int _product = 0x05ba;
 	vector<controller *> _devices;
 };
 
