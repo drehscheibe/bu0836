@@ -213,7 +213,7 @@ try {
 		{ "--invert", "-i", 1 },
 		{ "--button", "-b", 1 },
 		{ "--rotary", "-r", 1 },
-		{ 0, 0, 0 },
+		OPTIONS_LAST
 	};
 
 	int option;

@@ -1,6 +1,7 @@
 /*
 Syntax:
-	-h --help     ... short and long option
+
+	-v --verbose  ... short and long option
 	-v -vvv       ... single and aggregate short option (equivalent to -v -v -v -v)
 	-d foo        ... short option with argument
 	-dfoo         ... same
@@ -9,16 +10,19 @@ Syntax:
 	--device foo  ... same
 	--device=     ... long option with empty argument
 	--device ""   ... same
+	--device=""   ... not the same! Interpreted as --device '""'!
+	--            ... terminates option parsing; remaining elements are treated as argument
+	-             ... argument '-'
 
 
 Example:
 
-	static const struct command_line_option options {
+	const struct command_line_option options {
 		{ "--help", "-h", 0 },
 		{ "--file", -f", 1 },                   // takes argument
-		{ "--long", 0, 0 },                     // only long option
-		{ 0, "-s", 0 },                         // only short option
-		{ 0, 0, 0 },                            // mandatory last entry
+		{ "--long", 0, 0 },                     // only long option available
+		{ 0, "-s", 0 },                         // only short option available
+		OPTIONS_LAST                            // mandatory last entry
 	};
 
 	int opt;
@@ -46,6 +50,8 @@ Example:
 #define OPTIONS_EXCESS_ARGUMENT -4
 #define OPTIONS_MISSING_ARGUMENT -5
 #define OPTIONS_UNKNOWN_OPTION -6
+
+#define OPTIONS_LAST { 0, 0, 0 }
 
 
 struct command_line_option {
