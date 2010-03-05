@@ -14,6 +14,12 @@ using namespace std;
 
 #define BCD2STR(s, n) snprintf(s, 6, "%x%x:%x%x", (n >> 12) & 0xf, (n >> 8) & 0xf, (n >> 4) & 0xf, n & 0xf)
 
+void help(void)
+{
+	cerr << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
+	exit(EXIT_SUCCESS);
+}
+
 
 static const char *usb_perror(int errno)
 {
@@ -163,7 +169,7 @@ private:
 };
 
 
-struct Options options[] = {
+struct command_line_option options[] = {
 	{ "--help", "-h", 0 },
 	{ "--verbose", "-v", 0 },
 	{ "--device", "-d", 1 },
@@ -178,40 +184,73 @@ struct Options options[] = {
 enum { HELP_OPT, VERBOSE_OPT, DEVICE_OPT, LIST_OPT, NORMAL_OPT, INVERT_OPT, BUTTON_OPT, ROTARY_OPT };
 
 
-int option_handler(int index, const char *arg)
-{
-	switch (index) {
-	case HELP_OPT:
-		cerr << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
-		exit(0);
-		break;
-	case VERBOSE_OPT: cerr << "Verbose!" << endl; break;
-	case DEVICE_OPT: cerr << "select device " << arg << endl; break;
-	case LIST_OPT: cerr << "show device list" << endl; break;
-	case NORMAL_OPT: cerr << "set axis " << arg << " to normal" << endl; break;
-	case INVERT_OPT: cerr << "set axis " << arg << " to inverted" << endl; break;
-	case BUTTON_OPT: cerr << "set up button " << arg << " for button function" << endl; break;
-	case ROTARY_OPT: cerr << "set up button " << arg << " for rotary switch" << endl; break;
-
-	case OPTIONS_TERMINATOR: break;
-	case OPTIONS_ARGUMENT: cerr << "\033[33;1mARG: " << arg << "\033[m" << endl; break;
-
-	case OPTIONS_EXCESS_ARGUMENT: cerr << "Ignoring assignment " << arg << endl; break;
-	case OPTIONS_UNKNOWN_OPTION: cerr << "Unknown Option " << arg << endl; return OPTIONS_ABORT;
-	case OPTIONS_MISSING_ARGUMENT: cerr << "Missing arg for " << arg << endl; return OPTIONS_ABORT;
-	default: cerr << "\033[31;1mThis can't happen: " << index << "/" << arg << "\033[m" << endl; return OPTIONS_ABORT;
-	}
-	return OPTIONS_CONTINUE;
-}
-
-
 int main(int argc, const char *argv[])
 {
+	int option;
+	struct option_parser_data data;
+
+	init_options_parser(&data, argc, argv, options);
+	while ((option = get_option(&data)) != OPTIONS_DONE)
+		if (option == HELP_OPT)
+			help();
+
 	bu0836a usb;
-	int next = parse_options(argc, argv, options, option_handler);
+	init_options_parser(&data, argc, argv, options);
+	while ((option = get_option(&data)) != OPTIONS_DONE) {
+		switch (option) {
+		case HELP_OPT:
+		case OPTIONS_TERMINATOR:
+			break;
 
-	for (int i = next; i < argc; i++)
-		cerr << "\033[32mARG: " << argv[i] << "\033[m" << endl;
+		case VERBOSE_OPT:
+			cerr << "Verbose!" << endl;
+			break;
 
-	return 0;
+		case DEVICE_OPT:
+			cerr << "select device '" << data.argument << '\'' << endl;
+			break;
+
+		case LIST_OPT:
+			cerr << "show device list" << endl;
+			break;
+
+		case NORMAL_OPT:
+			cerr << "set axis " << data.argument << " to normal" << endl;
+			break;
+
+		case INVERT_OPT:
+			cerr << "set axis " << data.argument << " to inverted" << endl;
+			break;
+
+		case BUTTON_OPT:
+			cerr << "set up button " << data.argument << " for button function" << endl;
+			break;
+
+		case ROTARY_OPT:
+			cerr << "set up button " << data.argument << " for rotary switch" << endl;
+			break;
+
+		case OPTIONS_ARGUMENT:
+			cerr << "\033[33;1mARG: " << data.option << "\033[m" << endl;
+			break;
+
+		case OPTIONS_EXCESS_ARGUMENT:
+			cerr << "illegal option assignment " << data.argument << endl;
+			return EXIT_FAILURE;
+
+		case OPTIONS_UNKNOWN_OPTION:
+			cerr << "Unknown Option " << data.option << endl;
+			return EXIT_FAILURE;
+
+		case OPTIONS_MISSING_ARGUMENT:
+			cerr << "Missing arg for " << data.option << endl;
+			return EXIT_FAILURE;
+
+		default:
+			cerr << "\033[31;1mThis can't happen: " << option << "/" << data.option << "\033[m" << endl;
+			return EXIT_FAILURE;
+		}
+	}
+
+	return EXIT_SUCCESS;
 }
