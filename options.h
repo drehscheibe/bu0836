@@ -31,7 +31,7 @@ struct option_parser_data {
 };
 
 
-void init_options_parser(struct option_parser_data *data, int argc, const char *argv[],
+void init_option_parser(struct option_parser_data *data, int argc, const char *argv[],
 		const struct command_line_option *options);
 
 int get_option(struct option_parser_data *data);

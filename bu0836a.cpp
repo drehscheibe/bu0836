@@ -14,6 +14,7 @@ using namespace std;
 
 #define BCD2STR(s, n) snprintf(s, 6, "%x%x:%x%x", (n >> 12) & 0xf, (n >> 8) & 0xf, (n >> 4) & 0xf, n & 0xf)
 
+
 void help(void)
 {
 	cerr << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
@@ -207,7 +208,7 @@ int main(int argc, const char *argv[])
 	int option;
 	struct option_parser_data data;
 
-	init_options_parser(&data, argc, argv, options);
+	init_option_parser(&data, argc, argv, options);
 	while ((option = get_option(&data)) != OPTIONS_DONE)
 		if (option == HELP_OPT)
 			help();
@@ -215,7 +216,7 @@ int main(int argc, const char *argv[])
 	bu0836a usb;
 	controller *selected = 0;
 
-	init_options_parser(&data, argc, argv, options);
+	init_option_parser(&data, argc, argv, options);
 	while ((option = get_option(&data)) != OPTIONS_DONE) {
 		switch (option) {
 		case HELP_OPT:
