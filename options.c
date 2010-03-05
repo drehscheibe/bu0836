@@ -7,22 +7,19 @@ void init_option_parser(struct option_parser_data *data, int argc, const char *a
 {
 	data->argc = argc;
 	data->argv = argv;
-	data->index = 1;
 	data->options = options;
-	data->option = "";
-	data->argument = "";
-	data->aggregate = "";
-	strcpy(data->buf, "- ");
+	data->index = 1;
+	data->option = data->argument = data->aggregate = "";
+	data->buf[0] = '-', data->buf[1] = ' ', data->buf[2] = '\0';
 }
 
 
 int get_option(struct option_parser_data *data)
 {
 	const struct command_line_option *opt;
-	int grab_arg;
-	int found;
+	int grab_arg, found;
 
-	data->buf[1] = ' ';
+	data->argument = "";
 
 	if (data->argc < 2)
 		return OPTIONS_DONE;
@@ -44,12 +41,15 @@ int get_option(struct option_parser_data *data)
 		if (data->option[0] != '-')
 			return OPTIONS_ARGUMENT;
 
-		if (!strcmp(data->option, "--")) {
-			data->buf[1] = '-';
-			return OPTIONS_TERMINATOR;
-		}
+		if (!data->option[1])
+			return OPTIONS_ARGUMENT;
 
-		if (data->option[0] == '-' && (data->option[1] && data->option[1] != '-')) {
+		if (data->option[1] == '-') {
+			if (!data->option[2]) {
+				data->buf[1] = '-';
+				return OPTIONS_TERMINATOR;
+			}
+		} else {
 			data->aggregate = &data->option[1];
 			return get_option(data);
 		}
@@ -67,13 +67,17 @@ int get_option(struct option_parser_data *data)
 				}
 			}
 			break;
+
 		} else if (opt->long_opt && !strncmp(opt->long_opt, data->option, len = strlen(opt->long_opt))
 				&& data->option[len] == '=') {
-			if (opt->has_arg)
+			if (opt->has_arg) {
 				data->argument = data->option + strlen(opt->long_opt) + 1;
-			else
+				data->option = opt->long_opt;
+			} else {
 				return OPTIONS_EXCESS_ARGUMENT;
+			}
 			break;
+
 		} else if (opt->long_opt && !strcmp(opt->long_opt, data->option)) {
 			if (opt->has_arg)
 				grab_arg = 1;
