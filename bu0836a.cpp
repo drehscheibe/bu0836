@@ -12,9 +12,6 @@
 using namespace std;
 
 
-#define BCD2STR(s, n) snprintf(s, 6, "%x%x.%x%x", (n >> 12) & 0xf, (n >> 8) & 0xf, (n >> 4) & 0xf, n & 0xf)
-
-
 
 void help(void)
 {
@@ -56,6 +53,15 @@ static const char *usb_perror(int errno)
 
 
 
+static string bcd2str(int n)
+{
+	ostringstream o;
+	o << hex << ((n >> 12) & 0xf) << ((n >> 8) & 0xf) << '.' << ((n >> 4) & 0xf) << (n & 0xf);
+	return o.str();
+}
+
+
+
 static string strip(string s)
 {
 	const char space[] = " \t\n\r\b";
@@ -81,9 +87,7 @@ public:
 		s << hex << setw(4) << setfill('0') << _desc.idVendor << ':' << setw(4) << setfill('0') << _desc.idProduct;
 		_id = s.str();
 
-		char release[6];
-		BCD2STR(release, desc.bcdDevice);
-		_release = string(release);
+		_release = bcd2str(desc.bcdDevice);
 
 		unsigned char buf[256];
 		if (desc.iManufacturer && libusb_get_string_descriptor_ascii(_handle, desc.iManufacturer, buf, sizeof(buf)) > 0)
