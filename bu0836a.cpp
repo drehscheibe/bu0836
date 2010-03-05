@@ -88,12 +88,14 @@ public:
 		if (!_jsid.empty() && !_serial.empty())
 			_jsid += " ";
 		_jsid += _serial;
-		print_info();
 	}
 
 	~controller() {
 		libusb_close(_handle);
 	}
+
+	const string &bus_address() const { return _bus_address; }
+	const string &jsid() const { return _jsid; }
 
 	void print_info() const {
 		cout << _bus_address
@@ -160,6 +162,22 @@ public:
 		libusb_exit(0);
 	}
 
+	void print_list() const
+	{
+		vector<controller *>::const_iterator it, end = _devices.end();
+		for (it = _devices.begin(); it != end; ++it)
+			(*it)->print_info();
+	}
+
+	controller *select(string which)
+	{
+		vector<controller *>::const_iterator it, end = _devices.end();
+		for (it = _devices.begin(); it != end; ++it)
+			if ((*it)->bus_address() == which)
+				return *it;
+		return 0;
+	}
+
 	vector<controller *> &devices() { return _devices; }
 
 private:
@@ -195,6 +213,8 @@ int main(int argc, const char *argv[])
 			help();
 
 	bu0836a usb;
+	controller *selected = 0;
+
 	init_options_parser(&data, argc, argv, options);
 	while ((option = get_option(&data)) != OPTIONS_DONE) {
 		switch (option) {
@@ -207,11 +227,15 @@ int main(int argc, const char *argv[])
 			break;
 
 		case DEVICE_OPT:
-			cerr << "select device '" << data.argument << '\'' << endl;
+			selected = usb.select(data.argument);
+			if (selected)
+				cerr << "select device '" << selected->jsid() << '\'' << endl;
+			else
+				cerr << "there's no device with bus address '" << data.argument << '\'' << endl;
 			break;
 
 		case LIST_OPT:
-			cerr << "show device list" << endl;
+			usb.print_list();
 			break;
 
 		case NORMAL_OPT:
