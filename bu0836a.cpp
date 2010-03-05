@@ -12,7 +12,8 @@
 using namespace std;
 
 
-#define BCD2STR(s, n) snprintf(s, 6, "%x%x:%x%x", (n >> 12) & 0xf, (n >> 8) & 0xf, (n >> 4) & 0xf, n & 0xf)
+#define BCD2STR(s, n) snprintf(s, 6, "%x%x.%x%x", (n >> 12) & 0xf, (n >> 8) & 0xf, (n >> 4) & 0xf, n & 0xf)
+
 
 
 void help(void)
@@ -20,6 +21,16 @@ void help(void)
 	cerr << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
 	exit(EXIT_SUCCESS);
 }
+
+
+
+class config {
+public:
+	static int verbosity;
+};
+
+int config::verbosity = 1;
+
 
 
 static const char *usb_perror(int errno)
@@ -44,6 +55,7 @@ static const char *usb_perror(int errno)
 }
 
 
+
 static string strip(string s)
 {
 	const char space[] = " \t\n\r\b";
@@ -51,6 +63,7 @@ static string strip(string s)
 	string::size_type end = s.find_last_not_of(space, string::npos);
 	return start == string::npos || end == string::npos ? "" : s.substr(start, end - start + 1);
 }
+
 
 
 class controller {
@@ -97,17 +110,8 @@ public:
 
 	const string &bus_address() const { return _bus_address; }
 	const string &jsid() const { return _jsid; }
-
-	void print_info() const {
-		cout << _bus_address
-				<< "  " << _id
-				<< "  version = '" << _release << '\''
-				<< "  manu = '" << _manufacturer << '\''
-				<< "  prod = '" << _product << '\''
-				<< "  serial = '" << _serial << '\''
-				<< "  jsid = '" << _jsid << '\''
-				<< endl;
-	}
+	const string &serial() const { return _serial; }
+	void print_info() const { cout << _bus_address << "   \"" << _jsid << '"' << "   ver " << _release << endl; }
 
 private:
 	string _bus_address;
@@ -123,12 +127,13 @@ private:
 };
 
 
+
 class bu0836a {
 public:
 	bu0836a(int debug_level = 3) {
 		int ret = libusb_init(0);
 		if (ret)
-			throw;
+			throw string("libusb_init: ") + usb_perror(ret);
 		libusb_set_debug(0, 3);
 
 		libusb_device **list;
@@ -147,7 +152,7 @@ public:
 			ret = libusb_get_device_descriptor(dev, &desc);
 			if (ret)
 				cerr << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
-			else if (libusb_cpu_to_le16(desc.idVendor) == _vendor && libusb_cpu_to_le16(desc.idProduct) == _product)
+			else if (desc.idVendor == _vendor && desc.idProduct == _product)
 				_devices.push_back(new controller(handle, dev, desc));
 			else
 				libusb_close(handle);
@@ -170,16 +175,20 @@ public:
 			(*it)->print_info();
 	}
 
-	controller *select(string which)
+	int find(string which, controller **ctrl) const
 	{
+		int num = 0;
 		vector<controller *>::const_iterator it, end = _devices.end();
-		for (it = _devices.begin(); it != end; ++it)
-			if ((*it)->bus_address() == which)
-				return *it;
-		return 0;
+		for (it = _devices.begin(); it != end; ++it) {
+			if ((*it)->serial().find(which) != string::npos) {
+				*ctrl = *it;
+				num++;
+			}
+		}
+		if (num != 1)
+			*ctrl = 0;
+		return num;
 	}
-
-	vector<controller *> &devices() { return _devices; }
 
 private:
 	static const int _vendor = 0x16c0;
@@ -188,29 +197,31 @@ private:
 };
 
 
-struct command_line_option options[] = {
-	{ "--help", "-h", 0 },
-	{ "--verbose", "-v", 0 },
-	{ "--device", "-d", 1 },
-	{ "--list", "-l", 0 },
-	{ "--normal", "-n", 1 },
-	{ "--invert", "-i", 1 },
-	{ "--button", "-b", 1 },
-	{ "--rotary", "-r", 1 },
-	{ 0, 0, 0 },
-};
-
-enum { HELP_OPT, VERBOSE_OPT, DEVICE_OPT, LIST_OPT, NORMAL_OPT, INVERT_OPT, BUTTON_OPT, ROTARY_OPT };
 
 
 int main(int argc, const char *argv[])
-{
+try {
+	enum { HELP_OPTION, VERBOSE_OPTION, DEVICE_OPTION, LIST_OPTION, NORMAL_OPTION, INVERT_OPTION,
+			BUTTON_OPTION, ROTARY_OPTION };
+
+	const struct command_line_option options[] = {
+		{ "--help", "-h", 0 },
+		{ "--verbose", "-v", 0 },
+		{ "--device", "-d", 1 },
+		{ "--list", "-l", 0 },
+		{ "--normal", "-n", 1 },
+		{ "--invert", "-i", 1 },
+		{ "--button", "-b", 1 },
+		{ "--rotary", "-r", 1 },
+		{ 0, 0, 0 },
+	};
+
 	int option;
 	struct option_parser_data data;
 
 	init_option_parser(&data, argc, argv, options);
 	while ((option = get_option(&data)) != OPTIONS_DONE)
-		if (option == HELP_OPT)
+		if (option == HELP_OPTION)
 			help();
 
 	bu0836a usb;
@@ -219,40 +230,45 @@ int main(int argc, const char *argv[])
 	init_option_parser(&data, argc, argv, options);
 	while ((option = get_option(&data)) != OPTIONS_DONE) {
 		switch (option) {
-		case HELP_OPT:
-		case OPTIONS_TERMINATOR:
+		case VERBOSE_OPTION:
+			config::verbosity++;
 			break;
 
-		case VERBOSE_OPT:
-			cerr << "Verbose!" << endl;
-			break;
-
-		case DEVICE_OPT:
-			selected = usb.select(data.argument);
-			if (selected)
-				cerr << "select device '" << selected->jsid() << '\'' << endl;
+		case DEVICE_OPTION: {
+			int num = usb.find(data.argument, &selected);
+			if (num == 1)
+				cerr << "selecting device '" << selected->serial() << '\'' << endl;
+			else if (num)
+				cerr << "ambiguous device specifier (" << num << " devices matching)" << endl;
 			else
-				cerr << "there's no device with bus address '" << data.argument << '\'' << endl;
+				cerr << "no matchin device found" << endl;
 			break;
+		}
 
-		case LIST_OPT:
+		case LIST_OPTION:
 			usb.print_list();
 			break;
 
-		case NORMAL_OPT:
+		case NORMAL_OPTION:
 			cerr << "set axis " << data.argument << " to normal" << endl;
 			break;
 
-		case INVERT_OPT:
+		case INVERT_OPTION:
 			cerr << "set axis " << data.argument << " to inverted" << endl;
 			break;
 
-		case BUTTON_OPT:
+		case BUTTON_OPTION:
 			cerr << "set up button " << data.argument << " for button function" << endl;
 			break;
 
-		case ROTARY_OPT:
+		case ROTARY_OPTION:
 			cerr << "set up button " << data.argument << " for rotary switch" << endl;
+			break;
+
+		case HELP_OPTION:
+
+		// signals and errors
+		case OPTIONS_TERMINATOR:
 			break;
 
 		case OPTIONS_ARGUMENT:
@@ -278,4 +294,8 @@ int main(int argc, const char *argv[])
 	}
 
 	return EXIT_SUCCESS;
+
+} catch (string &msg) {
+	cerr << "Error: " << msg << endl;
+	return EXIT_FAILURE;
 }
