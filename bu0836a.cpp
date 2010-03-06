@@ -14,7 +14,7 @@ using namespace std;
 
 
 
-void help(void)
+static void help(void)
 {
 	cout << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
 	cout << "        -h, --help           this help screen" << endl;
@@ -28,14 +28,6 @@ void help(void)
 	cout << "        -b, --button <n>     set button mode for given button (and its sibling)" << endl;
 	exit(EXIT_SUCCESS);
 }
-
-
-
-class nullbuf : public std::streambuf {
-protected:
-	virtual int_type overflow(int_type c) { return c; }
-} nb;
-ostream cnull(&nb);
 
 
 
@@ -53,9 +45,15 @@ int config::verbosity = 1;
 #define INFO 2
 #define BULK 3
 
-std::ostream& log(int log_level = ALWAYS, bool cond = true)
+namespace {
+	class nullbuf : public streambuf { } nb;
+	ostream cnull(&nb);
+}
+
+
+std::ostream& log(int log_level = ALWAYS, bool condition = true)
 {
-	return cond && log_level < config::verbosity ? cerr : cnull;
+	return condition && log_level < config::verbosity ? cerr : cnull;
 }
 
 
@@ -144,14 +142,12 @@ public:
 		int ret;
 		if (_claimed) {
 			ret = libusb_release_interface(_handle, INTERFACE);
-			if (ret < 0)
-				cerr << "libusb_release_interface: " << usb_perror(ret) << endl;
+			log(ALERT, ret < 0) << "libusb_release_interface: " << usb_perror(ret) << endl;
 		}
 
 		if (_kernel_detached) {
 			ret = libusb_attach_kernel_driver(_handle, INTERFACE);
-			if (ret < 0)
-				cerr << "libusb_attach_kernel_driver: " << usb_perror(ret) << endl;
+			log(ALERT, ret < 0) << "libusb_attach_kernel_driver: " << usb_perror(ret) << endl;
 		}
 
 		libusb_close(_handle);
@@ -162,7 +158,7 @@ public:
 		if (libusb_kernel_driver_active(_handle, INTERFACE)) {
 			ret = libusb_detach_kernel_driver(_handle, INTERFACE);
 			if (ret < 0) {
-				cerr << "libusb_detach_kernel_driver: " << usb_perror(ret) << endl;
+				log(ALERT) << "libusb_detach_kernel_driver: " << usb_perror(ret) << endl;
 				return ret;
 			}
 			_kernel_detached = true;
@@ -170,7 +166,7 @@ public:
 
 		ret = libusb_claim_interface(_handle, INTERFACE);
 		if (ret < 0) {
-			cerr << "libusb_claim_interface: " << usb_perror(ret) << endl;
+			log(ALERT) << "libusb_claim_interface: " << usb_perror(ret) << endl;
 			return ret;
 		}
 		_claimed = true;
@@ -186,23 +182,23 @@ public:
 		unsigned char buf[1024];
 		ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, sizeof(buf));
 		if (ret < 0) {
-			cerr << "hid-desc: " << usb_perror(ret) << endl;
+			log(ALERT) << "hid-desc: " << usb_perror(ret) << endl;
 		} else {
 			usb_hid_descriptor *hid = (usb_hid_descriptor *)buf;
-			cerr << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
+			log(INFO) << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
 			for (int n = 0; n < int(hid->bNumDescriptors); n++)
-				cerr << "\t" << int(hid->descriptors[n].bDescriptorType) << " / "
+				log(INFO) << "\t" << int(hid->descriptors[n].bDescriptorType) << " / "
 						<< hex << int(libusb_le16_to_cpu(hid->descriptors[n].wDescriptorLength)) << endl;
 		}
 
 		// get HID report descriptor
 		int len;
 		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN|1, buf, sizeof(buf), &len, 100 /* ms */);
-		cerr << "transfer: " << usb_perror(ret) << ", " << len << endl;
+		log(ALERT, ret < 0) << "transfer: " << usb_perror(ret) << ", " << len << endl;
 
 		for (int i = 0; i < len; i++)
-			cerr << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
-		cerr << dec << endl;
+			log(ALWAYS) << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
+		log(ALWAYS) << dec << endl;
 
 		return ret;
 	}
@@ -245,7 +241,7 @@ public:
 			int ret = libusb_open(list[i], &handle);
 
 			if (ret) {
-				cerr << "\terror: libusb_open: " << usb_perror(ret) << endl;
+				log(ALERT) << "\terror: libusb_open: " << usb_perror(ret) << endl;
 				continue;
 			}
 
@@ -254,7 +250,7 @@ public:
 			libusb_device_descriptor desc;
 			ret = libusb_get_device_descriptor(dev, &desc);
 			if (ret)
-				cerr << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
+				log(ALERT) << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
 			else if (desc.idVendor == _vendor && desc.idProduct == _product)
 				_devices.push_back(new controller(handle, dev, desc));
 			else
@@ -349,11 +345,11 @@ try {
 		case DEVICE_OPTION: {
 			int num = usb.find(data.argument, &selected);
 			if (num == 1)
-				cerr << "selecting device '" << selected->serial() << '\'' << endl;
+				log(INFO) << "selecting device '" << selected->serial() << '\'' << endl;
 			else if (num)
-				cerr << "ambiguous device specifier (" << num << " devices matching)" << endl;
+				log(ALERT) << "ambiguous device specifier (" << num << " devices matching)" << endl;
 			else
-				cerr << "no matchin device found" << endl;
+				log(ALERT) << "no matching device found" << endl;
 			break;
 		}
 
@@ -362,30 +358,30 @@ try {
 			break;
 
 		case MONITOR_OPTION:
-			cerr << "monitoring" << endl;
+			log(INFO) << "monitoring" << endl;
 			if (selected)
 				selected->get_data();
 			else
-				cerr << "no device selected" << endl;
+				log(ALERT) << "no device selected" << endl;
 			break;
 
 		case NORMAL_OPTION:
-			cerr << "setting axis " << data.argument << " to normal" << endl;
+			log(INFO) << "setting axis " << data.argument << " to normal" << endl;
 			break;
 
 		case INVERT_OPTION:
 			if (selected)
-				cerr << "setting axis " << data.argument << " to inverted" << endl;
+				log(INFO) << "setting axis " << data.argument << " to inverted" << endl;
 			else
-				cerr << "you have to select a device first" << endl;
+				log(ALERT) << "you have to select a device first" << endl;
 			break;
 
 		case BUTTON_OPTION:
-			cerr << "setting up button " << data.argument << " for button function" << endl;
+			log(INFO) << "setting up button " << data.argument << " for button function" << endl;
 			break;
 
 		case ROTARY_OPTION:
-			cerr << "setting up button " << data.argument << " for rotary switch" << endl;
+			log(INFO) << "setting up button " << data.argument << " for rotary switch" << endl;
 			break;
 
 		case HELP_OPTION:
@@ -395,23 +391,23 @@ try {
 			break;
 
 		case OPTIONS_ARGUMENT:
-			cerr << "\033[33;1mARG: " << data.option << "\033[m" << endl;
+			log(ALERT) << "\033[33;1mARG: " << data.option << "\033[m" << endl;
 			break;
 
 		case OPTIONS_EXCESS_ARGUMENT:
-			cerr << "illegal option assignment " << data.argument << endl;
+			log(ALERT) << "illegal option assignment " << data.argument << endl;
 			return EXIT_FAILURE;
 
 		case OPTIONS_UNKNOWN_OPTION:
-			cerr << "Unknown Option " << data.option << endl;
+			log(ALERT) << "Unknown Option " << data.option << endl;
 			return EXIT_FAILURE;
 
 		case OPTIONS_MISSING_ARGUMENT:
-			cerr << "Missing arg for " << data.option << endl;
+			log(ALERT) << "Missing arg for " << data.option << endl;
 			return EXIT_FAILURE;
 
 		default:
-			cerr << "\033[31;1mThis can't happen: " << option << "/" << data.option << "\033[m" << endl;
+			log(ALERT) << "\033[31;1mThis can't happen: " << option << "/" << data.option << "\033[m" << endl;
 			return EXIT_FAILURE;
 		}
 	}
@@ -419,6 +415,6 @@ try {
 	return EXIT_SUCCESS;
 
 } catch (string &msg) {
-	cerr << "Error: " << msg << endl;
+	log(ALERT) << "Error: " << msg << endl;
 	return EXIT_FAILURE;
 }

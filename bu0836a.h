@@ -1,3 +1,9 @@
+#include <iostream>
+
+#define STRINGIZE(X) DO_STRINGIZE(X)
+#define DO_STRINGIZE(X) #X
+#define ORIGIN __FILE__":"STRINGIZE(__LINE__)
+
 
 struct usb_hid_descriptor {
 	uint8_t  bLength;		// 9
@@ -12,3 +18,4 @@ struct usb_hid_descriptor {
 };
 
 
+std::ostream& log(int log_level, bool condition);
