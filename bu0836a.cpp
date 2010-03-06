@@ -8,6 +8,7 @@
 
 #include <libusb.h>
 #include "options.h"
+#include "bu0836a.h"
 
 using namespace std;
 
@@ -15,7 +16,16 @@ using namespace std;
 
 void help(void)
 {
-	cerr << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
+	cout << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
+	cout << "        -h, --help           this help screen" << endl;
+	cout << "        -v, --verbose        increase verbosity level" << endl;
+	cout << "        -l, --list           list BU0836 controller devices" << endl;
+	cout << "        -m, --monitor        monitor device output" << endl;
+	cout << "        -d, --device <s>     select device by serial number (or unambiguous substring)" << endl;
+	cout << "        -i, --invert <n>     set inverted mode for given axis" << endl;
+	cout << "        -n, --normal <n>     set normal mode for given axis" << endl;
+	cout << "        -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
+	cout << "        -b, --button <n>     set button mode for given button (and its sibling)" << endl;
 	exit(EXIT_SUCCESS);
 }
 
@@ -64,9 +74,9 @@ static string bcd2str(int n)
 
 static string strip(string s)
 {
-	const char space[] = " \t\n\r\b";
-	string::size_type start = s.find_first_not_of(space, 0);
-	string::size_type end = s.find_last_not_of(space, string::npos);
+	const char spaces[] = " \t\n\r\b";
+	string::size_type start = s.find_first_not_of(spaces, 0);
+	string::size_type end = s.find_last_not_of(spaces, string::npos);
 	return start == string::npos || end == string::npos ? "" : s.substr(start, end - start + 1);
 }
 
@@ -77,7 +87,9 @@ public:
 	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc) :
 		_handle(handle),
 		_device(device),
-		_desc(desc)
+		_desc(desc),
+		_claimed(false),
+		_kernel_detached(false)
 	{
 		ostringstream s;
 		s << int(libusb_get_bus_number(_device)) << ":" << int(libusb_get_device_address(_device));
@@ -109,7 +121,70 @@ public:
 	}
 
 	~controller() {
+		int ret;
+		if (_claimed) {
+			ret = libusb_release_interface(_handle, INTERFACE);
+			if (ret < 0)
+				cerr << "libusb_release_interface: " << usb_perror(ret) << endl;
+		}
+
+		if (_kernel_detached) {
+			ret = libusb_attach_kernel_driver(_handle, INTERFACE);
+			if (ret < 0)
+				cerr << "libusb_attach_kernel_driver: " << usb_perror(ret) << endl;
+		}
+
 		libusb_close(_handle);
+	}
+
+	int claim() {
+		int ret;
+		if (libusb_kernel_driver_active(_handle, INTERFACE)) {
+			ret = libusb_detach_kernel_driver(_handle, INTERFACE);
+			if (ret < 0) {
+				cerr << "libusb_detach_kernel_driver: " << usb_perror(ret) << endl;
+				return ret;
+			}
+			_kernel_detached = true;
+		}
+
+		ret = libusb_claim_interface(_handle, INTERFACE);
+		if (ret < 0) {
+			cerr << "libusb_claim_interface: " << usb_perror(ret) << endl;
+			return ret;
+		}
+		_claimed = true;
+		return 0;
+	}
+
+	int get_data() {
+		int ret = claim();
+		if (ret)
+			return ret;
+
+		// get HID descriptor
+		unsigned char buf[1024];
+		ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, sizeof(buf));
+		if (ret < 0) {
+			cerr << "hid-desc: " << usb_perror(ret) << endl;
+		} else {
+			usb_hid_descriptor *hid = (usb_hid_descriptor *)buf;
+			cerr << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
+			for (int n = 0; n < int(hid->bNumDescriptors); n++)
+				cerr << "\t" << int(hid->descriptors[n].bDescriptorType) << " / "
+						<< hex << int(libusb_le16_to_cpu(hid->descriptors[n].wDescriptorLength)) << endl;
+		}
+
+		// get HID report descriptor
+		int len;
+		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN|1, buf, sizeof(buf), &len, 100 /* ms */);
+		cerr << "transfer: " << usb_perror(ret) << ", " << len << endl;
+
+		for (int i = 0; i < len; i++)
+			cerr << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
+		cerr << dec << endl;
+
+		return ret;
 	}
 
 	const string &bus_address() const { return _bus_address; }
@@ -128,6 +203,10 @@ private:
 	libusb_device_handle *_handle;
 	libusb_device *_device;
 	libusb_device_descriptor _desc;
+	bool _claimed;
+	bool _kernel_detached;
+
+	static const int INTERFACE = 0;
 };
 
 
@@ -194,6 +273,8 @@ public:
 		return num;
 	}
 
+	vector<controller *> &devices() { return _devices; }
+
 private:
 	static const int _vendor = 0x16c0;
 	static const int _product = 0x05ba;
@@ -205,14 +286,15 @@ private:
 
 int main(int argc, const char *argv[])
 try {
-	enum { HELP_OPTION, VERBOSE_OPTION, DEVICE_OPTION, LIST_OPTION, NORMAL_OPTION, INVERT_OPTION,
-			BUTTON_OPTION, ROTARY_OPTION };
+	enum { HELP_OPTION, VERBOSE_OPTION, DEVICE_OPTION, LIST_OPTION, MONITOR_OPTION, NORMAL_OPTION,
+			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION };
 
 	const struct command_line_option options[] = {
 		{ "--help", "-h", 0 },
 		{ "--verbose", "-v", 0 },
 		{ "--device", "-d", 1 },
 		{ "--list", "-l", 0 },
+		{ "--monitor", "-m", 0 },
 		{ "--normal", "-n", 1 },
 		{ "--invert", "-i", 1 },
 		{ "--button", "-b", 1 },
@@ -230,6 +312,12 @@ try {
 
 	bu0836a usb;
 	controller *selected = 0;
+
+	int numdev  = usb.devices().size();
+	if (numdev == 1)
+		selected = usb.devices()[0];
+	else if (!numdev)
+		throw string("no BU0836A found");
 
 	init_option_parser(&data, argc, argv, options);
 	while ((option = get_option(&data)) != OPTIONS_DONE) {
@@ -253,20 +341,31 @@ try {
 			usb.print_list();
 			break;
 
+		case MONITOR_OPTION:
+			cerr << "monitoring" << endl;
+			if (selected)
+				selected->get_data();
+			else
+				cerr << "no device selected" << endl;
+			break;
+
 		case NORMAL_OPTION:
-			cerr << "set axis " << data.argument << " to normal" << endl;
+			cerr << "setting axis " << data.argument << " to normal" << endl;
 			break;
 
 		case INVERT_OPTION:
-			cerr << "set axis " << data.argument << " to inverted" << endl;
+			if (selected)
+				cerr << "setting axis " << data.argument << " to inverted" << endl;
+			else
+				cerr << "you have to select a device first" << endl;
 			break;
 
 		case BUTTON_OPTION:
-			cerr << "set up button " << data.argument << " for button function" << endl;
+			cerr << "setting up button " << data.argument << " for button function" << endl;
 			break;
 
 		case ROTARY_OPTION:
-			cerr << "set up button " << data.argument << " for rotary switch" << endl;
+			cerr << "setting up button " << data.argument << " for rotary switch" << endl;
 			break;
 
 		case HELP_OPTION:
