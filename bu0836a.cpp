@@ -31,12 +31,32 @@ void help(void)
 
 
 
+class nullbuf : public std::streambuf {
+protected:
+	virtual int_type overflow(int_type c) { return c; }
+} nb;
+ostream cnull(&nb);
+
+
+
 class config {
 public:
 	static int verbosity;
 };
 
 int config::verbosity = 1;
+
+
+#define ALWAYS -1
+#define ALERT 0
+#define WARN 1
+#define INFO 2
+#define BULK 3
+
+std::ostream& log(int log_level = ALWAYS, bool cond = true)
+{
+	return cond && log_level < config::verbosity ? cerr : cnull;
+}
 
 
 
