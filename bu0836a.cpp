@@ -333,10 +333,10 @@ try {
 	};
 
 	int option;
-	struct option_parser_data data;
+	struct option_parser_context ctx;
 
-	init_option_parser(&data, argc, argv, options);
-	while ((option = get_option(&data)) != OPTIONS_DONE)
+	init_option_parser(&ctx, argc, argv, options);
+	while ((option = get_option(&ctx)) != OPTIONS_DONE)
 		if (option == HELP_OPTION)
 			help();
 
@@ -349,15 +349,15 @@ try {
 	else if (!numdev)
 		throw string("no BU0836A found");
 
-	init_option_parser(&data, argc, argv, options);
-	while ((option = get_option(&data)) != OPTIONS_DONE) {
+	init_option_parser(&ctx, argc, argv, options);
+	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 		switch (option) {
 		case VERBOSE_OPTION:
 			config::verbosity++;
 			break;
 
 		case DEVICE_OPTION: {
-			int num = usb.find(data.argument, &selected);
+			int num = usb.find(ctx.argument, &selected);
 			if (num == 1)
 				log(INFO) << "selecting device '" << selected->serial() << '\'' << endl;
 			else if (num)
@@ -380,22 +380,22 @@ try {
 			break;
 
 		case NORMAL_OPTION:
-			log(INFO) << "setting axis " << data.argument << " to normal" << endl;
+			log(INFO) << "setting axis " << ctx.argument << " to normal" << endl;
 			break;
 
 		case INVERT_OPTION:
 			if (selected)
-				log(INFO) << "setting axis " << data.argument << " to inverted" << endl;
+				log(INFO) << "setting axis " << ctx.argument << " to inverted" << endl;
 			else
 				log(ALERT) << "you have to select a device first" << endl;
 			break;
 
 		case BUTTON_OPTION:
-			log(INFO) << "setting up button " << data.argument << " for button function" << endl;
+			log(INFO) << "setting up button " << ctx.argument << " for button function" << endl;
 			break;
 
 		case ROTARY_OPTION:
-			log(INFO) << "setting up button " << data.argument << " for rotary switch" << endl;
+			log(INFO) << "setting up button " << ctx.argument << " for rotary switch" << endl;
 			break;
 
 		case HELP_OPTION:
@@ -405,23 +405,23 @@ try {
 			break;
 
 		case OPTIONS_ARGUMENT:
-			log(ALERT) << "\033[33;1mARG: " << data.option << "\033[m" << endl;
-			break;
+			log(ALERT) << "ERROR: don't know what to do with an argument '" << ctx.option << '\'' << endl;
+			return EXIT_FAILURE;
 
 		case OPTIONS_EXCESS_ARGUMENT:
-			log(ALERT) << "illegal option assignment " << data.argument << endl;
+			log(ALERT) << "ERROR: illegal option assignment '" << ctx.argument << '\'' << endl;
 			return EXIT_FAILURE;
 
 		case OPTIONS_UNKNOWN_OPTION:
-			log(ALERT) << "Unknown Option " << data.option << endl;
+			log(ALERT) << "ERROR: unknown option '" << ctx.option << '\'' << endl;
 			return EXIT_FAILURE;
 
 		case OPTIONS_MISSING_ARGUMENT:
-			log(ALERT) << "Missing arg for " << data.option << endl;
+			log(ALERT) << "ERROR: missing argument for option '" << ctx.option << '\'' << endl;
 			return EXIT_FAILURE;
 
 		default:
-			log(ALERT) << "\033[31;1mThis can't happen: " << option << "/" << data.option << "\033[m" << endl;
+			log(ALERT) << "\033[31;1mthis can't happen: " << option << "/" << ctx.option << "\033[m" << endl;
 			return EXIT_FAILURE;
 		}
 	}

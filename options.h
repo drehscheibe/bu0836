@@ -25,33 +25,40 @@ Example:
 		OPTIONS_LAST                            // mandatory last entry
 	};
 
-	int opt;
-	static struct option_parser_data d;
-	init_option_parser(&d, argc, argv, options);
-	while ((opt = get_option(&d)) != OPTIONS_DONE) {
-		switch (opt) {
+	struct option_parser_context ctx;
+	init_option_parser(&ctx, argc, argv, options);
+
+	int option;
+	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
+		switch (option) {
 		case 0: cerr << "HELP" << endl; break;
 		case 1: cerr << "LONG" << endl; break;
 		case 2: cerr << "SHORT" << endl; break;
-		case 3: cerr << "FILE " << d.argument << endl; break;
-		case OPTIONS_ARGUMENT: cerr << "non-option argument " << d.argument << endl; break;
+		case 3: cerr << "FILE " << ctx.argument << endl; break;
+		case OPTIONS_ARGUMENT: cerr << "non-option argument " << ctx.argument << endl; break;
 		case OPTIONS_TERMINATOR: break;         // ignore "--"
 		default: cerr << "bad option" << endl;  // lazy handling of all other error codes
 		}
 	}
 
+
+Remarks:
+- Long options with optional arguments (--opt[=arg]) can be implemented by checking
+  for ctx.option and ctx.argument in an OPTIONS_EXCESS_ARGUMENT switch case.
+
 */
 
 
 /* get_option() returns a "struct command_line_option" index, or one of the following codes */
-#define OPTIONS_DONE -1
-#define OPTIONS_TERMINATOR -2
-#define OPTIONS_ARGUMENT -3
-#define OPTIONS_EXCESS_ARGUMENT -4
-#define OPTIONS_MISSING_ARGUMENT -5
-#define OPTIONS_UNKNOWN_OPTION -6
 
-#define OPTIONS_LAST { 0, 0, 0 }
+#define OPTIONS_DONE -1                 /* parsing done; no more options available */
+#define OPTIONS_TERMINATOR -2           /* "--" wass issued; remainder seen as arguments */
+#define OPTIONS_ARGUMENT -3             /* argument found ("-" or string not starting with '-' */
+#define OPTIONS_EXCESS_ARGUMENT -4      /* long option has argument, but shouldn't (e.g. --help=foo) */
+#define OPTIONS_MISSING_ARGUMENT -5     /* last option wants argument, but there are none left */
+#define OPTIONS_UNKNOWN_OPTION -6       /* undefined option found */
+
+#define OPTIONS_LAST { 0, 0, 0 }        /* can be used to terminate command_line_option array */
 
 
 struct command_line_option {
@@ -61,7 +68,7 @@ struct command_line_option {
 };
 
 
-struct option_parser_data {
+struct option_parser_context {
 	/* static data (only stored, but remain unchanged) */
 	int argc;
 	const char **argv;
@@ -78,8 +85,8 @@ struct option_parser_data {
 };
 
 
-void init_option_parser(struct option_parser_data *data, int argc, const char *argv[],
+void init_option_parser(struct option_parser_context *ctx, int argc, const char *argv[],
 		const struct command_line_option *options);
 
-int get_option(struct option_parser_data *data);
+int get_option(struct option_parser_context *ctx);
 

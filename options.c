@@ -2,83 +2,81 @@
 #include "options.h"
 
 
-void init_option_parser(struct option_parser_data *data, int argc, const char *argv[],
+void init_option_parser(struct option_parser_context *ctx, int argc, const char *argv[],
 		const struct command_line_option *options)
 {
-	data->argc = argc;
-	data->argv = argv;
-	data->options = options;
-	data->index = 1;
-	data->option = data->argument = data->aggregate = "";
-	data->buf[0] = '-', data->buf[1] = ' ', data->buf[2] = '\0';
+	ctx->argc = argc;
+	ctx->argv = argv;
+	ctx->options = options;
+	ctx->index = 1;
+	ctx->option = ctx->argument = ctx->aggregate = "";
+	ctx->buf[0] = '-', ctx->buf[1] = ' ', ctx->buf[2] = '\0';
 }
 
 
-int get_option(struct option_parser_data *data)
+int get_option(struct option_parser_context *ctx)
 {
 	const struct command_line_option *opt;
 	int grab_arg, found;
 
-	data->argument = "";
+	ctx->argument = "";
 
-	if (data->argc < 2)
+	if (ctx->argc < 2)
 		return OPTIONS_DONE;
 
-	if (!data->argv[data->index] && !*data->aggregate)
+	if (!ctx->argv[ctx->index] && !*ctx->aggregate)
 		return OPTIONS_DONE;
 
-	if (data->buf[1] == '-') {
-		data->option = data->argv[data->index++];
+	if (ctx->buf[1] == '-') {
+		ctx->option = ctx->argv[ctx->index++];
 		return OPTIONS_ARGUMENT;
 	}
 
-	if (*data->aggregate) {
-		data->buf[1] = *data->aggregate++;
-		data->option = data->buf;
+	if (*ctx->aggregate) {
+		ctx->buf[1] = *ctx->aggregate++;
+		ctx->option = ctx->buf;
 
 	} else {
-		data->option = data->argv[data->index++];
-		if (data->option[0] != '-')
+		ctx->option = ctx->argv[ctx->index++];
+		if (ctx->option[0] != '-')
 			return OPTIONS_ARGUMENT;
 
-		if (!data->option[1])
+		if (!ctx->option[1])
 			return OPTIONS_ARGUMENT;
 
-		if (data->option[1] == '-') {
-			if (!data->option[2]) {
-				data->buf[1] = '-';
+		if (ctx->option[1] == '-') {
+			if (!ctx->option[2]) {
+				ctx->buf[1] = '-';
 				return OPTIONS_TERMINATOR;
 			}
 		} else {
-			data->aggregate = &data->option[1];
-			return get_option(data);
+			ctx->aggregate = &ctx->option[1];
+			return get_option(ctx);
 		}
 	}
 
-	for (grab_arg = found = 0, opt = data->options; opt->long_opt || opt->short_opt; opt++, found++) {
+	for (grab_arg = found = 0, opt = ctx->options; opt->long_opt || opt->short_opt; opt++, found++) {
 		int len;
-		if (opt->short_opt && !strcmp(opt->short_opt, data->option)) {
+		if (opt->short_opt && !strcmp(opt->short_opt, ctx->option)) {
 			if (opt->has_arg) {
-				if (*data->aggregate) {
-					data->argument = data->aggregate;
-					data->aggregate = "";
+				if (*ctx->aggregate) {
+					ctx->argument = ctx->aggregate;
+					ctx->aggregate = "";
 				} else {
 					grab_arg = 1;
 				}
 			}
 			break;
 
-		} else if (opt->long_opt && !strncmp(opt->long_opt, data->option, len = strlen(opt->long_opt))
-				&& data->option[len] == '=') {
-			if (opt->has_arg) {
-				data->argument = data->option + strlen(opt->long_opt) + 1;
-				data->option = opt->long_opt;
-			} else {
+		} else if (opt->long_opt && !strncmp(opt->long_opt, ctx->option, len = strlen(opt->long_opt))
+				&& ctx->option[len] == '=') {
+			ctx->argument = ctx->option + strlen(opt->long_opt) + 1;
+			ctx->option = opt->long_opt;
+			if (!opt->has_arg)
 				return OPTIONS_EXCESS_ARGUMENT;
-			}
 			break;
 
-		} else if (opt->long_opt && !strcmp(opt->long_opt, data->option)) {
+		} else if (opt->long_opt && !strcmp(opt->long_opt, ctx->option)) {
 			if (opt->has_arg)
 				grab_arg = 1;
 			break;
@@ -89,10 +87,10 @@ int get_option(struct option_parser_data *data)
 		return OPTIONS_UNKNOWN_OPTION;
 
 	if (grab_arg) {
-		if (data->argv[data->index]) {
-			data->argument = data->argv[data->index++];
+		if (ctx->argv[ctx->index]) {
+			ctx->argument = ctx->argv[ctx->index++];
 		} else {
-			data->argument = "";
+			ctx->argument = "";
 			return OPTIONS_MISSING_ARGUMENT;
 		}
 	}
