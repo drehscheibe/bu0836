@@ -61,21 +61,36 @@ std::ostream& log(int log_level = ALWAYS, bool condition = true)
 static const char *usb_perror(int errno)
 {
 	switch (errno) {
-	case LIBUSB_SUCCESS: return "success";
-	case LIBUSB_ERROR_IO: return "input/output error";
-	case LIBUSB_ERROR_INVALID_PARAM: return "invalid parameter";
-	case LIBUSB_ERROR_ACCESS: return "access denied (insufficient permissions)";
-	case LIBUSB_ERROR_NO_DEVICE: return "no such device (it may have been disconnected)";
-	case LIBUSB_ERROR_NOT_FOUND: return "entity not found";
-	case LIBUSB_ERROR_BUSY: return "resource busy";
-	case LIBUSB_ERROR_TIMEOUT: return "operation timed out";
-	case LIBUSB_ERROR_OVERFLOW: return "overflow";
-	case LIBUSB_ERROR_PIPE: return "pipe error";
-	case LIBUSB_ERROR_INTERRUPTED: return "system call interrupted (perhaps due to signal)";
-	case LIBUSB_ERROR_NO_MEM: return "insufficient memory";
-	case LIBUSB_ERROR_NOT_SUPPORTED: return "operation not supported or unimplemented on this platform";
-	case LIBUSB_ERROR_OTHER: return "other error";
-	default: return "unknown error code";
+	case LIBUSB_SUCCESS:
+		return "success";
+	case LIBUSB_ERROR_IO:
+		return "input/output error";
+	case LIBUSB_ERROR_INVALID_PARAM:
+		return "invalid parameter";
+	case LIBUSB_ERROR_ACCESS:
+		return "access denied (insufficient permissions)";
+	case LIBUSB_ERROR_NO_DEVICE:
+		return "no such device (it may have been disconnected)";
+	case LIBUSB_ERROR_NOT_FOUND:
+		return "entity not found";
+	case LIBUSB_ERROR_BUSY:
+		return "resource busy";
+	case LIBUSB_ERROR_TIMEOUT:
+		return "operation timed out";
+	case LIBUSB_ERROR_OVERFLOW:
+		return "overflow";
+	case LIBUSB_ERROR_PIPE:
+		return "pipe error";
+	case LIBUSB_ERROR_INTERRUPTED:
+		return "system call interrupted (perhaps due to signal)";
+	case LIBUSB_ERROR_NO_MEM:
+		return "insufficient memory";
+	case LIBUSB_ERROR_NOT_SUPPORTED:
+		return "operation not supported or unimplemented on this platform";
+	case LIBUSB_ERROR_OTHER:
+		return "other error";
+	default:
+		return "unknown error code";
 	}
 }
 
@@ -296,7 +311,6 @@ private:
 	static const int _product = 0x05ba;
 	vector<controller *> _devices;
 };
-
 
 
 
