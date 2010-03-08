@@ -195,15 +195,28 @@ public:
 
 		// get HID descriptor
 		unsigned char buf[1024];
-		ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, sizeof(buf));
+		ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, 255);
 		if (ret < 0) {
 			log(ALERT) << "hid-desc: " << usb_perror(ret) << endl;
 		} else {
 			usb_hid_descriptor *hid = (usb_hid_descriptor *)buf;
 			log(INFO) << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
-			for (int n = 0; n < int(hid->bNumDescriptors); n++)
-				log(INFO) << "\t" << int(hid->descriptors[n].bDescriptorType) << " / "
-						<< hex << int(libusb_le16_to_cpu(hid->descriptors[n].wDescriptorLength)) << endl;
+			for (int n = 0; n < int(hid->bNumDescriptors); n++) {
+				unsigned len = hid->wDescriptorLength(n);
+				log(INFO) << "\t" << int(hid->descriptors[n].bDescriptorType) << " / " << len << endl;
+
+				if (len < sizeof(buf)) {
+					ret = libusb_get_descriptor(_handle, LIBUSB_DT_REPORT, 0, buf, len);
+					if (ret >= 0) {
+						log(INFO) << "\t\treq=" << len << "  rec=" << ret << endl;
+						for (int i = 0; i < ret; i++)
+							log(INFO) << hex << setw(2) << setfill('0') << int(buf[i]) << ' ';
+						log(INFO) << dec << endl << endl;
+
+						parse_report(buf, ret);
+					}
+				}
+			}
 		}
 
 		// get HID report descriptor
@@ -216,6 +229,163 @@ public:
 		log(ALWAYS) << dec << endl;
 
 		return ret;
+	}
+
+	void parse_report(unsigned char *buf, int len) {
+		int usage_table = 0; // "undefined"  (Hut1_11.pdf:15)
+		int usage = 0; // "undefined"  (Hut1_11.pdf:27)
+		string indent = "";
+		for (unsigned char *b = buf; b < buf + len; ) {
+			if (*b == 0xfe) { // long item
+				int size = *++b;
+				int tag = *++b;
+				log(INFO) << "L s=" << size << " t=" << tag << endl;
+				b += size;
+
+			} else {          // short item
+				int size = *b & 0x3;
+
+				ostringstream x;
+				x << hex << setw(2) << setfill('0') << int(*b) << ' ';
+				for (int i = 0; i < size; i++)
+					x << hex << setw(2) << setfill('0') << int(b[i + 1]) << ' ';
+				for (int i = size; i < 3; i++)
+					x << "   ";
+				string X = x.str();
+
+				int type = (*b >> 2) & 0x3;
+				int tag = (*b++ >> 4) & 0xf;
+
+				int value = 0;
+				if (size > 0)
+					value = *b++;
+				if (size > 1)
+					value += *b++ << 8;
+				if (size > 2)
+					value += (*b++ << 16), value += (*b++ << 24);
+
+				log(INFO) << X << "\t";
+				if (type == 0) { // Main
+					const char *s;
+					string iof;
+					switch (tag) {
+					case 0x8: s = "Input"; iof = parse_iof(0, value); break;
+					case 0x9: s = "Output"; iof = parse_iof(1, value); break;
+					case 0xa: { // Collection
+						switch (value) {
+						case 0: s = "Physical"; break;
+						case 1: s = "Application"; break;
+						case 2: s = "Logical"; break;
+						default: s = "bu0836a: not handled"; break;
+						}
+						log(INFO) << indent << "\033[35mCollection '" << s << "'\033[m" << endl;
+						indent += "\t";
+						continue;
+					}
+					case 0xb: s = "Feature"; iof = parse_iof(2, value); break;
+					case 0xc: { // End Collection
+						indent = indent.substr(0, indent.length() - 1);
+						log(INFO) << indent << "\033[35mEnd Collection\033[m" << endl;
+						continue;
+					}
+					default:  s = "Reserved"; break;
+					}
+					log(INFO) << indent << "\033[35m" << s << " '" << iof << "'\033[m" << endl;
+
+				} else if (type == 1) { // Global
+					const char *s;
+					switch (tag) {
+					case 0x0: { // Usage Page
+						usage_table = value;
+						switch (value) {
+						case 0: s = "Undefined"; break;
+						case 1: s = "Generic Desktop Controls"; break;
+						case 9: s = "Button"; break;
+						case 0xff00: s = "Vendor-defined"; break;
+						default: s = "bu0836a: not handled"; break;
+						}
+						log(INFO) << indent << "\033[33mUsage Page '" << s << "'\033[m" << endl;
+						continue;
+					}
+					case 0x1: s = "Logical Minimum"; break;
+					case 0x2: s = "Logical Maximum"; break;
+					case 0x3: s = "Physical Minimum"; break;
+					case 0x4: s = "Physical Maximum"; break;
+					case 0x5: s = "Unit Exponent"; break;
+					case 0x6: s = "Unit"; break;
+					case 0x7: s = "Report Size"; break;
+					case 0x8: s = "Report ID"; break;
+					case 0x9: s = "Report Count"; break;
+					case 0xa: s = "Push"; break;
+					case 0xb: s = "Pop"; break;
+					default:  s = "Reserved"; break;
+					}
+					log(INFO) << indent << "\033[33m" << s << " = " << value << "\033[m" << endl;
+
+				} else if (type == 2) { // Local
+					const char *s;
+					switch (tag) {
+					case 0x0: { // Usage
+						usage = value;
+						if (usage_table == 1) {
+							switch (value) {
+								case 0x00: s = "Undefined"; break;
+								case 0x01: s = "Pointer"; break;
+								case 0x04: s = "Joystick"; break;
+								case 0x30: s = "X"; break;
+								case 0x31: s = "Y"; break;
+								case 0x32: s = "Z"; break;
+								case 0x33: s = "Rx"; break;
+								case 0x34: s = "Ry"; break;
+								case 0x35: s = "Rz"; break;
+								case 0x36: s = "Slider"; break;
+								case 0x37: s = "Dial"; break;
+								case 0x38: s = "Wheel"; break;
+								case 0x39: s = "Hat switch"; break;
+								default: s = "bu0836a: not handled"; break;
+							}
+							log(INFO) << indent << "\033[36mUsage '" << s << "'\033[m" << endl;
+							continue;
+						}
+						s = "Usage"; break;
+					}
+					case 0x1: s = "Usage Minimum"; break;
+					case 0x2: s = "Usage Maximum"; break;
+					case 0x3: s = "Designator Index"; break;
+					case 0x4: s = "Designator Minimum"; break;
+					case 0x5: s = "Designator Maximum"; break;
+					case 0x7: s = "String Index"; break;
+					case 0x8: s = "String Minimum"; break;
+					case 0x9: s = "String Maximum"; break;
+					case 0xa: s = "Delimiter"; break;
+					case 0xb: s = "Pop"; break;
+					default:  s = "Reserved"; break;
+					}
+					log(INFO) << indent << "\033[36m" << s << " = " << value << "\033[m" << endl;
+
+				} else { // Reserved
+					log(INFO) << "\033[1mReserved: value = " << value << "\033[m" << endl;
+					//for (int i = 0; i < size; i++)
+					//	log(INFO) << hex << setw(2) << setfill('0') << int(*b++) << ' ';
+					//log(INFO) << dec << endl;
+				}
+			}
+		}
+		log(INFO) << endl;
+	}
+
+	string parse_iof(int mode, int value) {
+		string s;
+		s += value & 0x01 ? "*const " : "data ";
+		s += value & 0x02 ? "*var " : "array ";
+		s += value & 0x04 ? "*rel " : "abs ";
+		s += value & 0x08 ? "*non-lin " : "lin ";
+		s += value & 0x10 ? "*no-pref-state " : "pref-state ";
+		s += value & 0x20 ? "*no-null-state " : "null-pos ";
+		if (mode > 0)
+			s += value & 0x40 ? "*vol " : "non-vol ";
+		s += value & 0x80 ? "*buff-bytes" : "bit-field";
+		return s;
 	}
 
 	const string &bus_address() const { return _bus_address; }
