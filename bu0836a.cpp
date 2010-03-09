@@ -208,11 +208,7 @@ public:
 				if (len < sizeof(buf)) {
 					ret = libusb_get_descriptor(_handle, LIBUSB_DT_REPORT, 0, buf, len);
 					if (ret >= 0) {
-						log(INFO) << "\t\treq=" << len << "  rec=" << ret << endl;
-						for (int i = 0; i < ret; i++)
-							log(INFO) << hex << setw(2) << setfill('0') << int(buf[i]) << ' ';
-						log(INFO) << dec << endl << endl;
-
+						log(INFO) << "\t\treq=" << len << "  rec=" << ret << endl << endl;
 						parse_report(buf, ret);
 					}
 				}
@@ -246,11 +242,11 @@ public:
 				int size = *b & 0x3;
 
 				ostringstream x;
-				x << hex << setw(2) << setfill('0') << int(*b) << ' ';
+				x << setw(3) << int(b - buf) << ": \033[30;1m" << hex << setw(2) << setfill('0') << int(*b) << ' ';
 				for (int i = 0; i < size; i++)
 					x << hex << setw(2) << setfill('0') << int(b[i + 1]) << ' ';
 				for (int i = size; i < 3; i++)
-					x << "   ";
+					x << "\033[m   ";
 				string X = x.str();
 
 				int type = (*b >> 2) & 0x3;
