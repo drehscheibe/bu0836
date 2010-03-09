@@ -7,6 +7,8 @@
 #include <vector>
 
 #include <libusb.h>
+
+#include "logging.h"
 #include "options.h"
 #include "bu0836a.h"
 
@@ -27,33 +29,6 @@ static void help(void)
 	cout << "        -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
 	cout << "        -b, --button <n>     set button mode for given button (and its sibling)" << endl;
 	exit(EXIT_SUCCESS);
-}
-
-
-
-class config {
-public:
-	static int verbosity;
-};
-
-int config::verbosity = 1;
-
-
-#define ALWAYS -1
-#define ALERT 0
-#define WARN 1
-#define INFO 2
-#define BULK 3
-
-namespace {
-	class nullbuf : public streambuf { } nb;
-	ostream cnull(&nb);
-}
-
-
-std::ostream& log(int log_level = ALWAYS, bool condition = true)
-{
-	return condition && log_level < config::verbosity ? cerr : cnull;
 }
 
 
@@ -519,7 +494,7 @@ try {
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 		switch (option) {
 		case VERBOSE_OPTION:
-			config::verbosity++;
+			set_log_level(get_log_level() + 1);
 			break;
 
 		case DEVICE_OPTION: {
