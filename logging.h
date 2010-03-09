@@ -1,5 +1,9 @@
 #include <iosfwd>
 
+#define STRINGIZE(X) DO_STRINGIZE(X)
+#define DO_STRINGIZE(X) #X
+#define ORIGIN __FILE__":"STRINGIZE(__LINE__)": "
+
 #define ALWAYS -1
 #define ALERT 0
 #define WARN 1
