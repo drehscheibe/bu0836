@@ -9,7 +9,25 @@
 using namespace std;
 
 
-const char *collection_string(int id)
+
+static string string_join(const vector<string>& v, const char *fill = " ") {
+	string s;
+	size_t len = v.size();
+	vector<string>::const_iterator it = v.begin();
+	if (len) {
+		s = (*it);
+		++it;
+		for (size_t i = 1; i < len; i++, ++it) {
+			s += fill;
+			s += *it;
+		}
+	}
+	return s;
+}
+
+
+
+const char *collection_string(uint32_t id)
 {
 	if (id >= 0x80 && id <= 0xff)
 		return "Vendor-defined";
@@ -27,7 +45,7 @@ const char *collection_string(int id)
 
 
 
-const char *usage_table_string(int id)
+const char *usage_table_string(uint32_t id) // 0x00
 {
 	if (id >= 0xff00 && id <= 0xffff)
 		return "Vendor-defined";
@@ -65,7 +83,7 @@ const char *usage_table_string(int id)
 
 
 
-const char *generic_desktop_page_string(int id)
+const char *generic_desktop_page_string(uint32_t id) // 0x01
 {
 	switch (id) {
 	case 0x00: return "Undefined";
@@ -142,7 +160,219 @@ const char *generic_desktop_page_string(int id)
 
 
 
-string input_output_feature_string(int mode, int value) {
+const char *simulation_controls_page_string(uint32_t id) // 0x02
+{
+	switch (id) {
+	case 0x00: return "Undefined";
+	case 0x01: return "Flight Simulation Device";
+	case 0x02: return "Automobile Simulation Device";
+	case 0x03: return "Tank Simulation Device";
+	case 0x04: return "Spaceship Simulation Device";
+	case 0x05: return "Submarine Simulation Device";
+	case 0x06: return "Sailing Simulation Device";
+	case 0x07: return "Motorcycle Simulation Device";
+	case 0x08: return "Sports Simulation Device";
+	case 0x09: return "Airplane Simulation Device";
+	case 0x0a: return "Helicopter Simulation Device";
+	case 0x0b: return "Magic Carpet Simulation Device";
+	case 0x0c: return "Bicycle Simulation Device";
+	case 0x20: return "Flight Control Stick";
+	case 0x21: return "Flight Stick";
+	case 0x22: return "Cyclic Control";
+	case 0x23: return "Cyclic Trim";
+	case 0x24: return "Flight Yoke";
+	case 0x25: return "Track Control";
+	case 0xb0: return "Aileron";
+	case 0xb1: return "Aileron Trim";
+	case 0xb2: return "Anti-Torque Control";
+	case 0xb3: return "Autopilot Enable";
+	case 0xb4: return "Chaff Release";
+	case 0xb5: return "Collective Control";
+	case 0xb6: return "Dive Break";
+	case 0xb7: return "Electronic Countermeasures";
+	case 0xb8: return "Elevator";
+	case 0xb9: return "Elevator Trim";
+	case 0xba: return "Rudder";
+	case 0xbb: return "Throttle";
+	case 0xbc: return "Flight Communications";
+	case 0xbd: return "Flare Release";
+	case 0xbe: return "Landing Gear";
+	case 0xbf: return "Toe Break";
+	case 0xc0: return "Trigger";
+	case 0xc1: return "Weapons Arm";
+	case 0xc2: return "Weapons Select";
+	case 0xc3: return "Wing Flaps";
+	case 0xc4: return "Accelerator";
+	case 0xc5: return "Brake";
+	case 0xc6: return "Clutch";
+	case 0xc7: return "Shifter";
+	case 0xc8: return "Steering";
+	case 0xc9: return "Turret Direction";
+	case 0xca: return "Barrel Elevation";
+	case 0xcb: return "Dive Plane";
+	case 0xcc: return "Ballast";
+	case 0xcd: return "Bicycle Crank";
+	case 0xce: return "Handle Bars";
+	case 0xcf: return "Front Brake";
+	case 0xd0: return "Rear Brake";
+	default: return "Reserved";
+	}
+}
+
+
+
+const char *vr_controls_page_string(uint32_t id)
+{
+	switch (id) {
+	case 0x00: return "Undefined";
+	case 0x01: return "Belt";
+	case 0x02: return "Body Suit";
+	case 0x03: return "Flexor";
+	case 0x04: return "Glove";
+	case 0x05: return "Head Tracker";
+	case 0x06: return "Head Mounted Display";
+	case 0x07: return "Hand Tracker";
+	case 0x08: return "Oculometer";
+	case 0x09: return "Vest";
+	case 0x0a: return "Animatronic Device";
+	case 0x20: return "Stereo Enable";
+	case 0x21: return "Display Enable";
+	default: return "Reserved";
+	}
+}
+
+
+
+const char *sport_controls_page_string(uint32_t id)
+{
+	switch (id) {
+	case 0x00: return "Undefined";
+	case 0x01: return "Baseball Bat";
+	case 0x02: return "Golf Club";
+	case 0x03: return "Rowing Machine";
+	case 0x04: return "Treadmill";
+	case 0x30: return "Oar";
+	case 0x31: return "Slope";
+	case 0x32: return "Rate";
+	case 0x33: return "Stick Speed";
+	case 0x34: return "Stick Face Angle";
+	case 0x35: return "Stick Heel/Toe";
+	case 0x36: return "Stick Follow Through";
+	case 0x37: return "Stick Tempo";
+	case 0x38: return "Stick Type";
+	case 0x39: return "Stick Height";
+	case 0x50: return "Putter";
+	case 0x51: return "1 Iron";
+	case 0x52: return "2 Iron";
+	case 0x53: return "3 Iron";
+	case 0x54: return "4 Iron";
+	case 0x55: return "5 Iron";
+	case 0x56: return "6 Iron";
+	case 0x57: return "7 Iron";
+	case 0x58: return "8 Iron";
+	case 0x59: return "9 Iron";
+	case 0x5a: return "10 Iron";
+	case 0x5b: return "11 Iron";
+	case 0x5c: return "Sand Wedge";
+	case 0x5d: return "Loft Wedge";
+	case 0x5e: return "Power Wedge";
+	case 0x5f: return "1 Wood";
+	case 0x60: return "3 Wood";
+	case 0x61: return "5 Wood";
+	case 0x62: return "7 Wood";
+	case 0x63: return "9 Wood";
+	default: return "Reserved";
+	}
+}
+
+
+
+const char *game_controls_page_string(uint32_t id)
+{
+	switch (id) {
+	case 0x00: return "Undefined";
+	case 0x01: return "3D Game Controller";
+	case 0x02: return "Pinball Device";
+	case 0x03: return "Gun Device";
+	case 0x20: return "Point of View";
+	case 0x21: return "Turn Right/Left";
+	case 0x22: return "Pitch Forward/Backward";
+	case 0x23: return "Roll Right/Left";
+	case 0x24: return "Move Right/Left";
+	case 0x25: return "Move Forward/Backward";
+	case 0x26: return "Move Up/Down";
+	case 0x27: return "Lean Right/Left";
+	case 0x28: return "Lean Forward/Backward";
+	case 0x29: return "Height of POV";
+	case 0x2a: return "Flipper";
+	case 0x2b: return "Secondary Flipper";
+	case 0x2c: return "Bump";
+	case 0x2d: return "New Game";
+	case 0x2e: return "Shoot Ball";
+	case 0x2f: return "Player";
+	case 0x30: return "Gun Bolt";
+	case 0x31: return "Gun Clip";
+	case 0x32: return "Gun Selectory";
+	case 0x33: return "Gun Single Shot";
+	case 0x34: return "Gun Burst";
+	case 0x35: return "Gun Automatic";
+	case 0x36: return "Gun Safety";
+	case 0x37: return "Gamepad Fire/Jump";
+	case 0x39: return "Gamepad Trigger";
+	default: return "Reserved";
+	}
+}
+
+
+
+const char *generic_device_controls_page_string(uint32_t id)
+{
+	switch (id) {
+	case 0x00: return "Undefined";
+	case 0x20: return "Battery Strength";
+	case 0x21: return "Wireless Channel";
+	case 0x22: return "Wireless ID";
+	default: return "Reserved";
+	}
+}
+
+
+
+const char *keyboard_keypad_page_string(uint32_t id)
+{
+	switch (id) {
+	case 0x00: return "Undefined";
+	case 0x01: return "Keyboard ErrorRollOver";
+	case 0x02: return "Keyboard POSTFail";
+	case 0x03: return "Keyboard ErrorUndefined";
+	case 0x04: return "Keyboard a and A";
+	case 0x05: return "Keyboard b and B";
+	case 0x06: return "Keyboard c and C";
+	case 0x07: return "Keyboard d and D";
+	case 0x08: return "Keyboard e and E";
+	default: return "Reserved";
+	}
+}
+
+
+
+const char *usage_string(uint32_t usage, uint32_t id)
+{
+	switch (usage) {
+	case 0x1: return generic_desktop_page_string(id);
+	case 0x2: return simulation_controls_page_string(id);
+	case 0x3: return vr_controls_page_string(id);
+	case 0x4: return sport_controls_page_string(id);
+	case 0x5: return game_controls_page_string(id);
+	case 0x6: return generic_device_controls_page_string(id);
+	case 0x7: return keyboard_keypad_page_string(id);
+	default: return "?????";
+	}
+}
+
+
+
+string input_output_feature_string(int mode, uint32_t value) {
 	string s;
 	s += value & 0x01 ? "*const " : "data ";
 	s += value & 0x02 ? "*var " : "array ";
@@ -160,53 +390,91 @@ string input_output_feature_string(int mode, int value) {
 
 string unit_string(uint32_t u)
 {
-	string s;
-	s += "System=";
-	switch (u & 0xf) {         // nibble 0
-	case 1: s += "SI-Linear"; break;
-	case 2: s += "SI-Rotation"; break;
-	case 3: s += "English-Linear"; break;
-	case 4: s += "English-Rotation"; break;
-	default: s += "None"; break;
+	vector<string> v;
+	int i;
+	i = u & 0x0f; // nibble 0
+	if (i) {
+		string s = "System(";
+		switch (i) {
+		case 1: s += "SI-Linear"; break;
+		case 2: s += "SI-Rotation"; break;
+		case 3: s += "English-Linear"; break;
+		case 4: s += "English-Rotation"; break;
+		default: s += "???"; break;
+		}
+		v.push_back(s + ')');
 	}
-	s += " Length=";
-	switch ((u >> 4) & 0xf) {  // nibble 1
-	case 1: s += "Centimeter"; break;
-	case 2: s += "Radians"; break;
-	case 3: s += "Inch"; break;
-	case 4: s += "Degrees"; break;
-	default: s+= "None"; break;
+
+	i = (u >>= 4) & 0x0f; // nibble 1
+	if (i) {
+		string s = "Length(";
+		switch (i) {
+		case 1: s += "Centimeter"; break;
+		case 2: s += "Radians"; break;
+		case 3: s += "Inch"; break;
+		case 4: s += "Degrees"; break;
+		default: s+= "???"; break;
+		}
+		v.push_back(s + ')');
 	}
-	s += " Mass=";
-	switch ((u >> 8) & 0xf) {  // nibble 2
-	case 1: case 2: s += "Gram"; break;
-	case 3: case 4: s += "Slug"; break;
-	default: s += "None"; break;
+
+	i = (u >>= 4) & 0x0f; // nibble 2
+	if (i) {
+		string s = "Mass(";
+		switch (i) {
+		case 1: case 2: s += "Gram"; break;
+		case 3: case 4: s += "Slug"; break;
+		default: s += "???"; break;
+		}
+		v.push_back(s + ')');
 	}
-	s += " Time=";
-	switch ((u >> 12) & 0xf) { // nibble 3
-	case 0: s += "None"; break;
-	default: s += "Seconds"; break;
+
+	i = (u >>= 4) & 0x0f; // nibble 3
+	if (i) {
+		string s = "Time(";
+		switch (i) {
+		case 0: s += "None"; break;
+		default: s += "Seconds"; break;
+		}
+		v.push_back(s + ')');
 	}
-	s += " Temperature=";
-	switch ((u >> 16) & 0xf) { // nibble 4
-	case 1: case 2: s += "Kelvin"; break;
-	case 3: case 4: s += "Fahrenheit"; break;
-	default: s += "None"; break;
+
+	i = (u >>= 4) & 0x0f; // nibble 4
+	if (i) {
+		string s = "Temperature(";
+		switch (i) {
+		case 1: case 2: s += "Kelvin"; break;
+		case 3: case 4: s += "Fahrenheit"; break;
+		default: s += "???"; break;
+		}
+		v.push_back(s + ')');
 	}
-	s += " Current=";
-	switch ((u >> 20) & 0xf) { // nibble 5
-	case 0: s += "None"; break;
-	default: s += "Ampere"; break;
+
+	i = (u >>= 4) & 0x0f; // nibble 5
+	if (i) {
+		string s = "Current(";
+		switch (i) {
+		case 0: s += "None"; break;
+		default: s += "Ampere"; break;
+		}
+		v.push_back(s + ')');
 	}
-	s += " Luminous-intensity=";
-	switch ((u >> 24) & 0xf) { // nibble 6
-	case 0: s += "None"; break;
-	default: s += "Candela"; break;
+
+	i = (u >>= 4) & 0x0f; // nibble 6
+	if (i) {
+		string s = "Luminous-intensity=";
+		switch (i) {
+		case 0: s += "None"; break;
+		default: s += "Candela"; break;
+		}
+		v.push_back(s);
 	}
-	if ((u >> 28) & 0xf)
+
+	i = (u >>= 4) & 0x0f; // nibble 7
+	if (i)
 		log(WARN) << "use of reserved unit nibble 7" << endl;
-	return s;
+
+	return v.empty() ? string("None") : string_join(v);
 }
 
 
@@ -238,7 +506,7 @@ void hid_parser::parse(const unsigned char *data, int len)
 	for (const unsigned char *d = data; d < data + len; ) {
 		if (*d == 0xfe) { // long item
 			int size = *++d;
-			int tag = *++d;
+			/*int tag = * */++d;
 
 			log(ALERT) << ORIGIN"skipping unsupported long item" << endl;
 			d += size;
@@ -375,18 +643,12 @@ void hid_parser::do_global(int tag, uint32_t value)
 void hid_parser::do_local(int tag, uint32_t value)
 {
 	switch (tag) {
-	case 0x0: {
-		log(INFO) << "Usage '";
-		switch (_global->usage_table) {
-		case 1:
-			log(INFO) << generic_desktop_page_string(value);
-			break;;
-		default:
-			log(INFO) << value;
-		}
-		log(INFO) << '\'';
+	case 0x0:
+		if (_global->usage_table >= 0xff00 && _global->usage_table <= 0xffff) // vendor defined
+			log(INFO) << "Usage " << value;
+		else
+			log(INFO) << "Usage '" << usage_string(_global->usage_table, value) << '\'';
 		return;
-	}
 	case 0x1: log(INFO) << "Usage Minimum"; break;
 	case 0x2: log(INFO) << "Usage Maximum"; break;
 	case 0x3: log(INFO) << "Designator Index"; break;
