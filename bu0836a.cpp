@@ -188,6 +188,7 @@ public:
 					if (ret >= 0) {
 						log(INFO) << "\t\treq=" << len << "  rec=" << ret << endl << endl;
 						parser.parse(buf, ret);
+						log(INFO) << endl;
 					}
 				}
 			}
@@ -233,12 +234,16 @@ class bu0836a {
 public:
 	bu0836a(int debug_level = 3) {
 		int ret = libusb_init(0);
-		if (ret)
+		if (ret < 0)
 			throw string("libusb_init: ") + usb_perror(ret);
 		libusb_set_debug(0, 3);
 
 		libusb_device **list;
-		for (int i = 0; i < libusb_get_device_list(0, &list); i++) {
+		ret = libusb_get_device_list(0, &list);
+		if (ret < 0)
+			throw string("libusb_get_device_list: ") + usb_perror(ret);
+
+		for (int i = 0; i < ret; i++) {
 			libusb_device_handle *handle;
 			int ret = libusb_open(list[i], &handle);
 
