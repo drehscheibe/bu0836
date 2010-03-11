@@ -6,6 +6,9 @@ all: bu0836a Makefile
 check: bu0836a
 	cppcheck -f --enable=all .
 
+vg valgrind: bu0836a
+	valgrind --tool=memcheck --leak-check=full ./bu0836a -vvvvv --list --device=00 --monitor
+
 bu0836a: logging.o options.o hid_parser.o bu0836a.o
 	g++ -g -o bu0836a logging.o options.o bu0836a.o hid_parser.o -lusb
 
