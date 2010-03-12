@@ -10,16 +10,14 @@ using namespace std;
 
 
 
-static string string_join(const vector<string>& v, const char *fill = " ") {
+static string string_join(const vector<string> &v, const char *join = " ") {
+	size_t size = v.size();
 	string s;
-	size_t len = v.size();
-	vector<string>::const_iterator it = v.begin();
-	if (len) {
-		s = (*it);
-		++it;
-		for (size_t i = 1; i < len; i++, ++it) {
-			s += fill;
-			s += *it;
+	if (size) {
+		vector<string>::const_iterator it = v.begin();
+		for (s = *it++; --size; ) {
+			s += join;
+			s += *it++;
 		}
 	}
 	return s;
@@ -31,6 +29,7 @@ const char *collection_string(uint32_t id)
 {
 	if (id >= 0x80 && id <= 0xff)
 		return "Vendor-defined";
+
 	switch (id) {
 	case 0: return "Physical (group of axes)";
 	case 1: return "Application (mouse, keyboard)";
