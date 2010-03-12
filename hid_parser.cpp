@@ -349,6 +349,27 @@ const char *keyboard_keypad_page_string(uint32_t id)
 	case 0x06: return "Keyboard c and C";
 	case 0x07: return "Keyboard d and D";
 	case 0x08: return "Keyboard e and E";
+	case 0x09: return "Keyboard f and F";
+	case 0x0a: return "Keyboard g and G";
+	case 0x0b: return "Keyboard h and H";
+	case 0x0c: return "Keyboard i and I";
+	case 0x0d: return "Keyboard j and J";
+	case 0x0e: return "Keyboard k and K";
+	case 0x0f: return "Keyboard l and L";
+	case 0x10: return "Keyboard m and M";
+	case 0x11: return "Keyboard n and N";
+	case 0x12: return "Keyboard o and O";
+	case 0x13: return "Keyboard p and P";
+	case 0x14: return "Keyboard q and Q";
+	case 0x15: return "Keyboard r and R";
+	case 0x16: return "Keyboard s and S";
+	case 0x17: return "Keyboard t and T";
+	case 0x18: return "Keyboard u and U";
+	case 0x19: return "Keyboard v and V";
+	case 0x1a: return "Keyboard w and W";
+	case 0x1b: return "Keyboard x and X";
+	case 0x1c: return "Keyboard y and Y";
+	case 0x1d: return "Keyboard z and Z";
 	default: return "Reserved";
 	}
 }
@@ -482,8 +503,8 @@ static string hexstr(const unsigned char *p, int num, int width)
 {
 	ostringstream x;
 	x << hex << setfill('0');
-	for (int i = 0; i < num; i++)
-		x << setw(2) << int(p[i]) << ' ';
+	while (num--)
+		x << setw(2) << int(*p++) << ' ';
 	string s = x.str();
 	x.str("");
 	x << left << setw(width) << setfill(' ') << s;
@@ -494,7 +515,7 @@ static string hexstr(const unsigned char *p, int num, int width)
 
 hid_parser::hid_parser()
 {
-	_stack.push_back(hid_report_data());
+	_stack.push_back(hid_global_data());
 	_global = &_stack[0];
 }
 
@@ -543,7 +564,7 @@ void hid_parser::parse(const unsigned char *data, int len)
 				log(INFO) << "\033[m" << endl;
 
 			} else {                // Reserved
-				log(INFO) << _indent << "Reserved" << endl;
+				log(INFO) << _indent << "Reserved" << endl; // FIXME
 				log(ALERT) << ORIGIN"short item: skipping item of reserved type" << endl;
 			}
 		}
@@ -560,18 +581,19 @@ void hid_parser::do_main(int tag, uint32_t value)
 	case 0x9: // Output
 		log(INFO) << _indent << "Output " << input_output_feature_string(1, value);
 		break;
+	case 0xb: // Feature
+		log(INFO) << _indent << "Feature " << input_output_feature_string(2, value);
+		break;
 	case 0xa: // Collection
 		log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 		_indent += '\t';
-		break;
-	case 0xb: // Feature
-		log(INFO) << _indent << "Feature " << input_output_feature_string(2, value);
 		break;
 	case 0xc: // End Collection
 		_indent = _indent.substr(0, _indent.length() - 1);
 		log(INFO) << _indent << "End Collection ";
 		break;
 	}
+	_local.reset();
 }
 
 
@@ -620,7 +642,7 @@ void hid_parser::do_global(int tag, uint32_t value)
 		return;
 	case 0xa:
 		log(INFO) << "Push";
-		_stack.push_back(hid_report_data(_global));
+		_stack.push_back(hid_global_data(_global));
 		_global = &_stack[_stack.size() - 1];
 		return;
 	case 0xb:
@@ -648,17 +670,48 @@ void hid_parser::do_local(int tag, uint32_t value)
 		else
 			log(INFO) << "Usage '" << usage_string(_global->usage_table, value) << '\'';
 		return;
-	case 0x1: log(INFO) << "Usage Minimum"; break;
-	case 0x2: log(INFO) << "Usage Maximum"; break;
-	case 0x3: log(INFO) << "Designator Index"; break;
-	case 0x4: log(INFO) << "Designator Minimum"; break;
-	case 0x5: log(INFO) << "Designator Maximum"; break;
-	case 0x6: log(INFO) << "???"; break;
-	case 0x7: log(INFO) << "String Index"; break;
-	case 0x8: log(INFO) << "String Minimum"; break;
-	case 0x9: log(INFO) << "String Maximum"; break;
-	case 0xa: log(INFO) << "Delimiter"; break;
-	default: log(INFO) << "Reserved"; break;
+	case 0x1:
+		log(INFO) << "Usage Minimum";
+		_local.usage_minimum = value;
+		break;
+	case 0x2:
+		log(INFO) << "Usage Maximum";
+		_local.usage_maximum = value;
+		break;
+	case 0x3:
+		log(INFO) << "Designator Index";
+		_local.designator_index = value;
+		break;
+	case 0x4:
+		log(INFO) << "Designator Minimum";
+		_local.designator_minimum = value;
+		break;
+	case 0x5:
+		log(INFO) << "Designator Maximum";
+		_local.designator_maximum = value;
+		break;
+	case 0x6:
+		log(INFO) << "???";
+		break;
+	case 0x7:
+		log(INFO) << "String Index";
+		_local.string_index = value;
+		break;
+	case 0x8:
+		log(INFO) << "String Minimum";
+		_local.string_minimum = value;
+		break;
+	case 0x9:
+		log(INFO) << "String Maximum";
+		_local.string_maximum = value;
+		break;
+	case 0xa:
+		log(INFO) << "Delimiter";
+		_local.delimiter = value;
+		break;
+	default:
+		log(INFO) << "Reserved";
+		break;
 	}
 	log(INFO) << " = " << value;
 }
