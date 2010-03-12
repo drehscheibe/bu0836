@@ -10,7 +10,7 @@ struct hid_global_data {
 		unit(0), report_size(0), report_id(0), report_count(0)
 	{}
 
-	hid_global_data(hid_global_data *d) : usage_table(d->usage_table),
+	hid_global_data(hid_global_data *d) : usage_table(d->usage_table), // FIXME
 		logical_minimum(d->logical_minimum), logical_maximum(d->logical_maximum),
 		physical_minimum(d->physical_minimum), physical_maximum(d->physical_maximum),
 		unit(d->unit), report_size(d->report_size), report_id(d->report_id),

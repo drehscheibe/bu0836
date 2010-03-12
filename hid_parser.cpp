@@ -10,7 +10,22 @@ using namespace std;
 
 
 
-static string string_join(const vector<string> &v, const char *join = " ") {
+static string hexstr(const unsigned char *p, int num, int width)
+{
+	ostringstream x;
+	x << hex << setfill('0');
+	while (num--)
+		x << setw(2) << int(*p++) << ' ';
+	string s = x.str();
+	x.str("");
+	x << left << setw(width) << setfill(' ') << s;
+	return x.str();
+}
+
+
+
+static string string_join(const vector<string> &v, const char *join = " ")
+{
 	size_t size = v.size();
 	string s;
 	if (size) {
@@ -370,6 +385,46 @@ const char *keyboard_keypad_page_string(uint32_t id)
 	case 0x1b: return "Keyboard x and X";
 	case 0x1c: return "Keyboard y and Y";
 	case 0x1d: return "Keyboard z and Z";
+	case 0x1e: return "Keyboard 1 and !";
+	case 0x1f: return "Keyboard 2 and @";
+	case 0x20: return "Keyboard 3 and #";
+	case 0x21: return "Keyboard 4 and $";
+	case 0x22: return "Keyboard 5 and %";
+	case 0x23: return "Keyboard 6 and ^";
+	case 0x24: return "Keyboard 7 and &";
+	case 0x25: return "Keyboard 8 and *";
+	case 0x26: return "Keyboard 9 and (";
+	case 0x27: return "Keyboard 0 and )";
+	case 0x28: return "Keyboard Return";
+	case 0x29: return "Keyboard Escape";
+	case 0x2a: return "Keyboard Delete (Backspace)";
+	case 0x2b: return "Keyboard Tab";
+	case 0x2c: return "Keyboard Spacebar";
+	case 0x2d: return "Keyboard - and _";
+	case 0x2e: return "Keyboard = and +";
+	case 0x2f: return "Keyboard [ and {";
+	case 0x30: return "Keyboard ] and }";
+	case 0x31: return "Keyboard \\ and |";
+	case 0x32: return "Keyboard Non-US # and ~";
+	case 0x33: return "Keyboard ; and :";
+	case 0x34: return "Keyboard ' and \"";
+	case 0x35: return "Keyboard Grave Accent and Tilde";
+	case 0x36: return "Keyboard , and <";
+	case 0x37: return "Keyboard . and >";
+	case 0x38: return "Keyboard / and ?";
+	case 0x39: return "Keyboard Caps Lock";
+	case 0x3a: return "Keyboard F1";
+	case 0x3b: return "Keyboard F2";
+	case 0x3c: return "Keyboard F3";
+	case 0x3d: return "Keyboard F4";
+	case 0x3e: return "Keyboard F5";
+	case 0x3f: return "Keyboard F6";
+	case 0x40: return "Keyboard F7";
+	case 0x41: return "Keyboard F8";
+	case 0x42: return "Keyboard F9";
+	case 0x43: return "Keyboard F10";
+	case 0x44: return "Keyboard F11";
+	case 0x45: return "Keyboard F12";
 	default: return "Reserved";
 	}
 }
@@ -499,20 +554,6 @@ string unit_string(uint32_t u)
 
 
 
-static string hexstr(const unsigned char *p, int num, int width)
-{
-	ostringstream x;
-	x << hex << setfill('0');
-	while (num--)
-		x << setw(2) << int(*p++) << ' ';
-	string s = x.str();
-	x.str("");
-	x << left << setw(width) << setfill(' ') << s;
-	return x.str();
-}
-
-
-
 hid_parser::hid_parser()
 {
 	_stack.push_back(hid_global_data());
@@ -544,9 +585,9 @@ void hid_parser::parse(const unsigned char *data, int len)
 			if (size > 0)
 				value = *d++;
 			if (size > 1)
-				value += *d++ << 8;
+				value |= *d++ << 8;
 			if (size > 2)
-				value += *d++ << 16, value += *d++ << 24;
+				value |= *d++ << 16, value |= *d++ << 24;
 
 			if (type == 0) {        // Main
 				log(INFO) << "\033[35m";
@@ -572,6 +613,7 @@ void hid_parser::parse(const unsigned char *data, int len)
 }
 
 
+
 void hid_parser::do_main(int tag, uint32_t value)
 {
 	switch (tag) {
@@ -595,6 +637,7 @@ void hid_parser::do_main(int tag, uint32_t value)
 	}
 	_local.reset();
 }
+
 
 
 void hid_parser::do_global(int tag, uint32_t value)
