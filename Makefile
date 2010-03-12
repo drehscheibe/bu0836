@@ -1,4 +1,6 @@
 FLAGS=-mtune=native -pipe -g -O0 -Wall
+LIBUSB_CFLAGS=`libusb-config --cflags`
+LIBUSB_LIBS=`libusb-config --libs`
 
 all: bu0836a Makefile
 	./bu0836a
@@ -10,7 +12,7 @@ vg valgrind: bu0836a
 	valgrind --tool=memcheck --leak-check=full ./bu0836a -vvvvv --list --device=00 --monitor
 
 bu0836a: logging.o options.o hid_parser.o bu0836a.o
-	g++ -g -o bu0836a logging.o options.o bu0836a.o hid_parser.o -lusb
+	g++ -g -o ${LIBUSB_CFLAGS} bu0836a logging.o options.o bu0836a.o hid_parser.o ${LIBUSB_LIBS}
 
 bu0836a.o: bu0836a.cpp options.h bu0836a.h hid_parser.h
 	g++ ${FLAGS} -I/usr/include/libusb-1.0 -c bu0836a.cpp
