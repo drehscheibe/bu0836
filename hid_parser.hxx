@@ -33,11 +33,12 @@ struct hid_global_data {
 struct hid_local_data {
 	hid_local_data() { reset(); }
 	void reset() {
-		usage_minimum = usage_maximum = designator_index = designator_minimum
+		usage = usage_minimum = usage_maximum = designator_index = designator_minimum
 				= designator_maximum = string_index = string_minimum
 				= string_maximum = delimiter = 0;
 	}
 
+	uint32_t usage;
 	uint32_t usage_minimum;
 	uint32_t usage_maximum;
 	uint32_t designator_index;
@@ -63,5 +64,7 @@ private:
 	std::vector<hid_global_data> _stack;
 	hid_global_data *_global;
 	hid_local_data _local;
+	std::vector<uint32_t> _usage;
 	std::string _indent;
+	int _depth;
 };

@@ -17,9 +17,8 @@ static string hexstr(const unsigned char *p, int num, int width)
 	while (num--)
 		x << setw(2) << int(*p++) << ' ';
 	string s = x.str();
-	x.str("");
-	x << left << setw(width) << setfill(' ') << s;
-	return x.str();
+	s.resize(width, ' ');
+	return s;
 }
 
 
@@ -564,6 +563,7 @@ hid_parser::hid_parser()
 
 void hid_parser::parse(const unsigned char *data, int len)
 {
+	_depth = 0;
 	for (const unsigned char *d = data; d < data + len; ) {
 		if (*d == 0xfe) { // long item
 			int size = *++d;
@@ -628,14 +628,19 @@ void hid_parser::do_main(int tag, uint32_t value)
 		break;
 	case 0xa: // Collection
 		log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
-		_indent += '\t';
+		_indent.assign(++_depth, '\t');
 		break;
 	case 0xc: // End Collection
-		_indent = _indent.substr(0, _indent.length() - 1);
-		log(INFO) << _indent << "End Collection ";
+		if (_depth) {
+			_indent.assign(--_depth, '\t');
+			log(INFO) << _indent << "End Collection ";
+		} else {
+			log(ALERT) << "ignoring excess 'End Collection'" << endl;
+		}
 		break;
 	}
 	_local.reset();
+	_usage.clear();
 }
 
 
@@ -707,11 +712,12 @@ void hid_parser::do_global(int tag, uint32_t value)
 void hid_parser::do_local(int tag, uint32_t value)
 {
 	switch (tag) {
-	case 0x0:
+	case 0x0: // usage
 		if (_global->usage_table >= 0xff00 && _global->usage_table <= 0xffff) // vendor defined
 			log(INFO) << "Usage " << value;
 		else
 			log(INFO) << "Usage '" << usage_string(_global->usage_table, value) << '\'';
+		_usage.push_back(value);
 		return;
 	case 0x1:
 		log(INFO) << "Usage Minimum";
