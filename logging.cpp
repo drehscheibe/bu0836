@@ -1,4 +1,7 @@
 #include <iostream>
+#include <string>
+#include <unistd.h>
+
 #include "logging.h"
 
 
@@ -10,10 +13,21 @@ namespace {
 }
 
 
+bool color::_isatty = isatty(2);
+
+
+
+std::ostream &operator<<(std::ostream &os, const color &c) {
+	return color::_isatty ? os << "\033[" << c.str() << 'm' : os;
+}
+
+
+
 int get_log_level()
 {
 	return log_level;
 }
+
 
 
 void set_log_level(int level)
@@ -22,7 +36,7 @@ void set_log_level(int level)
 }
 
 
-std::ostream& log(int level = ALWAYS, bool condition)
+std::ostream &log(int level = ALWAYS, bool condition)
 {
 	return condition && level < log_level ? std::cerr : cnull;
 }
