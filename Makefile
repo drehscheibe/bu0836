@@ -1,8 +1,12 @@
-FLAGS=-mtune=native -pipe -g -O0 -Wall
+DEBUG=-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g
+FLAGS=-mtune=native -pipe -O3 -Wall
+FLAGS:=${FLAGS} ${DEBUG} # FIXME DEBUG BUILD
+
 LIBUSB_CFLAGS=`libusb-config --cflags`
 LIBUSB_LIBS=`libusb-config --libs`
 
 all: bu0836a Makefile
+	@echo DEBUG BUILD # FIXME
 	./bu0836a
 
 check: bu0836a
@@ -27,5 +31,5 @@ options.o: options.c options.h
 	g++ ${FLAGS} -c options.c
 
 clean:
-	rm -f bu0836a.o hid_parser.o logging.o options.o bu0836a core.bu0836a.*
+	rm -f *.o bu0836a core.bu0836a.*
 
