@@ -3,8 +3,8 @@
 #include <sstream>
 #include <string>
 
-#include "logging.h"
-#include "hid_parser.h"
+#include "logging.hxx"
+#include "hid_parser.hxx"
 
 using namespace std;
 

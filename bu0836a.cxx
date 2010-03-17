@@ -8,10 +8,10 @@
 
 #include <libusb.h>
 
-#include "logging.h"
-#include "hid_parser.h"
+#include "logging.hxx"
+#include "hid_parser.hxx"
 #include "options.h"
-#include "bu0836a.h"
+#include "bu0836a.hxx"
 
 using namespace std;
 

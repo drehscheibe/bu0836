@@ -2,7 +2,7 @@
 #include <string>
 #include <unistd.h>
 
-#include "logging.h"
+#include "logging.hxx"
 
 
 namespace {
