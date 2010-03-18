@@ -14,6 +14,7 @@ check: bu0836a
 
 vg valgrind: bu0836a
 	valgrind --tool=memcheck --leak-check=full ./bu0836a -vvvvv --list --device=00 --monitor
+	@#valgrind --tool=exp-ptrcheck ./bu0836a -vvvvv --list --device=00 --monitor
 
 bu0836a: logging.o options.o hid_parser.o bu0836a.o
 	g++ -g -o ${LIBUSB_CFLAGS} bu0836a logging.o options.o bu0836a.o hid_parser.o ${LIBUSB_LIBS}
