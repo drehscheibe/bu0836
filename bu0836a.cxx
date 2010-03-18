@@ -201,7 +201,10 @@ public:
 
 		for (int i = 0; i < len; i++)
 			log(ALWAYS) << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
-		log(ALWAYS) << dec << endl;
+
+		uint16_t x = libusb_le16_to_cpu(*(uint16_t *)&buf[0]);
+		uint16_t y = libusb_le16_to_cpu(*(uint16_t *)&buf[2]);
+		log(ALWAYS) << dec << "  x=" << x << "  y=" << y << endl;
 
 		return ret;
 	}
