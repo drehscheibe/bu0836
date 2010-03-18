@@ -52,18 +52,46 @@ struct hid_local_data {
 
 
 
+enum main_type {
+	ROOT, COLLECTION, INPUT, OUTPUT, FEATURE
+};
+
+
+
+struct hid_main_item {
+	hid_main_item(main_type t, hid_global_data &g, hid_local_data &l) :
+		type(t), global(g), local(l)
+	{}
+
+	~hid_main_item()
+	{
+		std::vector<hid_main_item *>::const_iterator it, end = children.end();
+		for (it = children.begin(); it != end; ++it)
+			delete *it;
+	}
+
+	main_type type;
+	hid_global_data global;
+	hid_local_data local;
+	std::vector<hid_main_item *> children;
+};
+
+
 class hid_parser {
 public:
 	hid_parser();
+	~hid_parser();
 	void parse(const unsigned char *data, int len);
 
 private:
 	void do_main(int tag, uint32_t value);
 	void do_global(int tag, uint32_t value);
 	void do_local(int tag, uint32_t value);
-	std::vector<hid_global_data> _stack;
+	std::vector<hid_global_data> _data_stack;
 	hid_global_data *_global;
 	hid_local_data _local;
+	hid_main_item *_item;
+	std::vector<hid_main_item *> _item_stack;
 	std::vector<uint32_t> _usage;
 	std::string _indent;
 	int _depth;

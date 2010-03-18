@@ -446,7 +446,7 @@ const char *usage_string(uint32_t usage, uint32_t id)
 
 
 
-string input_output_feature_string(int mode, uint32_t value) {
+string input_output_feature_string(main_type type, uint32_t value) {
 	string s;
 	s += value & 0x01 ? "*const " : "data ";
 	s += value & 0x02 ? "*var " : "array ";
@@ -454,7 +454,7 @@ string input_output_feature_string(int mode, uint32_t value) {
 	s += value & 0x08 ? "*non-lin " : "lin ";
 	s += value & 0x10 ? "*no-pref-state " : "pref-state ";
 	s += value & 0x20 ? "*no-null-state " : "null-pos ";
-	if (mode > 0)
+	if (type > 0)
 		s += value & 0x40 ? "*vol " : "non-vol ";
 	s += value & 0x80 ? "*buff-bytes" : "bit-field";
 	return s;
@@ -553,10 +553,20 @@ string unit_string(uint32_t u)
 
 
 
-hid_parser::hid_parser()
+hid_parser::hid_parser() : _item(0)
 {
-	_stack.push_back(hid_global_data());
-	_global = &_stack[0];
+	_data_stack.push_back(hid_global_data());
+	_global = &_data_stack[0];
+
+	_item = new hid_main_item(ROOT, *_global, _local);
+	_item_stack.push_back(_item);
+}
+
+
+
+hid_parser::~hid_parser()
+{
+	delete _item;
 }
 
 
@@ -616,24 +626,33 @@ void hid_parser::parse(const unsigned char *data, int len)
 
 void hid_parser::do_main(int tag, uint32_t value)
 {
+	hid_main_item *current = _item_stack[_item_stack.size() - 1];
 	switch (tag) {
-	case 0x8: // Input
-		log(INFO) << _indent << "Input " << input_output_feature_string(0, value);
+	case 0x8:   // Input
+		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
+		current->children.push_back(new hid_main_item(INPUT, *_global, _local));
 		break;
-	case 0x9: // Output
-		log(INFO) << _indent << "Output " << input_output_feature_string(1, value);
+	case 0x9:   // Output
+		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
+		current->children.push_back(new hid_main_item(OUTPUT, *_global, _local));
 		break;
-	case 0xb: // Feature
-		log(INFO) << _indent << "Feature " << input_output_feature_string(2, value);
+	case 0xb:   // Feature
+		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
+		current->children.push_back(new hid_main_item(FEATURE, *_global, _local));
 		break;
-	case 0xa: // Collection
-		log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
-		_indent.assign(++_depth, '\t');
+	case 0xa: { // Collection
+			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
+			_indent.assign(++_depth, '\t');
+			hid_main_item *collection = new hid_main_item(COLLECTION, *_global, _local);
+			current->children.push_back(collection);
+			_item_stack.push_back(collection);
+		}
 		break;
 	case 0xc: // End Collection
 		if (_depth) {
 			_indent.assign(--_depth, '\t');
 			log(INFO) << _indent << "End Collection ";
+			_item_stack.pop_back();
 		} else {
 			log(ALERT) << "ignoring excess 'End Collection'" << endl;
 		}
@@ -690,14 +709,14 @@ void hid_parser::do_global(int tag, uint32_t value)
 		return;
 	case 0xa:
 		log(INFO) << "Push";
-		_stack.push_back(hid_global_data(_global));
-		_global = &_stack[_stack.size() - 1];
+		_data_stack.push_back(hid_global_data(_global));
+		_global = &_data_stack[_data_stack.size() - 1];
 		return;
 	case 0xb:
 		log(INFO) << "Pop";
-		if (_stack.size() > 1) {
-			_stack.pop_back();
-			_global = &_stack[_stack.size() - 1];
+		if (_data_stack.size() > 1) {
+			_data_stack.pop_back();
+			_global = &_data_stack[_data_stack.size() - 1];
 		} else {
 			log(ALERT) << ORIGIN"can't pop -- stack empty" << endl;
 		}
