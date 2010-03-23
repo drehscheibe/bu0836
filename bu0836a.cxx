@@ -194,17 +194,34 @@ public:
 			}
 		}
 
+		// setup and read control pipe
+		bool skip = true;
+		for (int i = 0; i < 32; i++) {
+			bzero(buf, 17);
+			ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01, /* FEATURE */ 0x0300, 0, buf, 17, 10000 /* ms */);
+			if (skip && buf[0])
+				continue;
+			skip = false;
+			if (ret == 17)
+				log(INFO) << hexstr(buf, ret) << endl;
+			else
+				log(INFO) << i << "  control transfer: " << usb_perror(ret) << "  (" << ret << ")" << endl;
+			if (buf[0] == 0xf0)
+				break;
+		}
+
 		// get HID report descriptor
 		int len;
 		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN|1, buf, sizeof(buf), &len, 100 /* ms */);
 		log(ALERT, ret < 0) << "transfer: " << usb_perror(ret) << ", " << len << endl;
 
+		log(INFO) << endl;
 		for (int i = 0; i < len; i++)
-			log(ALWAYS) << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
+			log(INFO) << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
 
 		uint16_t x = libusb_le16_to_cpu(*(uint16_t *)&buf[0]);
 		uint16_t y = libusb_le16_to_cpu(*(uint16_t *)&buf[2]);
-		log(ALWAYS) << dec << "  x=" << x << "  y=" << y << endl;
+		log(INFO) << dec << "  x=" << x << "  y=" << y << endl;
 
 		return ret;
 	}
