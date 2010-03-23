@@ -4,6 +4,10 @@
 
 
 
+std::string hexstr(const unsigned char *p, unsigned int num, size_t width = 0);
+
+
+
 struct hid_global_data {
 	hid_global_data() : usage_table(0), logical_minimum(0), logical_maximum(0),
 		physical_minimum(0), physical_maximum(0), unit_exponent(0),

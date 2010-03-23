@@ -10,19 +10,6 @@ using namespace std;
 
 
 
-static string hexstr(const unsigned char *p, int num, int width)
-{
-	ostringstream x;
-	x << hex << setfill('0');
-	while (num--)
-		x << setw(2) << int(*p++) << ' ';
-	string s = x.str();
-	s.resize(width, ' ');
-	return s;
-}
-
-
-
 static string string_join(const vector<string> &v, const char *join = " ")
 {
 	size_t size = v.size();
@@ -34,6 +21,20 @@ static string string_join(const vector<string> &v, const char *join = " ")
 			s += *it++;
 		}
 	}
+	return s;
+}
+
+
+
+string hexstr(const unsigned char *p, unsigned int num, size_t width)
+{
+	ostringstream x;
+	x << hex << setfill('0');
+	while (num--)
+		x << setw(2) << int(*p++) << ' ';
+	string s = x.str();
+	if (width > s.length())
+		s.resize(width, ' ');
 	return s;
 }
 
