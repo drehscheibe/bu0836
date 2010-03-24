@@ -294,13 +294,6 @@ public:
 		libusb_exit(0);
 	}
 
-	void print_list() const
-	{
-		vector<controller *>::const_iterator it, end = _devices.end();
-		for (it = _devices.begin(); it != end; ++it)
-			(*it)->print_info();
-	}
-
 	int find(string which, controller **ctrl) const
 	{
 		int num = 0;
@@ -316,7 +309,9 @@ public:
 		return num;
 	}
 
-	vector<controller *> &devices() { return _devices; }
+	size_t size() const { return _devices.size(); }
+
+	controller& operator[](unsigned int index) { return *_devices[index]; }
 
 private:
 	static const int _vendor = 0x16c0;
@@ -355,9 +350,9 @@ try {
 	bu0836a usb;
 	controller *selected = 0;
 
-	int numdev  = usb.devices().size();
+	int numdev = usb.size();
 	if (numdev == 1)
-		selected = usb.devices()[0];
+		selected = &usb[0];
 	else if (!numdev)
 		throw string("no BU0836A found");
 
@@ -380,7 +375,8 @@ try {
 		}
 
 		case LIST_OPTION:
-			usb.print_list();
+			for (size_t i = 0; i < usb.size(); i++)
+				usb[i].print_info();
 			break;
 
 		case MONITOR_OPTION:
