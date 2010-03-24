@@ -22,7 +22,7 @@ bu0836a: logging.o options.o hid_parser.o bu0836a.o
 bu0836a.o: bu0836a.cxx options.h bu0836a.hxx hid_parser.hxx
 	g++ ${FLAGS} -I/usr/include/libusb-1.0 -c bu0836a.cxx
 
-hid_parser.o: hid_parser.cxx hid_parser.hxx
+hid_parser.o: hid_parser.cxx hid_parser.hxx logging.hxx
 	g++ ${FLAGS} -c hid_parser.cxx
 
 logging.o: logging.cxx logging.hxx

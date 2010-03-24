@@ -133,12 +133,14 @@ public:
 		int ret;
 		if (_claimed) {
 			ret = libusb_release_interface(_handle, INTERFACE);
-			log(ALERT, ret < 0) << "libusb_release_interface: " << usb_perror(ret) << endl;
+			if (ret < 0)
+				log(ALERT) << "libusb_release_interface: " << usb_perror(ret) << endl;
 		}
 
 		if (_kernel_detached) {
 			ret = libusb_attach_kernel_driver(_handle, INTERFACE);
-			log(ALERT, ret < 0) << "libusb_attach_kernel_driver: " << usb_perror(ret) << endl;
+			if (ret < 0)
+				log(ALERT) << "libusb_attach_kernel_driver: " << usb_perror(ret) << endl;
 		}
 
 		libusb_close(_handle);
@@ -213,7 +215,8 @@ public:
 		// get HID report descriptor
 		int len;
 		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN|1, buf, sizeof(buf), &len, 100 /* ms */);
-		log(ALERT, ret < 0) << "transfer: " << usb_perror(ret) << ", " << len << endl;
+		if (ret < 0)
+			log(ALERT) << "transfer: " << usb_perror(ret) << ", " << len << endl;
 
 		log(INFO) << endl;
 		for (int i = 0; i < len; i++)

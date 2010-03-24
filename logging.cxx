@@ -36,7 +36,7 @@ void set_log_level(int level)
 }
 
 
-std::ostream &log(int level = ALWAYS, bool condition)
+std::ostream &log(int level = ALWAYS)
 {
-	return condition && level < log_level ? std::cerr : cnull;
+	return level < log_level ? std::cerr : cnull;
 }
