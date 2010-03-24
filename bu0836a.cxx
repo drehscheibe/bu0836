@@ -278,7 +278,7 @@ public:
 			ret = libusb_get_device_descriptor(dev, &desc);
 			if (ret)
 				log(ALERT) << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
-			else if (desc.idVendor == _vendor && desc.idProduct == _product)
+			else if (desc.idVendor == _bodnar_id && desc.idProduct == _bu0836a_id)
 				_devices.push_back(new controller(handle, dev, desc));
 			else
 				libusb_close(handle);
@@ -314,8 +314,8 @@ public:
 	controller& operator[](unsigned int index) { return *_devices[index]; }
 
 private:
-	static const int _vendor = 0x16c0;
-	static const int _product = 0x05ba;
+	static const int _bodnar_id = 0x16c0;
+	static const int _bu0836a_id = 0x05ba;
 	vector<controller *> _devices;
 };
 
