@@ -22,8 +22,8 @@ static void help(void)
 
 
 
-int main(int argc, const char *argv[])
-try {
+int main(int argc, const char *argv[]) try
+{
 	enum { HELP_OPTION, VERBOSE_OPTION, DEVICE_OPTION, LIST_OPTION, MONITOR_OPTION, NORMAL_OPTION,
 			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION };
 
@@ -43,7 +43,7 @@ try {
 	int option;
 	struct option_parser_context ctx;
 
-	init_option_parser(&ctx, argc, argv, options);
+	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE)
 		if (option == HELP_OPTION)
 			help();
@@ -57,7 +57,7 @@ try {
 	else if (!numdev)
 		throw string("no BU0836A found");
 
-	init_option_parser(&ctx, argc, argv, options);
+	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 		switch (option) {
 		case VERBOSE_OPTION:
@@ -134,7 +134,6 @@ try {
 			return EXIT_FAILURE;
 		}
 	}
-
 	return EXIT_SUCCESS;
 
 } catch (string &msg) {

@@ -26,7 +26,7 @@ Example:
 	};
 
 	struct option_parser_context ctx;
-	init_option_parser(&ctx, argc, argv, options);
+	init_options_context(&ctx, argc, argv, options);
 
 	int option;
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
@@ -85,7 +85,7 @@ struct option_parser_context {
 };
 
 
-void init_option_parser(struct option_parser_context *ctx, int argc, const char *argv[],
+void init_options_context(struct option_parser_context *ctx, int argc, const char *argv[],
 		const struct command_line_option *options);
 
 int get_option(struct option_parser_context *ctx);

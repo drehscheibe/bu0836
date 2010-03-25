@@ -2,7 +2,7 @@
 #include "options.h"
 
 
-void init_option_parser(struct option_parser_context *ctx, int argc, const char *argv[],
+void init_options_context(struct option_parser_context *ctx, int argc, const char *argv[],
 		const struct command_line_option *options)
 {
 	ctx->argc = argc;
