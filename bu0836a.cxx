@@ -34,7 +34,7 @@ static void help(void)
 
 
 
-static const char *usb_perror(int errno)
+static const char *usb_strerror(int errno)
 {
 	switch (errno) {
 	case LIBUSB_SUCCESS:
@@ -134,13 +134,13 @@ public:
 		if (_claimed) {
 			ret = libusb_release_interface(_handle, INTERFACE);
 			if (ret < 0)
-				log(ALERT) << "libusb_release_interface: " << usb_perror(ret) << endl;
+				log(ALERT) << "libusb_release_interface: " << usb_strerror(ret) << endl;
 		}
 
 		if (_kernel_detached) {
 			ret = libusb_attach_kernel_driver(_handle, INTERFACE);
 			if (ret < 0)
-				log(ALERT) << "libusb_attach_kernel_driver: " << usb_perror(ret) << endl;
+				log(ALERT) << "libusb_attach_kernel_driver: " << usb_strerror(ret) << endl;
 		}
 
 		libusb_close(_handle);
@@ -151,7 +151,7 @@ public:
 		if (libusb_kernel_driver_active(_handle, INTERFACE)) {
 			ret = libusb_detach_kernel_driver(_handle, INTERFACE);
 			if (ret < 0) {
-				log(ALERT) << "libusb_detach_kernel_driver: " << usb_perror(ret) << endl;
+				log(ALERT) << "libusb_detach_kernel_driver: " << usb_strerror(ret) << endl;
 				return ret;
 			}
 			_kernel_detached = true;
@@ -159,7 +159,7 @@ public:
 
 		ret = libusb_claim_interface(_handle, INTERFACE);
 		if (ret < 0) {
-			log(ALERT) << "libusb_claim_interface: " << usb_perror(ret) << endl;
+			log(ALERT) << "libusb_claim_interface: " << usb_strerror(ret) << endl;
 			return ret;
 		}
 		_claimed = true;
@@ -177,7 +177,7 @@ public:
 		unsigned char buf[1024];
 		ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, 255);
 		if (ret < 0) {
-			log(ALERT) << "hid-desc: " << usb_perror(ret) << endl;
+			log(ALERT) << "hid-desc: " << usb_strerror(ret) << endl;
 		} else {
 			usb_hid_descriptor *hid = (usb_hid_descriptor *)buf;
 			log(INFO) << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
@@ -207,7 +207,7 @@ public:
 			if (ret == 17)
 				log(INFO) << hexstr(buf, ret) << endl;
 			else
-				log(INFO) << i << "  control transfer: " << usb_perror(ret) << "  (" << ret << ")" << endl;
+				log(INFO) << i << "  control transfer: " << usb_strerror(ret) << "  (" << ret << ")" << endl;
 			if (buf[0] == 0xf0)
 				break;
 		}
@@ -216,7 +216,7 @@ public:
 		int len;
 		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN|1, buf, sizeof(buf), &len, 100 /* ms */);
 		if (ret < 0)
-			log(ALERT) << "transfer: " << usb_perror(ret) << ", " << len << endl;
+			log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
 
 		log(INFO) << endl;
 		for (int i = 0; i < len; i++)
@@ -258,20 +258,20 @@ public:
 	bu0836a(int debug_level = 3) {
 		int ret = libusb_init(0);
 		if (ret < 0)
-			throw string("libusb_init: ") + usb_perror(ret);
+			throw string("libusb_init: ") + usb_strerror(ret);
 		libusb_set_debug(0, 3);
 
 		libusb_device **list;
 		ret = libusb_get_device_list(0, &list);
 		if (ret < 0)
-			throw string("libusb_get_device_list: ") + usb_perror(ret);
+			throw string("libusb_get_device_list: ") + usb_strerror(ret);
 
 		for (int i = 0; i < ret; i++) {
 			libusb_device_handle *handle;
 			int ret = libusb_open(list[i], &handle);
 
 			if (ret) {
-				log(ALERT) << "\terror: libusb_open: " << usb_perror(ret) << endl;
+				log(ALERT) << "\terror: libusb_open: " << usb_strerror(ret) << endl;
 				continue;
 			}
 
@@ -280,7 +280,7 @@ public:
 			libusb_device_descriptor desc;
 			ret = libusb_get_device_descriptor(dev, &desc);
 			if (ret)
-				log(ALERT) << "error: libusb_get_device_descriptor: " << usb_perror(ret) << endl;
+				log(ALERT) << "error: libusb_get_device_descriptor: " << usb_strerror(ret) << endl;
 			else if (desc.idVendor == _bodnar_id && desc.idProduct == _bu0836a_id)
 				_devices.push_back(new controller(handle, dev, desc));
 			else
