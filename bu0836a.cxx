@@ -1,36 +1,15 @@
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <vector>
 
-#include <libusb.h>
-
-#include "logging.hxx"
-#include "hid_parser.hxx"
-#include "options.h"
 #include "bu0836a.hxx"
+#include "hid_parser.hxx"
+#include "logging.hxx"
+#include "options.h"
 
 using namespace std;
-
-
-
-static void help(void)
-{
-	cout << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
-	cout << "        -h, --help           this help screen" << endl;
-	cout << "        -v, --verbose        increase verbosity level" << endl;
-	cout << "        -l, --list           list BU0836 controller devices" << endl;
-	cout << "        -m, --monitor        monitor device output" << endl;
-	cout << "        -d, --device <s>     select device by serial number (or unambiguous substring)" << endl;
-	cout << "        -i, --invert <n>     set inverted mode for given axis" << endl;
-	cout << "        -n, --normal <n>     set normal mode for given axis" << endl;
-	cout << "        -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
-	cout << "        -b, --button <n>     set button mode for given button (and its sibling)" << endl;
-	exit(EXIT_SUCCESS);
-}
 
 
 
@@ -91,355 +70,211 @@ static string strip(string s)
 
 
 
-class controller {
-public:
-	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc) :
-		_handle(handle),
-		_device(device),
-		_desc(desc),
-		_claimed(false),
-		_kernel_detached(false)
-	{
-		ostringstream s;
-		s << int(libusb_get_bus_number(_device)) << ":" << int(libusb_get_device_address(_device));
-		_bus_address = s.str();
+controller::controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc) :
+	_handle(handle),
+	_device(device),
+	_desc(desc),
+	_claimed(false),
+	_kernel_detached(false)
+{
+	ostringstream s;
+	s << int(libusb_get_bus_number(_device)) << ":" << int(libusb_get_device_address(_device));
+	_bus_address = s.str();
 
-		s.str("");
-		s << hex << setw(4) << setfill('0') << _desc.idVendor << ':' << setw(4) << setfill('0') << _desc.idProduct;
-		_id = s.str();
+	s.str("");
+	s << hex << setw(4) << setfill('0') << _desc.idVendor << ':' << setw(4) << setfill('0') << _desc.idProduct;
+	_id = s.str();
 
-		_release = bcd2str(desc.bcdDevice);
+	_release = bcd2str(_desc.bcdDevice);
 
-		unsigned char buf[256];
-		if (desc.iManufacturer && libusb_get_string_descriptor_ascii(_handle, desc.iManufacturer, buf, sizeof(buf)) > 0)
-			_manufacturer = strip(string((char *)buf));
+	unsigned char buf[256];
+	if (_desc.iManufacturer && libusb_get_string_descriptor_ascii(_handle, _desc.iManufacturer, buf, sizeof(buf)) > 0)
+		_manufacturer = strip(string((char *)buf));
 
-		if (desc.iProduct && libusb_get_string_descriptor_ascii(_handle, desc.iProduct, buf, sizeof(buf)) > 0)
-			_product = strip(string((char *)buf));
+	if (_desc.iProduct && libusb_get_string_descriptor_ascii(_handle, _desc.iProduct, buf, sizeof(buf)) > 0)
+		_product = strip(string((char *)buf));
 
-		if (desc.iSerialNumber && libusb_get_string_descriptor_ascii(_handle, desc.iSerialNumber, buf, sizeof(buf)) > 0)
-			_serial = strip(string((char *)buf));
+	if (_desc.iSerialNumber && libusb_get_string_descriptor_ascii(_handle, _desc.iSerialNumber, buf, sizeof(buf)) > 0)
+		_serial = strip(string((char *)buf));
 
-		_jsid = _manufacturer;
-		if (!_manufacturer.empty() && !_product.empty())
-			_jsid += " ";
-		_jsid += _product;
-		if (!_jsid.empty() && !_serial.empty())
-			_jsid += " ";
-		_jsid += _serial;
+	_jsid = _manufacturer;
+	if (!_manufacturer.empty() && !_product.empty())
+		_jsid += " ";
+	_jsid += _product;
+	if (!_jsid.empty() && !_serial.empty())
+		_jsid += " ";
+	_jsid += _serial;
+}
+
+
+
+controller::~controller()
+{
+	int ret;
+	if (_claimed) {
+		ret = libusb_release_interface(_handle, INTERFACE);
+		if (ret < 0)
+			log(ALERT) << "libusb_release_interface: " << usb_strerror(ret) << endl;
 	}
 
-	~controller() {
-		int ret;
-		if (_claimed) {
-			ret = libusb_release_interface(_handle, INTERFACE);
-			if (ret < 0)
-				log(ALERT) << "libusb_release_interface: " << usb_strerror(ret) << endl;
-		}
-
-		if (_kernel_detached) {
-			ret = libusb_attach_kernel_driver(_handle, INTERFACE);
-			if (ret < 0)
-				log(ALERT) << "libusb_attach_kernel_driver: " << usb_strerror(ret) << endl;
-		}
-
-		libusb_close(_handle);
+	if (_kernel_detached) {
+		ret = libusb_attach_kernel_driver(_handle, INTERFACE);
+		if (ret < 0)
+			log(ALERT) << "libusb_attach_kernel_driver: " << usb_strerror(ret) << endl;
 	}
 
-	int claim() {
-		int ret;
-		if (libusb_kernel_driver_active(_handle, INTERFACE)) {
-			ret = libusb_detach_kernel_driver(_handle, INTERFACE);
-			if (ret < 0) {
-				log(ALERT) << "libusb_detach_kernel_driver: " << usb_strerror(ret) << endl;
-				return ret;
-			}
-			_kernel_detached = true;
-		}
+	libusb_close(_handle);
+}
 
-		ret = libusb_claim_interface(_handle, INTERFACE);
+
+
+int controller::claim()
+{
+	int ret;
+	if (libusb_kernel_driver_active(_handle, INTERFACE)) {
+		ret = libusb_detach_kernel_driver(_handle, INTERFACE);
 		if (ret < 0) {
-			log(ALERT) << "libusb_claim_interface: " << usb_strerror(ret) << endl;
+			log(ALERT) << "libusb_detach_kernel_driver: " << usb_strerror(ret) << endl;
 			return ret;
 		}
-		_claimed = true;
-		return 0;
+		_kernel_detached = true;
 	}
 
-	int get_data() {
-		int ret = claim();
-		if (ret)
-			return ret;
+	ret = libusb_claim_interface(_handle, INTERFACE);
+	if (ret < 0) {
+		log(ALERT) << "libusb_claim_interface: " << usb_strerror(ret) << endl;
+		return ret;
+	}
+	_claimed = true;
+	return 0;
+}
 
-		hid_parser parser;
 
-		// get HID descriptor
-		unsigned char buf[1024];
-		ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, 255);
-		if (ret < 0) {
-			log(ALERT) << "hid-desc: " << usb_strerror(ret) << endl;
-		} else {
-			usb_hid_descriptor *hid = (usb_hid_descriptor *)buf;
-			log(INFO) << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
-			for (int n = 0; n < int(hid->bNumDescriptors); n++) {
-				unsigned len = hid->wDescriptorLength(n);
-				log(INFO) << "\t" << int(hid->descriptors[n].bDescriptorType) << " / " << len << endl;
 
-				if (len < sizeof(buf)) {
-					ret = libusb_get_descriptor(_handle, LIBUSB_DT_REPORT, 0, buf, len);
-					if (ret >= 0) {
-						log(INFO) << "\t\treq=" << len << "  rec=" << ret << endl << endl;
-						parser.parse(buf, ret);
-						log(INFO) << endl;
-					}
+int controller::get_data()
+{
+	int ret = claim();
+	if (ret)
+		return ret;
+
+	hid_parser parser;
+
+	// get HID descriptor
+	unsigned char buf[1024];
+	ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, 255);
+	if (ret < 0) {
+		log(ALERT) << "hid-desc: " << usb_strerror(ret) << endl;
+	} else {
+		usb_hid_descriptor *hid = (usb_hid_descriptor *)buf;
+		log(INFO) << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
+		for (int n = 0; n < int(hid->bNumDescriptors); n++) {
+			unsigned len = hid->wDescriptorLength(n);
+			log(INFO) << "\t" << int(hid->descriptors[n].bDescriptorType) << " / " << len << endl;
+
+			if (len < sizeof(buf)) {
+				ret = libusb_get_descriptor(_handle, LIBUSB_DT_REPORT, 0, buf, len);
+				if (ret >= 0) {
+					log(INFO) << "\t\treq=" << len << "  rec=" << ret << endl << endl;
+					parser.parse(buf, ret);
+					log(INFO) << endl;
 				}
 			}
 		}
-
-		// setup and read control pipe
-		bool skip = true;
-		for (int i = 0; i < 32; i++) {
-			bzero(buf, 17);
-			ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01, /* FEATURE */ 0x0300, 0, buf, 17, 10000 /* ms */);
-			if (skip && buf[0])
-				continue;
-			skip = false;
-			if (ret == 17)
-				log(INFO) << hexstr(buf, ret) << endl;
-			else
-				log(INFO) << i << "  control transfer: " << usb_strerror(ret) << "  (" << ret << ")" << endl;
-			if (buf[0] == 0xf0)
-				break;
-		}
-
-		// get HID report descriptor
-		int len;
-		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN|1, buf, sizeof(buf), &len, 100 /* ms */);
-		if (ret < 0)
-			log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
-
-		log(INFO) << endl;
-		for (int i = 0; i < len; i++)
-			log(INFO) << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
-
-		uint16_t x = libusb_le16_to_cpu(*(uint16_t *)&buf[0]);
-		uint16_t y = libusb_le16_to_cpu(*(uint16_t *)&buf[2]);
-		log(INFO) << dec << "  x=" << x << "  y=" << y << endl;
-
-		return ret;
 	}
 
-	const string &bus_address() const { return _bus_address; }
-	const string &jsid() const { return _jsid; }
-	const string &serial() const { return _serial; }
-	void print_info() const { cout << _bus_address << "   \"" << _jsid << '"' << "   ver " << _release << endl; }
-
-private:
-	string _bus_address;
-	string _id;
-	string _release;
-	string _manufacturer;
-	string _product;
-	string _serial;
-	string _jsid;
-	libusb_device_handle *_handle;
-	libusb_device *_device;
-	libusb_device_descriptor _desc;
-	bool _claimed;
-	bool _kernel_detached;
-
-	static const int INTERFACE = 0;
-};
-
-
-
-class bu0836a {
-public:
-	bu0836a(int debug_level = 3) {
-		int ret = libusb_init(0);
-		if (ret < 0)
-			throw string("libusb_init: ") + usb_strerror(ret);
-		libusb_set_debug(0, 3);
-
-		libusb_device **list;
-		ret = libusb_get_device_list(0, &list);
-		if (ret < 0)
-			throw string("libusb_get_device_list: ") + usb_strerror(ret);
-
-		for (int i = 0; i < ret; i++) {
-			libusb_device_handle *handle;
-			int ret = libusb_open(list[i], &handle);
-
-			if (ret) {
-				log(ALERT) << "\terror: libusb_open: " << usb_strerror(ret) << endl;
-				continue;
-			}
-
-			libusb_device *dev = libusb_get_device(handle);
-
-			libusb_device_descriptor desc;
-			ret = libusb_get_device_descriptor(dev, &desc);
-			if (ret)
-				log(ALERT) << "error: libusb_get_device_descriptor: " << usb_strerror(ret) << endl;
-			else if (desc.idVendor == _bodnar_id && desc.idProduct == _bu0836a_id)
-				_devices.push_back(new controller(handle, dev, desc));
-			else
-				libusb_close(handle);
-		}
-		libusb_free_device_list(list, 1);
+	// setup and read control pipe
+	bool skip = true;
+	for (int i = 0; i < 32; i++) {
+		bzero(buf, 17);
+		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01, /* FEATURE */ 0x0300, 0, buf, 17, 10000 /* ms */);
+		if (skip && buf[0])
+			continue;
+		skip = false;
+		if (ret == 17)
+			log(INFO) << hexstr(buf, ret) << endl;
+		else
+			log(INFO) << i << "  control transfer: " << usb_strerror(ret) << "  (" << ret << ")" << endl;
+		if (buf[0] == 0xf0)
+			break;
 	}
 
-	~bu0836a()
-	{
-		vector<controller *>::const_iterator it, end = _devices.end();
-		for (it = _devices.begin(); it != end; ++it)
-			delete *it;
-		libusb_exit(0);
-	}
+	// get HID report descriptor
+	int len;
+	ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN|1, buf, sizeof(buf), &len, 100 /* ms */);
+	if (ret < 0)
+		log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
 
-	int find(string which, controller **ctrl) const
-	{
-		int num = 0;
-		vector<controller *>::const_iterator it, end = _devices.end();
-		for (it = _devices.begin(); it != end; ++it) {
-			if ((*it)->serial().find(which) != string::npos) {
-				*ctrl = *it;
-				num++;
-			}
-		}
-		if (num != 1)
-			*ctrl = 0;
-		return num;
-	}
+	log(INFO) << endl;
+	for (int i = 0; i < len; i++)
+		log(INFO) << hex << setw(2) << setfill('0') << int(buf[i]) << "  ";
 
-	size_t size() const { return _devices.size(); }
+	uint16_t x = libusb_le16_to_cpu(*(uint16_t *)&buf[0]);
+	uint16_t y = libusb_le16_to_cpu(*(uint16_t *)&buf[2]);
+	log(INFO) << dec << "  x=" << x << "  y=" << y << endl;
 
-	controller& operator[](unsigned int index) { return *_devices[index]; }
-
-private:
-	static const int _bodnar_id = 0x16c0;
-	static const int _bu0836a_id = 0x05ba;
-	vector<controller *> _devices;
-};
+	return ret;
+}
 
 
 
-int main(int argc, const char *argv[])
-try {
-	enum { HELP_OPTION, VERBOSE_OPTION, DEVICE_OPTION, LIST_OPTION, MONITOR_OPTION, NORMAL_OPTION,
-			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION };
+bu0836a::bu0836a(int debug_level)
+{
+	int ret = libusb_init(0);
+	if (ret < 0)
+		throw string("libusb_init: ") + usb_strerror(ret);
+	libusb_set_debug(0, debug_level);
 
-	const struct command_line_option options[] = {
-		{ "--help", "-h", 0 },
-		{ "--verbose", "-v", 0 },
-		{ "--device", "-d", 1 },
-		{ "--list", "-l", 0 },
-		{ "--monitor", "-m", 0 },
-		{ "--normal", "-n", 1 },
-		{ "--invert", "-i", 1 },
-		{ "--button", "-b", 1 },
-		{ "--rotary", "-r", 1 },
-		OPTIONS_LAST
-	};
+	libusb_device **list;
+	ret = libusb_get_device_list(0, &list);
+	if (ret < 0)
+		throw string("libusb_get_device_list: ") + usb_strerror(ret);
 
-	int option;
-	struct option_parser_context ctx;
+	for (int i = 0; i < ret; i++) {
+		libusb_device_handle *handle;
+		int ret = libusb_open(list[i], &handle);
 
-	init_option_parser(&ctx, argc, argv, options);
-	while ((option = get_option(&ctx)) != OPTIONS_DONE)
-		if (option == HELP_OPTION)
-			help();
-
-	bu0836a usb;
-	controller *selected = 0;
-
-	int numdev = usb.size();
-	if (numdev == 1)
-		selected = &usb[0];
-	else if (!numdev)
-		throw string("no BU0836A found");
-
-	init_option_parser(&ctx, argc, argv, options);
-	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
-		switch (option) {
-		case VERBOSE_OPTION:
-			set_log_level(get_log_level() + 1);
-			break;
-
-		case DEVICE_OPTION: {
-			int num = usb.find(ctx.argument, &selected);
-			if (num == 1)
-				log(INFO) << "selecting device '" << selected->serial() << '\'' << endl;
-			else if (num)
-				log(ALERT) << "ambiguous device specifier (" << num << " devices matching)" << endl;
-			else
-				log(ALERT) << "no matching device found" << endl;
-			break;
+		if (ret) {
+			log(ALERT) << "\terror: libusb_open: " << usb_strerror(ret) << endl;
+			continue;
 		}
 
-		case LIST_OPTION:
-			for (size_t i = 0; i < usb.size(); i++)
-				usb[i].print_info();
-			break;
+		libusb_device *dev = libusb_get_device(handle);
 
-		case MONITOR_OPTION:
-			log(INFO) << "monitoring" << endl;
-			if (selected)
-				selected->get_data();
-			else
-				log(ALERT) << "no device selected" << endl;
-			break;
+		libusb_device_descriptor desc;
+		ret = libusb_get_device_descriptor(dev, &desc);
+		if (ret)
+			log(ALERT) << "error: libusb_get_device_descriptor: " << usb_strerror(ret) << endl;
+		else if (desc.idVendor == _bodnar_id && desc.idProduct == _bu0836a_id)
+			_devices.push_back(new controller(handle, dev, desc));
+		else
+			libusb_close(handle);
+	}
+	libusb_free_device_list(list, 1);
+}
 
-		case NORMAL_OPTION:
-			log(INFO) << "setting axis " << ctx.argument << " to normal" << endl;
-			break;
 
-		case INVERT_OPTION:
-			if (selected)
-				log(INFO) << "setting axis " << ctx.argument << " to inverted" << endl;
-			else
-				log(ALERT) << "you have to select a device first" << endl;
-			break;
 
-		case BUTTON_OPTION:
-			log(INFO) << "setting up button " << ctx.argument << " for button function" << endl;
-			break;
+bu0836a::~bu0836a()
+{
+	vector<controller *>::const_iterator it, end = _devices.end();
+	for (it = _devices.begin(); it != end; ++it)
+		delete *it;
+	libusb_exit(0);
+}
 
-		case ROTARY_OPTION:
-			log(INFO) << "setting up button " << ctx.argument << " for rotary switch" << endl;
-			break;
 
-		case HELP_OPTION:
 
-		// signals and errors
-		case OPTIONS_TERMINATOR:
-			break;
-
-		case OPTIONS_ARGUMENT:
-			log(ALERT) << "ERROR: don't know what to do with an argument '" << ctx.option << '\'' << endl;
-			return EXIT_FAILURE;
-
-		case OPTIONS_EXCESS_ARGUMENT:
-			log(ALERT) << "ERROR: illegal option assignment '" << ctx.argument << '\'' << endl;
-			return EXIT_FAILURE;
-
-		case OPTIONS_UNKNOWN_OPTION:
-			log(ALERT) << "ERROR: unknown option '" << ctx.option << '\'' << endl;
-			return EXIT_FAILURE;
-
-		case OPTIONS_MISSING_ARGUMENT:
-			log(ALERT) << "ERROR: missing argument for option '" << ctx.option << '\'' << endl;
-			return EXIT_FAILURE;
-
-		default:
-			log(ALERT) << "\033[31;1mthis can't happen: " << option << "/" << ctx.option << "\033[m" << endl;
-			return EXIT_FAILURE;
+int bu0836a::find(string which, controller **ctrl) const
+{
+	int num = 0;
+	vector<controller *>::const_iterator it, end = _devices.end();
+	for (it = _devices.begin(); it != end; ++it) {
+		if ((*it)->serial().find(which) != string::npos) {
+			*ctrl = *it;
+			num++;
 		}
 	}
-
-	return EXIT_SUCCESS;
-
-} catch (string &msg) {
-	log(ALERT) << "Error: " << msg << endl;
-	return EXIT_FAILURE;
+	if (num != 1)
+		*ctrl = 0;
+	return num;
 }

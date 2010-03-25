@@ -16,19 +16,22 @@ vg valgrind: bu0836a
 	valgrind --tool=memcheck --leak-check=full ./bu0836a -vvvvv --list --device=00 --monitor
 	@#valgrind --tool=exp-ptrcheck ./bu0836a -vvvvv --list --device=00 --monitor
 
-bu0836a: logging.o options.o hid_parser.o bu0836a.o
-	g++ -g -o ${LIBUSB_CFLAGS} bu0836a logging.o options.o bu0836a.o hid_parser.o ${LIBUSB_LIBS}
+bu0836a: logging.o options.o hid_parser.o bu0836a.o main.o Makefile
+	g++ -g -o bu0836a logging.o options.o bu0836a.o hid_parser.o main.o ${LIBUSB_LIBS}
 
-bu0836a.o: bu0836a.cxx options.h bu0836a.hxx hid_parser.hxx
+main.o: bu0836a.hxx logging.hxx options.h main.cxx Makefile
+	g++ ${FLAGS} -I/usr/include/libusb-1.0 -c main.cxx
+
+bu0836a.o: bu0836a.cxx bu0836a.hxx hid_parser.hxx logging.hxx Makefile
 	g++ ${FLAGS} -I/usr/include/libusb-1.0 -c bu0836a.cxx
 
-hid_parser.o: hid_parser.cxx hid_parser.hxx logging.hxx
+hid_parser.o: hid_parser.cxx hid_parser.hxx logging.hxx Makefile
 	g++ ${FLAGS} -c hid_parser.cxx
 
-logging.o: logging.cxx logging.hxx
+logging.o: logging.cxx logging.hxx Makefile
 	g++ ${FLAGS} -c logging.cxx
 
-options.o: options.c options.h
+options.o: options.c options.h Makefile
 	g++ ${FLAGS} -c options.c
 
 clean:
