@@ -37,3 +37,9 @@ options.o: options.c options.h Makefile
 clean:
 	rm -f *.o bu0836a core.bu0836a.*
 
+help:
+	@echo "targets:"
+	@echo "    all"
+	@echo "    check            (requires cppcheck)"
+	@echo "    vg, valgrind     (requires valgrind)"
+	@echo "    clean"
