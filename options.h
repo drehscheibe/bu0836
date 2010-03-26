@@ -58,13 +58,15 @@ Remarks:
 #define OPTIONS_MISSING_ARGUMENT -5     /* last option wants argument, but there are none left */
 #define OPTIONS_UNKNOWN_OPTION -6       /* undefined option found */
 
-#define OPTIONS_LAST { 0, 0, 0 }        /* can be used to terminate command_line_option array */
+#define OPTIONS_LAST { 0, 0 }           /* can be used to terminate command_line_option array */
 
 
 struct command_line_option {
 	const char *long_opt;
 	const char *short_opt;
 	int has_arg;
+
+	const char *ext;                /* unused; free for application extensions */
 };
 
 
