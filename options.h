@@ -1,3 +1,6 @@
+#ifndef _OPTIONS_H_
+#define _OPTIONS_H_
+
 /*
 Syntax:
 
@@ -48,6 +51,9 @@ Remarks:
 
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* get_option() returns a "struct command_line_option" index, or one of the following codes */
 
@@ -92,3 +98,8 @@ void init_options_context(struct option_parser_context *ctx, int argc, const cha
 
 int get_option(struct option_parser_context *ctx);
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif

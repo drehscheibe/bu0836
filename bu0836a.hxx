@@ -1,5 +1,9 @@
+#ifndef _BU0836A_HXX_
+#define _BU0836A_HXX_
+
 #include <cstdlib>
 #include <iostream>
+#include <stdint.h>
 #include <vector>
 
 #include <libusb.h>
@@ -75,3 +79,5 @@ private:
 
 	static const int CONTEXT = 0;
 };
+
+#endif

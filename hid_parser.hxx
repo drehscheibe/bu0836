@@ -1,3 +1,6 @@
+#ifndef _HID_PARSER_HXX_
+#define _HID_PARSER_HXX_
+
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -100,3 +103,5 @@ private:
 	std::string _indent;
 	int _depth;
 };
+
+#endif
