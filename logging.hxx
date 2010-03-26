@@ -11,6 +11,7 @@
 #define BULK 3
 
 
+
 class color {
 public:
 	color(const char *c = "") : _color(c) {}
@@ -19,6 +20,8 @@ public:
 private:
 	const char *_color;
 };
+
+
 
 int get_log_level();
 void set_log_level(int);

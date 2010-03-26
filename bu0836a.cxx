@@ -303,13 +303,13 @@ int controller::get_data()
 
 bu0836a::bu0836a(int debug_level)
 {
-	int ret = libusb_init(0);
+	int ret = libusb_init(CONTEXT);
 	if (ret < 0)
 		throw string("libusb_init: ") + usb_strerror(ret);
-	libusb_set_debug(0, debug_level);
+	libusb_set_debug(CONTEXT, debug_level);
 
 	libusb_device **list;
-	ret = libusb_get_device_list(0, &list);
+	ret = libusb_get_device_list(CONTEXT, &list);
 	if (ret < 0)
 		throw string("libusb_get_device_list: ") + usb_strerror(ret);
 
@@ -343,7 +343,7 @@ bu0836a::~bu0836a()
 	vector<controller *>::const_iterator it, end = _devices.end();
 	for (it = _devices.begin(); it != end; ++it)
 		delete *it;
-	libusb_exit(0);
+	libusb_exit(CONTEXT);
 }
 
 

@@ -72,4 +72,6 @@ private:
 	static const int _bodnar_id = 0x16c0;
 	static const int _bu0836a_id = 0x05ba;
 	std::vector<controller *> _devices;
+
+	static const int CONTEXT = 0;
 };
