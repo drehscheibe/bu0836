@@ -26,21 +26,21 @@ static void help(void)
 
 int main(int argc, const char *argv[]) try
 {
-	enum { HELP_OPTION, VERBOSE_OPTION, DEVICE_OPTION, LIST_OPTION, MONITOR_OPTION, NORMAL_OPTION,
+	enum { HELP_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION, MONITOR_OPTION, NORMAL_OPTION,
 			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION };
 
 	const struct command_line_option options[] = {
-		{ "--help", "-h", 0 },
-		{ "--verbose", "-v", 0 },
-		{ "--device", "-d", 1 },
-		{ "--list", "-l", 0 },
-		{ "--monitor", "-m", 0 },
-		{ "--normal", "-n", 1 },
-		{ "--invert", "-i", 1 },
-		{ "--button", "-b", 1 },
-		{ "--rotary", "-r", 1 },
-		{ "--save", "-O", 1 },
-		{ "--load", "-I", 1 },
+		{ "--help",    "-h", 0, "\0" },
+		{ "--verbose", "-v", 0, "\0" },
+		{ "--list",    "-l", 0, "\0" },
+		{ "--device",  "-d", 1, "\0" },
+		{ "--monitor", "-m", 0, "\1" },
+		{ "--normal",  "-n", 1, "\1" },
+		{ "--invert",  "-i", 1, "\1" },
+		{ "--button",  "-b", 1, "\1" },
+		{ "--rotary",  "-r", 1, "\1" },
+		{ "--save",    "-O", 1, "\1" },
+		{ "--load",    "-I", 1, "\1" },
 		OPTIONS_LAST
 	};
 
@@ -63,6 +63,14 @@ int main(int argc, const char *argv[]) try
 
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
+
+		if (option >= 0 && options[option].ext[0]) {
+			if (!selected)
+				throw string("you need to select a device before you can use the ") + options[option].long_opt + " option";
+
+			selected->claim();
+		}
+
 		switch (option) {
 		case VERBOSE_OPTION:
 			set_log_level(get_log_level() + 1);
@@ -86,10 +94,7 @@ int main(int argc, const char *argv[]) try
 
 		case MONITOR_OPTION:
 			log(INFO) << "monitoring" << endl;
-			if (selected)
-				selected->get_data();
-			else
-				log(ALERT) << "no device selected" << endl;
+			selected->get_data();
 			break;
 
 		case NORMAL_OPTION:
@@ -97,10 +102,7 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case INVERT_OPTION:
-			if (selected)
-				log(INFO) << "setting axis " << ctx.argument << " to inverted" << endl;
-			else
-				log(ALERT) << "you have to select a device first" << endl;
+			log(INFO) << "setting axis " << ctx.argument << " to inverted" << endl;
 			break;
 
 		case BUTTON_OPTION:
@@ -113,13 +115,13 @@ int main(int argc, const char *argv[]) try
 
 		case SAVE_OPTION:
 			log(INFO) << "save image to file '" << ctx.argument << '\'' << endl;
-			if (selected && !selected->get_image() && !selected->save_image(ctx.argument))
+			if (!selected->get_image() && !selected->save_image(ctx.argument))
 				log(INFO) << "saved" << endl;
 			break;
 
 		case LOAD_OPTION:
 			log(INFO) << "load image from file '" << ctx.argument << '\'' << endl;
-			if (selected && !selected->load_image(ctx.argument))
+			if (!selected->load_image(ctx.argument)) // && !selected->set_image()
 				log(INFO) << "loaded" << endl;
 			break;
 
