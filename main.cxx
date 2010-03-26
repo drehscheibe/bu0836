@@ -130,7 +130,7 @@ int main(int argc, const char *argv[]) try
 			return EXIT_FAILURE;
 
 		default:
-			log(ALERT) << "\033[31;1mthis can't happen: " << option << "/" << ctx.option << "\033[m" << endl;
+			log(ALERT) << "\033[31;1mthis can't happen: " << option << '/' << ctx.option << "\033[m" << endl;
 			return EXIT_FAILURE;
 		}
 	}

@@ -78,11 +78,11 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 	_kernel_detached(false)
 {
 	ostringstream s;
-	s << int(libusb_get_bus_number(_device)) << ":" << int(libusb_get_device_address(_device));
+	s << int(libusb_get_bus_number(_device)) << ':' << int(libusb_get_device_address(_device));
 	_bus_address = s.str();
 
 	s.str("");
-	s << hex << setw(4) << setfill('0') << _desc.idVendor << ':' << setw(4) << setfill('0') << _desc.idProduct;
+	s << hex << setfill('0') << setw(4) << _desc.idVendor << ':' << setw(4) << _desc.idProduct;
 	_id = s.str();
 
 	_release = bcd2str(_desc.bcdDevice);
@@ -99,10 +99,10 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 
 	_jsid = _manufacturer;
 	if (!_manufacturer.empty() && !_product.empty())
-		_jsid += " ";
+		_jsid += ' ';
 	_jsid += _product;
 	if (!_jsid.empty() && !_serial.empty())
-		_jsid += " ";
+		_jsid += ' ';
 	_jsid += _serial;
 }
 
