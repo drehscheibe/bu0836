@@ -30,6 +30,11 @@ public:
 	~controller();
 	int claim();
 	int get_data();
+	int get_image();
+	int set_image();
+	int save_image(const char *);
+	int load_image(const char *);
+
 	const std::string &bus_address() const { return _bus_address; }
 	const std::string &jsid() const { return _jsid; }
 	const std::string &serial() const { return _serial; }
@@ -48,6 +53,7 @@ private:
 	libusb_device_descriptor _desc;
 	bool _claimed;
 	bool _kernel_detached;
+	unsigned char _image[256];
 
 	static const int INTERFACE = 0;
 };

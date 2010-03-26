@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -131,7 +132,7 @@ controller::~controller()
 int controller::claim()
 {
 	int ret;
-	if (libusb_kernel_driver_active(_handle, INTERFACE)) {
+	if (!_kernel_detached && libusb_kernel_driver_active(_handle, INTERFACE)) {
 		ret = libusb_detach_kernel_driver(_handle, INTERFACE);
 		if (ret < 0) {
 			log(ALERT) << "libusb_detach_kernel_driver: " << usb_strerror(ret) << endl;
@@ -140,12 +141,98 @@ int controller::claim()
 		_kernel_detached = true;
 	}
 
-	ret = libusb_claim_interface(_handle, INTERFACE);
-	if (ret < 0) {
-		log(ALERT) << "libusb_claim_interface: " << usb_strerror(ret) << endl;
-		return ret;
+	if (!_claimed) {
+		ret = libusb_claim_interface(_handle, INTERFACE);
+		if (ret < 0) {
+			log(ALERT) << "libusb_claim_interface: " << usb_strerror(ret) << endl;
+			return ret;
+		}
+		_claimed = true;
 	}
-	_claimed = true;
+	return 0;
+}
+
+
+
+int controller::get_image()
+{
+	int ret = claim();
+	if (ret)
+		return ret;
+
+	unsigned char buf[17];
+	int progress = 0xffff;
+	int maxtries = 50;
+	while (progress && maxtries--) {
+		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01,
+				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
+		if (ret < 0) {
+			log(ALERT) << "get_image/libusb_control_transfer: " << usb_strerror(ret) << endl;
+			return -1;
+		}
+		if (ret != sizeof(buf))
+			continue;
+		if (buf[0] & 0x0f)
+			continue;
+		progress &= ~(1 << (buf[0] >> 4));
+		memcpy(_image + buf[0], buf + 1, 16);
+	}
+	return 0;
+}
+
+
+
+int controller::set_image()
+{
+	int ret = claim();
+	if (ret)
+		return ret;
+
+	unsigned char buf[17];
+	for (unsigned char i = 0; i < 16; i++) {
+		buf[0] = i << 4;
+		memcpy(buf + 1, _image + buf[0], 16);
+		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
+				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
+		if (ret < 0) {
+			log(ALERT) << "set_image/libusb_control_transfer: " << usb_strerror(ret) << endl;
+			return -1;
+		}
+	}
+	return 0;
+}
+
+
+
+int controller::save_image(const char *path)
+{
+	ofstream file(path, ofstream::binary | ofstream::trunc);
+	if (!file)
+		throw string("cannot write to '") + path + '\'';
+	file.write((char *)_image, sizeof(_image));
+
+	file.seekp(0, ofstream::end);
+	if (file.tellp() != sizeof(_image))
+		throw string("file '") + path + "' has wrong size";
+
+	file.close();
+	return 0;
+}
+
+
+
+int controller::load_image(const char *path)
+{
+	ifstream file(path, ifstream::binary);
+	if (!file)
+		throw string("cannot read from '") + path + '\'';
+	file.read((char *)_image, sizeof(_image));
+
+	file.seekg(0, ifstream::end);
+	if (file.tellg() != sizeof(_image))
+		throw string("file '") + path + "' has wrong size";
+
+	file.close();
 	return 0;
 }
 

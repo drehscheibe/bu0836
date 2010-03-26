@@ -17,6 +17,8 @@ static void help(void)
 	cout << "        -n, --normal <n>     set normal mode for given axis" << endl;
 	cout << "        -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
 	cout << "        -b, --button <n>     set button mode for given button (and its sibling)" << endl;
+	cout << "        -O, --save <s>       save memory image to file <s>" << endl;
+	cout << "        -I, --load <s>       load memory image from file <s>" << endl;
 	exit(EXIT_SUCCESS);
 }
 
@@ -25,7 +27,7 @@ static void help(void)
 int main(int argc, const char *argv[]) try
 {
 	enum { HELP_OPTION, VERBOSE_OPTION, DEVICE_OPTION, LIST_OPTION, MONITOR_OPTION, NORMAL_OPTION,
-			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION };
+			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION };
 
 	const struct command_line_option options[] = {
 		{ "--help", "-h", 0 },
@@ -37,6 +39,8 @@ int main(int argc, const char *argv[]) try
 		{ "--invert", "-i", 1 },
 		{ "--button", "-b", 1 },
 		{ "--rotary", "-r", 1 },
+		{ "--save", "-O", 1 },
+		{ "--load", "-I", 1 },
 		OPTIONS_LAST
 	};
 
@@ -105,6 +109,18 @@ int main(int argc, const char *argv[]) try
 
 		case ROTARY_OPTION:
 			log(INFO) << "setting up button " << ctx.argument << " for rotary switch" << endl;
+			break;
+
+		case SAVE_OPTION:
+			log(INFO) << "save image to file '" << ctx.argument << '\'' << endl;
+			if (selected && !selected->get_image() && !selected->save_image(ctx.argument))
+				log(INFO) << "saved" << endl;
+			break;
+
+		case LOAD_OPTION:
+			log(INFO) << "load image from file '" << ctx.argument << '\'' << endl;
+			if (selected && !selected->load_image(ctx.argument))
+				log(INFO) << "loaded" << endl;
 			break;
 
 		case HELP_OPTION:
