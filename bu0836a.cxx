@@ -271,22 +271,13 @@ int controller::get_data()
 		}
 	}
 
-	// read control pipe
-	bool skip = true;
-	for (int i = 0; i < 32; i++) {
-		bzero(buf, 17);
-		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01,
-				/* FEATURE */ 0x0300, 0, buf, 17, 1000 /* ms */);
-		if (skip && buf[0])
-			continue;
-		skip = false;
-		if (ret == 17)
-			log(INFO) << hexstr(buf, ret) << endl;
-		else
-			log(INFO) << i << "  control transfer: " << usb_strerror(ret) << "  (" << ret << ")" << endl;
-		if (buf[0] == 0xf0)
-			break;
-	}
+	// display EEPROM image
+	if (get_image())
+		throw string(ORIGIN);
+	log(INFO) << setfill('0') << hex;
+	for (int i = 0; i < 16; i++)
+		log(INFO) << setw(2) << i * 16 << ' ' << hexstr(_image + i * 16, 16) << endl;
+	log(INFO) << dec;
 
 	// read from data endpoint
 	int len;
