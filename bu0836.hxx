@@ -43,7 +43,11 @@ public:
 	const std::string &bus_address() const { return _bus_address; }
 	const std::string &jsid() const { return _jsid; }
 	const std::string &serial() const { return _serial; }
-	void print_info() const { std::cout << _bus_address << "   \"" << _jsid << '"' << "   ver " << _release << std::endl; }
+	void print_info() const { std::cout << _bus_address
+			<< "  " << _manufacturer
+			<< ", " << _product
+			<< ", " << _serial
+			<< ", v" << _release << std::endl; }
 
 private:
 	std::string _bus_address;
@@ -53,6 +57,7 @@ private:
 	std::string _product;
 	std::string _serial;
 	std::string _jsid;
+
 	libusb_device_handle *_handle;
 	libusb_device *_device;
 	libusb_device_descriptor _desc;

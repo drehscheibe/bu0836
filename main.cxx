@@ -8,17 +8,29 @@ using namespace std;
 static void help(void)
 {
 	cout << "Usage:  bu0836 [-n <number>] [-i <number>] ..." << endl;
-	cout << "        -h, --help           this help screen" << endl;
-	cout << "        -v, --verbose        increase verbosity level" << endl;
-	cout << "        -l, --list           list BU0836 controller devices" << endl;
-	cout << "        -m, --monitor        monitor device output" << endl;
-	cout << "        -d, --device <s>     select device by serial number (or unambiguous substring)" << endl;
-	cout << "        -i, --invert <n>     set inverted mode for given axis" << endl;
-	cout << "        -n, --normal <n>     set normal mode for given axis" << endl;
-	cout << "        -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
-	cout << "        -b, --button <n>     set button mode for given button (and its sibling)" << endl;
-	cout << "        -O, --save <s>       save memory image to file <s>" << endl;
-	cout << "        -I, --load <s>       load memory image from file <s>" << endl;
+	cout << "  -h, --help           this help screen" << endl;
+	cout << "  -v, --verbose        increase verbosity level" << endl;
+	cout << "  -l, --list           list BU0836 controller devices (bus id, vendor, product, serial no., version)" << endl;
+	cout << "  -d, --device <s>     select device by bus id or serial number (or significant substring thereof)" << endl;
+	cout << "                       (not needed if only one device is attached)" << endl;
+	cout << "  -m, --monitor        monitor device output" << endl;
+	cout << "  -i, --invert <n>     set inverted mode for given axis" << endl;
+	cout << "  -n, --normal <n>     set normal mode for given axis" << endl;
+	cout << "  -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
+	cout << "  -b, --button <n>     set button mode for given button (and its sibling)" << endl;
+	cout << "  -O, --save <s>       save memory image to file <s>" << endl;
+	cout << "  -I, --load <s>       load memory image from file <s>" << endl;
+	cout << endl;
+	cout << "Examples:" << endl;
+	cout << "  $ bu0836 -l" << endl;
+	cout << "                       ... to list available devices" << endl;
+	cout << "  $ bu0836 -d2:4 -i0" << endl;
+	cout << "                       ... invert first axis of device 2:4" << endl;
+#ifdef GIT
+	cout << endl;
+	cout << "Version:" << endl;
+	cout << "  "STRINGIZE(GIT) << endl;
+#endif
 	exit(EXIT_SUCCESS);
 }
 
@@ -47,10 +59,13 @@ int main(int argc, const char *argv[]) try
 	int option;
 	struct option_parser_context ctx;
 
+	// first pass options
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE)
 		if (option == HELP_OPTION)
 			help();
+		else if (option == VERBOSE_OPTION)
+			set_log_level(get_log_level() + 1);
 
 	bu0836 usb;
 	controller *selected = 0;
@@ -59,8 +74,9 @@ int main(int argc, const char *argv[]) try
 	if (numdev == 1)
 		selected = &usb[0];
 	else if (!numdev)
-		throw string("no BU0836 found");
+		throw string("no BU0836* found");
 
+	// second pass options
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 
@@ -72,10 +88,6 @@ int main(int argc, const char *argv[]) try
 		}
 
 		switch (option) {
-		case VERBOSE_OPTION:
-			set_log_level(get_log_level() + 1);
-			break;
-
 		case DEVICE_OPTION: {
 			int num = usb.find(ctx.argument, &selected);
 			if (num == 1)
@@ -126,6 +138,7 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case HELP_OPTION:
+		case VERBOSE_OPTION:     // already handled in first pass
 
 		// signals and errors
 		case OPTIONS_TERMINATOR:
