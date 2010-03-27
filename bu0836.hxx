@@ -66,10 +66,10 @@ private:
 
 
 
-class bu0836a {
+class bu0836 {
 public:
-	bu0836a(int debug_level = 3);
-	~bu0836a();
+	bu0836(int debug_level = 3);
+	~bu0836();
 	int find(std::string which, controller **ctrl) const;
 	size_t size() const { return _devices.size(); }
 	controller& operator[](unsigned int index) { return *_devices[index]; }

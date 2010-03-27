@@ -1,4 +1,4 @@
-#include "bu0836a.hxx"
+#include "bu0836.hxx"
 #include "logging.hxx"
 #include "options.h"
 
@@ -7,7 +7,7 @@ using namespace std;
 
 static void help(void)
 {
-	cout << "Usage:  bu0836a [-n <number>] [-i <number>] ..." << endl;
+	cout << "Usage:  bu0836 [-n <number>] [-i <number>] ..." << endl;
 	cout << "        -h, --help           this help screen" << endl;
 	cout << "        -v, --verbose        increase verbosity level" << endl;
 	cout << "        -l, --list           list BU0836 controller devices" << endl;
@@ -52,14 +52,14 @@ int main(int argc, const char *argv[]) try
 		if (option == HELP_OPTION)
 			help();
 
-	bu0836a usb;
+	bu0836 usb;
 	controller *selected = 0;
 
 	int numdev = usb.size();
 	if (numdev == 1)
 		selected = &usb[0];
 	else if (!numdev)
-		throw string("no BU0836A found");
+		throw string("no BU0836 found");
 
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {

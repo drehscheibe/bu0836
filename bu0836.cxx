@@ -5,7 +5,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "bu0836a.hxx"
+#include "bu0836.hxx"
 #include "hid_parser.hxx"
 #include "logging.hxx"
 #include "options.h"
@@ -294,7 +294,7 @@ int controller::get_data()
 
 
 
-bu0836a::bu0836a(int debug_level)
+bu0836::bu0836(int debug_level)
 {
 	int ret = libusb_init(_CONTEXT);
 	if (ret < 0)
@@ -333,7 +333,7 @@ bu0836a::bu0836a(int debug_level)
 
 
 
-bu0836a::~bu0836a()
+bu0836::~bu0836()
 {
 	vector<controller *>::const_iterator it, end = _devices.end();
 	for (it = _devices.begin(); it != end; ++it)
@@ -343,7 +343,7 @@ bu0836a::~bu0836a()
 
 
 
-int bu0836a::find(string which, controller **ctrl) const
+int bu0836::find(string which, controller **ctrl) const
 {
 	int num = 0;
 	vector<controller *>::const_iterator it, end = _devices.end();
