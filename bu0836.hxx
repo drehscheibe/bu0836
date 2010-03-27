@@ -21,6 +21,7 @@ struct usb_hid_descriptor {
 		uint8_t wDescriptorLength1;	// 103
 		uint8_t wDescriptorLength2;	// 103
 	} descriptors[];
+
 	inline int wDescriptorLength(int n) const {
 		return libusb_le16_to_cpu(descriptors[n].wDescriptorLength2 << 8 | descriptors[n].wDescriptorLength1);
 	}
@@ -30,8 +31,7 @@ struct usb_hid_descriptor {
 
 class controller {
 public:
-	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc,
-			bool supports_encoder);
+	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc);
 	~controller();
 	int claim();
 	int get_data();
@@ -61,7 +61,6 @@ private:
 	libusb_device_handle *_handle;
 	libusb_device *_device;
 	libusb_device_descriptor _desc;
-	bool _supports_encoder;
 	bool _claimed;
 	bool _kernel_detached;
 	unsigned char _image[256];
@@ -82,8 +81,10 @@ public:
 private:
 	std::vector<controller *> _devices;
 
-	static const int _BODNAR = 0x16c0;
 	static const int _CONTEXT = 0;
+	static const int _VOTI = 0x16c0; // BODNAR products: 0x05b4--0x05bd, 0x2774--0x27d7
+	static const int _BU0836 = 0x05b5;
+	static const int _BU0836A = 0x05ba;
 };
 
 #endif

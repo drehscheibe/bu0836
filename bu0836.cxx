@@ -71,12 +71,10 @@ static string strip(string s)
 
 
 
-controller::controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc,
-		bool supports_encoder) :
+controller::controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc) :
 	_handle(handle),
 	_device(device),
 	_desc(desc),
-	_supports_encoder(supports_encoder),
 	_claimed(false),
 	_kernel_detached(false)
 {
@@ -321,12 +319,10 @@ bu0836::bu0836(int debug_level)
 		ret = libusb_get_device_descriptor(dev, &desc);
 		if (ret)
 			log(ALERT) << "error: libusb_get_device_descriptor: " << usb_strerror(ret) << endl;
-		else if (desc.idVendor != _BODNAR)
+		else if (desc.idVendor != _VOTI)
 			libusb_close(handle);
-		else if (desc.idProduct == 0x05ba)   // BU0836A
-			_devices.push_back(new controller(handle, dev, desc, true));
-		else if (desc.idProduct == 0xffff)   // BU0836
-			_devices.push_back(new controller(handle, dev, desc, false));
+		else if (desc.idProduct == _BU0836 || desc.idProduct == _BU0836A)
+			_devices.push_back(new controller(handle, dev, desc));
 	}
 	libusb_free_device_list(list, 1);
 }
