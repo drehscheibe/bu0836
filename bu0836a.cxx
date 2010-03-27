@@ -71,10 +71,12 @@ static string strip(string s)
 
 
 
-controller::controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc) :
+controller::controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc,
+		bool supports_encoder) :
 	_handle(handle),
 	_device(device),
 	_desc(desc),
+	_supports_encoder(supports_encoder),
 	_claimed(false),
 	_kernel_detached(false)
 {
@@ -113,13 +115,13 @@ controller::~controller()
 {
 	int ret;
 	if (_claimed) {
-		ret = libusb_release_interface(_handle, INTERFACE);
+		ret = libusb_release_interface(_handle, _INTERFACE);
 		if (ret < 0)
 			log(ALERT) << "libusb_release_interface: " << usb_strerror(ret) << endl;
 	}
 
 	if (_kernel_detached) {
-		ret = libusb_attach_kernel_driver(_handle, INTERFACE);
+		ret = libusb_attach_kernel_driver(_handle, _INTERFACE);
 		if (ret < 0)
 			log(ALERT) << "libusb_attach_kernel_driver: " << usb_strerror(ret) << endl;
 	}
@@ -132,8 +134,8 @@ controller::~controller()
 int controller::claim()
 {
 	int ret;
-	if (!_kernel_detached && libusb_kernel_driver_active(_handle, INTERFACE)) {
-		ret = libusb_detach_kernel_driver(_handle, INTERFACE);
+	if (!_kernel_detached && libusb_kernel_driver_active(_handle, _INTERFACE)) {
+		ret = libusb_detach_kernel_driver(_handle, _INTERFACE);
 		if (ret < 0) {
 			log(ALERT) << "libusb_detach_kernel_driver: " << usb_strerror(ret) << endl;
 			return ret;
@@ -142,7 +144,7 @@ int controller::claim()
 	}
 
 	if (!_claimed) {
-		ret = libusb_claim_interface(_handle, INTERFACE);
+		ret = libusb_claim_interface(_handle, _INTERFACE);
 		if (ret < 0) {
 			log(ALERT) << "libusb_claim_interface: " << usb_strerror(ret) << endl;
 			return ret;
@@ -286,7 +288,7 @@ int controller::get_data()
 			break;
 	}
 
-	// get HID report descriptor
+	// read from data endpoint
 	int len;
 	ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
 	if (ret < 0)
@@ -303,13 +305,13 @@ int controller::get_data()
 
 bu0836a::bu0836a(int debug_level)
 {
-	int ret = libusb_init(CONTEXT);
+	int ret = libusb_init(_CONTEXT);
 	if (ret < 0)
 		throw string("libusb_init: ") + usb_strerror(ret);
-	libusb_set_debug(CONTEXT, debug_level);
+	libusb_set_debug(_CONTEXT, debug_level);
 
 	libusb_device **list;
-	ret = libusb_get_device_list(CONTEXT, &list);
+	ret = libusb_get_device_list(_CONTEXT, &list);
 	if (ret < 0)
 		throw string("libusb_get_device_list: ") + usb_strerror(ret);
 
@@ -328,10 +330,12 @@ bu0836a::bu0836a(int debug_level)
 		ret = libusb_get_device_descriptor(dev, &desc);
 		if (ret)
 			log(ALERT) << "error: libusb_get_device_descriptor: " << usb_strerror(ret) << endl;
-		else if (desc.idVendor == _bodnar_id && desc.idProduct == _bu0836a_id)
-			_devices.push_back(new controller(handle, dev, desc));
-		else
+		else if (desc.idVendor != _BODNAR)
 			libusb_close(handle);
+		else if (desc.idProduct == 0x05ba)   // BU0836A
+			_devices.push_back(new controller(handle, dev, desc, true));
+		else if (desc.idProduct == 0xffff)   // BU0836
+			_devices.push_back(new controller(handle, dev, desc, false));
 	}
 	libusb_free_device_list(list, 1);
 }
@@ -343,7 +347,7 @@ bu0836a::~bu0836a()
 	vector<controller *>::const_iterator it, end = _devices.end();
 	for (it = _devices.begin(); it != end; ++it)
 		delete *it;
-	libusb_exit(CONTEXT);
+	libusb_exit(_CONTEXT);
 }
 
 

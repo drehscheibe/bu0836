@@ -30,7 +30,8 @@ struct usb_hid_descriptor {
 
 class controller {
 public:
-	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc);
+	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc,
+			bool supports_encoder);
 	~controller();
 	int claim();
 	int get_data();
@@ -55,11 +56,12 @@ private:
 	libusb_device_handle *_handle;
 	libusb_device *_device;
 	libusb_device_descriptor _desc;
+	bool _supports_encoder;
 	bool _claimed;
 	bool _kernel_detached;
 	unsigned char _image[256];
 
-	static const int INTERFACE = 0;
+	static const int _INTERFACE = 0;
 };
 
 
@@ -73,11 +75,10 @@ public:
 	controller& operator[](unsigned int index) { return *_devices[index]; }
 
 private:
-	static const int _bodnar_id = 0x16c0;
-	static const int _bu0836a_id = 0x05ba;
 	std::vector<controller *> _devices;
 
-	static const int CONTEXT = 0;
+	static const int _BODNAR = 0x16c0;
+	static const int _CONTEXT = 0;
 };
 
 #endif
