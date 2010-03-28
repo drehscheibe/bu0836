@@ -138,27 +138,23 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case HELP_OPTION:
-		case VERBOSE_OPTION:     // already handled in first pass
+		case VERBOSE_OPTION:
 
 		// signals and errors
 		case OPTIONS_TERMINATOR:
 			break;
 
 		case OPTIONS_ARGUMENT:
-			log(ALERT) << "Error: don't know what to do with an argument '" << ctx.option << '\'' << endl;
-			return EXIT_FAILURE;
+			throw string("don't know what to do with an argument '") + ctx.option + '\'';
 
 		case OPTIONS_EXCESS_ARGUMENT:
-			log(ALERT) << "Error: illegal option assignment '" << ctx.argument << '\'' << endl;
-			return EXIT_FAILURE;
+			throw string("illegal option assignment '") + ctx.argument + '\'';
 
 		case OPTIONS_UNKNOWN_OPTION:
-			log(ALERT) << "Error: unknown option '" << ctx.option << '\'' << endl;
-			return EXIT_FAILURE;
+			throw string("unknown option '") + ctx.option + '\'';
 
 		case OPTIONS_MISSING_ARGUMENT:
-			log(ALERT) << "Error: missing argument for option '" << ctx.option << '\'' << endl;
-			return EXIT_FAILURE;
+			throw string("missing argument for option '") + ctx.option + '\'';
 
 		default:
 			log(ALERT) << color("31;1") << "this can't happen: " << option << '/' << ctx.option << color() << endl;
