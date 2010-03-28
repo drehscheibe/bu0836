@@ -7,11 +7,15 @@
 #define DO_STRINGIZE(X) #X
 #define ORIGIN __FILE__":"STRINGIZE(__LINE__)": "
 
-#define ALWAYS -1
-#define ALERT 0
-#define WARN 1
-#define INFO 2
-#define BULK 3
+
+enum {
+	BULK,
+	DEBUG,
+	INFO,
+	WARN,
+	ALERT,
+	ALWAYS = 1000,
+};
 
 
 

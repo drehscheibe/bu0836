@@ -65,7 +65,7 @@ int main(int argc, const char *argv[]) try
 		if (option == HELP_OPTION)
 			help();
 		else if (option == VERBOSE_OPTION)
-			set_log_level(get_log_level() + 1);
+			set_log_level(get_log_level() - 1);
 
 	bu0836 usb;
 	controller *selected = 0;
@@ -145,19 +145,19 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case OPTIONS_ARGUMENT:
-			log(ALERT) << "ERROR: don't know what to do with an argument '" << ctx.option << '\'' << endl;
+			log(ALERT) << "Error: don't know what to do with an argument '" << ctx.option << '\'' << endl;
 			return EXIT_FAILURE;
 
 		case OPTIONS_EXCESS_ARGUMENT:
-			log(ALERT) << "ERROR: illegal option assignment '" << ctx.argument << '\'' << endl;
+			log(ALERT) << "Error: illegal option assignment '" << ctx.argument << '\'' << endl;
 			return EXIT_FAILURE;
 
 		case OPTIONS_UNKNOWN_OPTION:
-			log(ALERT) << "ERROR: unknown option '" << ctx.option << '\'' << endl;
+			log(ALERT) << "Error: unknown option '" << ctx.option << '\'' << endl;
 			return EXIT_FAILURE;
 
 		case OPTIONS_MISSING_ARGUMENT:
-			log(ALERT) << "ERROR: missing argument for option '" << ctx.option << '\'' << endl;
+			log(ALERT) << "Error: missing argument for option '" << ctx.option << '\'' << endl;
 			return EXIT_FAILURE;
 
 		default:

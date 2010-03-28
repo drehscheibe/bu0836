@@ -1,8 +1,7 @@
-#include <cstring>
+#include <cstring>     // strcmp
 #include <iostream>
-#include <stdlib.h>
-#include <string>
-#include <unistd.h>
+#include <stdlib.h>    // getenv, STDOUT_FILENO
+#include <unistd.h>    // isatty
 
 #include "logging.hxx"
 
@@ -24,7 +23,7 @@ namespace {
 
 	bool cout_color = has_color(STDOUT_FILENO);
 	bool cerr_color = has_color(STDERR_FILENO);
-	int log_level = 1;
+	int log_level = ALERT;
 }
 
 
@@ -51,7 +50,7 @@ void set_log_level(int level)
 
 
 
-std::ostream &log(int level = ALWAYS)
+std::ostream &log(int priority = ALWAYS)
 {
-	return level < log_level ? std::cerr : cnull;
+	return priority >= log_level ? std::cerr : cnull;
 }
