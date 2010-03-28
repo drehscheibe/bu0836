@@ -1,4 +1,4 @@
-set(CMAKE_MODULE_PATH Modules ${CMAKE_MODULE_PATH} cache path)
+set(CMAKE_MODULE_PATH "CMake" ${CMAKE_MODULE_PATH} cache path)
 cmake_minimum_required(VERSION 2.6)
 
 project(bu0836)
