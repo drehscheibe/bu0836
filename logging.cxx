@@ -1,24 +1,38 @@
+#include <cstring>
 #include <iostream>
+#include <stdlib.h>
 #include <string>
 #include <unistd.h>
 
 #include "logging.hxx"
 
 
+
 namespace {
-	int log_level = 1;
+	bool has_color(int fd)
+	{
+		if (isatty(fd)) {
+			const char *term = getenv("TERM");
+			if (term && strcmp(term, "dumb"))
+				return true;
+		}
+		return false;
+	}
 
 	class nullbuf : public std::streambuf { } nb;
 	std::ostream cnull(&nb);
+
+	bool cout_color = has_color(STDOUT_FILENO);
+	bool cerr_color = has_color(STDERR_FILENO);
+	int log_level = 1;
 }
-
-
-bool color::_isatty = isatty(2);
 
 
 
 std::ostream &operator<<(std::ostream &os, const color &c) {
-	return color::_isatty ? os << "\033[" << c.str() << 'm' : os;
+	if ((os == std::cerr && cerr_color) || (os == std::cout && cout_color))
+		return os << "\033[" << c.str() << 'm';
+	return os;
 }
 
 
@@ -34,6 +48,7 @@ void set_log_level(int level)
 {
 	log_level = level;
 }
+
 
 
 std::ostream &log(int level = ALWAYS)

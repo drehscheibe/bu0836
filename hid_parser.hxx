@@ -37,6 +37,7 @@ struct hid_global_data {
 };
 
 
+
 struct hid_local_data {
 	hid_local_data() { reset(); }
 	void reset() {
@@ -82,6 +83,7 @@ struct hid_main_item {
 	hid_local_data local;
 	std::vector<hid_main_item *> children;
 };
+
 
 
 class hid_parser {

@@ -19,7 +19,7 @@ class color {
 public:
 	color(const char *c = "") : _color(c) {}
 	inline const char *str() const { return _color; }
-	static bool _isatty;
+
 private:
 	const char *_color;
 };
