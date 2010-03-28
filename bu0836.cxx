@@ -283,8 +283,8 @@ int controller::get_data()
 	if (ret < 0)
 		log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
 
-	uint16_t x = libusb_le16_to_cpu(*(uint16_t *)&buf[0]);
-	uint16_t y = libusb_le16_to_cpu(*(uint16_t *)&buf[2]);
+	uint16_t x = buf[0] | buf[1] << 8;
+	uint16_t y = buf[2] | buf[3] << 8;
 	log(INFO) << endl << hexstr(buf, len) << "  " << dec << "  x=" << x << "  y=" << y << endl;
 
 	return ret;
