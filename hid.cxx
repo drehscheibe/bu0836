@@ -4,7 +4,7 @@
 #include <string>
 
 #include "logging.hxx"
-#include "hid_parser.hxx"
+#include "hid.hxx"
 
 using namespace std;
 

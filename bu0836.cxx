@@ -6,7 +6,7 @@
 #include <sstream>
 
 #include "bu0836.hxx"
-#include "hid_parser.hxx"
+#include "hid.hxx"
 #include "logging.hxx"
 #include "options.h"
 
