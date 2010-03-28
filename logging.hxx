@@ -22,17 +22,17 @@ enum {
 class color {
 public:
 	color(const char *c = "") : _color(c) {}
-	inline const char *str() const { return _color; }
 
 private:
+	friend std::ostream &operator<<(std::ostream &, const color &);
 	const char *_color;
 };
 
 
 
+std::ostream &operator<<(std::ostream &, const color &);
 int get_log_level();
 void set_log_level(int);
 std::ostream &log(int log_level);
-std::ostream &operator<<(std::ostream &, const color &);
 
 #endif

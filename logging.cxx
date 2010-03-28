@@ -30,7 +30,7 @@ namespace {
 
 std::ostream &operator<<(std::ostream &os, const color &c) {
 	if ((os == std::cerr && cerr_color) || (os == std::cout && cout_color))
-		return os << "\033[" << c.str() << 'm';
+		return os << "\033[" << c._color << 'm';
 	return os;
 }
 
