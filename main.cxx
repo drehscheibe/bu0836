@@ -77,12 +77,12 @@ int main(int argc, const char *argv[]) try
 		else if (option == VERBOSE_OPTION)
 			set_log_level(get_log_level() - 1);
 
-	bu0836 usb;
+	bu0836 dev;
 	controller *selected = 0;
 
-	int numdev = usb.size();
+	int numdev = dev.size();
 	if (numdev == 1)
-		selected = &usb[0];
+		selected = &dev[0];
 	else if (!numdev)
 		throw string("no BU0836* found");
 
@@ -93,27 +93,35 @@ int main(int argc, const char *argv[]) try
 		if (option >= 0 && options[option].ext[0]) {
 			if (!selected)
 				throw string("you need to select a device before you can use the ") + options[option].long_opt
-						+ " option,\n       for example with -d" + usb[0].bus_address() + " or -d"
-						+ usb[0].serial() + ". Use the --list option for available devices.";
+						+ " option, for\n       example with -d" + dev[0].bus_address() + " or -d"
+						+ dev[0].serial() + ". Use the --list option for available devices.";
 
 			selected->claim();
 		}
 
 		switch (option) {
 		case DEVICE_OPTION: {
-			int num = usb.find(ctx.argument, &selected);
+			int num = dev.find(ctx.argument, &selected);
 			if (num == 1)
 				log(INFO) << "selecting device '" << selected->serial() << '\'' << endl;
 			else if (num)
-				log(ALERT) << "ambiguous device specifier (" << num << " devices matching)" << endl;
+				throw string("ambiguous device specifier");
 			else
-				log(ALERT) << "no matching device found" << endl;
+				throw string("no matching device found");
 			break;
 		}
 
 		case LIST_OPTION:
-			for (size_t i = 0; i < usb.size(); i++)
-				usb[i].print_info();
+			for (size_t i = 0; i < dev.size(); i++) {
+				const char *marker = &dev[i] == selected ? " <<" : "";
+				cout << color("33") << dev[i].bus_address() << color()
+						<< "  " << dev[i].manufacturer()
+						<< ", " << dev[i].product()
+						<< ", " << color("33") << dev[i].serial() << color()
+						<< ", v" << dev[i].release()
+						<< color("32") << marker << color()
+						<< endl;
+			}
 			break;
 
 		case MONITOR_OPTION:
@@ -149,6 +157,7 @@ int main(int argc, const char *argv[]) try
 				log(INFO) << "loaded" << endl;
 			break;
 
+		// ignored options
 		case HELP_OPTION:
 		case VERSION_OPTION:
 		case VERBOSE_OPTION:
@@ -170,13 +179,13 @@ int main(int argc, const char *argv[]) try
 			throw string("missing argument for option '") + ctx.option + '\'';
 
 		default:
-			log(ALERT) << color("31;1") << "this can't happen: " << option << '/' << ctx.option << color() << endl;
+			log(ALERT) << "this can't happen: " << option << '/' << ctx.option << endl;
 			return EXIT_FAILURE;
 		}
 	}
 	return EXIT_SUCCESS;
 
-} catch (string &msg) {
+} catch (const string &msg) {
 	log(ALERT) << "Error: " << msg << endl;
 	return EXIT_FAILURE;
 }

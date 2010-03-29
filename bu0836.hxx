@@ -41,21 +41,20 @@ public:
 	int load_image(const char *);
 
 	const std::string &bus_address() const { return _bus_address; }
-	const std::string &jsid() const { return _jsid; }
+	const std::string &id() const { return _id; }
+	const std::string &manufacturer() const { return _manufacturer; }
+	const std::string &product() const { return _product; }
 	const std::string &serial() const { return _serial; }
-	void print_info() const { std::cout << _bus_address
-			<< "  " << _manufacturer
-			<< ", " << _product
-			<< ", " << _serial
-			<< ", v" << _release << std::endl; }
+	const std::string &release() const { return _release; }
+	const std::string &jsid() const { return _jsid; }
 
 private:
 	std::string _bus_address;
 	std::string _id;
-	std::string _release;
 	std::string _manufacturer;
 	std::string _product;
 	std::string _serial;
+	std::string _release;
 	std::string _jsid;
 
 	libusb_device_handle *_handle;
