@@ -588,7 +588,7 @@ void hid_parser::parse(const unsigned char *data, int len)
 			if (size == 3)
 				size++;
 
-			log(INFO) << dec << setw(3) << d - data << ": " << color("30;1") << hexstr(d, 1 + size, 19) << color();
+			log(INFO) << dec << setw(3) << d - data << ": " << BBLACK << hexstr(d, 1 + size, 19) << NORM;
 
 			int type = (*d >> 2) & 0x3;
 			int tag = (*d++ >> 4) & 0xf;
@@ -601,19 +601,19 @@ void hid_parser::parse(const unsigned char *data, int len)
 				value |= *d++ << 16, value |= *d++ << 24;
 
 			if (type == 0) {        // Main
-				log(INFO) << color("35");
+				log(INFO) << MAGENTA;
 				do_main(tag, value);
-				log(INFO) << color() << endl;
+				log(INFO) << NORM << endl;
 
 			} else if (type == 1) { // Global
-				log(INFO) << _indent << color("33");
+				log(INFO) << _indent << YELLOW;
 				do_global(tag, value);
-				log(INFO) << color() << endl;
+				log(INFO) << NORM << endl;
 
 			} else if (type == 2) { // Local
-				log(INFO) << _indent << color("36");
+				log(INFO) << _indent << CYAN;
 				do_local(tag, value);
-				log(INFO) << color() << endl;
+				log(INFO) << NORM << endl;
 
 			} else {                // Reserved
 				log(INFO) << _indent << "Reserved" << endl; // FIXME
