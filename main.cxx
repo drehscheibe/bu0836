@@ -7,17 +7,19 @@ using namespace std;
 
 static void help(void)
 {
-	cout << "Usage:  bu0836 [-n <number>] [-i <number>] ..." << endl;
-	cout << "  -h, --help           this help screen" << endl;
+	cout << "Usage:  bu0836 [<options>] ..." << endl;
+	cout << "  -h, --help           show this help screen and exit" << endl;
+	cout << "      --version        show version number and exit" << endl;
 	cout << "  -v, --verbose        increase verbosity level" << endl;
-	cout << "  -l, --list           list BU0836 controller devices (bus id, vendor, product, serial no., version)" << endl;
-	cout << "  -d, --device <s>     select device by bus id or serial number (or significant substring thereof)" << endl;
-	cout << "                       (not needed if only one device is attached)" << endl;
+	cout << endl;
+	cout << "  -l, --list           list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
+	cout << "  -d, --device <s>     select device by bus id or serial number (or significant substring thereof);" << endl;
+	cout << "                       not needed when only one device is attached" << endl;
 	cout << "  -m, --monitor        monitor device output" << endl;
-	cout << "  -i, --invert <n>     set inverted mode for given axis" << endl;
-	cout << "  -n, --normal <n>     set normal mode for given axis" << endl;
-	cout << "  -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
-	cout << "  -b, --button <n>     set button mode for given button (and its sibling)" << endl;
+	//cout << "  -i, --invert <n>     set inverted mode for given axis" << endl;
+	//cout << "  -n, --normal <n>     set normal mode for given axis" << endl;
+	//cout << "  -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
+	//cout << "  -b, --button <n>     set button mode for given button (and its sibling)" << endl;
 	cout << "  -O, --save <s>       save memory image to file <s>" << endl;
 	cout << "  -I, --load <s>       load memory image from file <s>" << endl;
 	cout << endl;
@@ -26,10 +28,15 @@ static void help(void)
 	cout << "                       ... to list available devices" << endl;
 	cout << "  $ bu0836 -d2:4 -i0" << endl;
 	cout << "                       ... invert first axis of device 2:4" << endl;
+	exit(EXIT_SUCCESS);
+}
+
+
+
+static void version(void)
+{
 #ifdef GIT
-	cout << endl;
-	cout << "Version:" << endl;
-	cout << "  "STRINGIZE(GIT) << endl;
+	cout << ""STRINGIZE(GIT) << endl;
 #endif
 	exit(EXIT_SUCCESS);
 }
@@ -38,11 +45,12 @@ static void help(void)
 
 int main(int argc, const char *argv[]) try
 {
-	enum { HELP_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION, MONITOR_OPTION, NORMAL_OPTION,
+	enum { HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION, MONITOR_OPTION, NORMAL_OPTION,
 			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION };
 
 	const struct command_line_option options[] = {
 		{ "--help",    "-h", 0, "\0" },
+		{ "--version",    0, 0, "\0" },
 		{ "--verbose", "-v", 0, "\0" },
 		{ "--list",    "-l", 0, "\0" },
 		{ "--device",  "-d", 1, "\0" },
@@ -64,6 +72,8 @@ int main(int argc, const char *argv[]) try
 	while ((option = get_option(&ctx)) != OPTIONS_DONE)
 		if (option == HELP_OPTION)
 			help();
+		else if (option == VERSION_OPTION)
+			version();
 		else if (option == VERBOSE_OPTION)
 			set_log_level(get_log_level() - 1);
 
@@ -138,6 +148,7 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case HELP_OPTION:
+		case VERSION_OPTION:
 		case VERBOSE_OPTION:
 
 		// signals and errors
