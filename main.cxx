@@ -92,7 +92,9 @@ int main(int argc, const char *argv[]) try
 
 		if (option >= 0 && options[option].ext[0]) {
 			if (!selected)
-				throw string("you need to select a device before you can use the ") + options[option].long_opt + " option";
+				throw string("you need to select a device before you can use the ") + options[option].long_opt
+						+ " option,\n       for example with -d" + usb[0].bus_address() + " or -d"
+						+ usb[0].serial() + ". Use the --list option for available devices.";
 
 			selected->claim();
 		}
