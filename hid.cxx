@@ -26,7 +26,7 @@ static string string_join(const vector<string> &v, const char *join = " ")
 
 
 
-string hexstr(const unsigned char *p, unsigned int num, size_t width)
+string bytes(const unsigned char *p, unsigned int num, size_t width)
 {
 	ostringstream x;
 	x << hex << setfill('0');
@@ -609,7 +609,7 @@ void hid_parser::parse(const unsigned char *data, int len)
 			if (size == 3)
 				size++;
 
-			log(INFO) << dec << setw(3) << d - data << ": " << BBLACK << hexstr(d, 1 + size, 19) << NORM;
+			log(INFO) << dec << setw(3) << d - data << ": " << BBLACK << bytes(d, 1 + size, 19) << NORM;
 
 			int type = (*d >> 2) & 0x3;
 			int tag = (*d++ >> 4) & 0xf;

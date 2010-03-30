@@ -274,7 +274,7 @@ int controller::get_data()
 		throw string(ORIGIN);
 	log(INFO) << setfill('0') << hex;
 	for (int i = 0; i < 16; i++)
-		log(INFO) << setw(2) << i * 16 << ' ' << hexstr(_image + i * 16, 16) << endl;
+		log(INFO) << setw(2) << i * 16 << ' ' << bytes(_image + i * 16, 16) << endl;
 	log(INFO) << dec;
 
 	// read from data endpoint
@@ -285,7 +285,7 @@ int controller::get_data()
 
 	uint16_t x = buf[0] | buf[1] << 8;
 	uint16_t y = buf[2] | buf[3] << 8;
-	log(INFO) << endl << hexstr(buf, len) << "  " << dec << "  x=" << x << "  y=" << y << endl;
+	log(INFO) << endl << bytes(buf, len) << "  " << dec << "  x=" << x << "  y=" << y << endl;
 
 	if (parser.data().size())
 		parser.print_collection(parser.data()[0], buf);

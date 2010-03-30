@@ -8,7 +8,7 @@
 
 
 const char *usage_string(uint32_t usage, uint32_t id);
-std::string hexstr(const unsigned char *p, unsigned int num, size_t width = 0);
+std::string bytes(const unsigned char *p, unsigned int num, size_t width = 0);
 
 
 
