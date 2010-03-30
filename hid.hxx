@@ -7,6 +7,7 @@
 
 
 
+const char *usage_string(uint32_t usage, uint32_t id);
 std::string hexstr(const unsigned char *p, unsigned int num, size_t width = 0);
 
 
@@ -66,10 +67,51 @@ enum main_type {
 
 
 
+class hid_value {
+public:
+	hid_value(const char *name, int offset, int width) :
+		_name(name),
+		_byte_offset(offset / 8),
+		_bit_offset(offset & 7),
+		_width(width),
+		_mask((1 << width) - 1)
+	{
+	}
+
+	uint32_t get_value(const unsigned char *d) const
+	{
+		d += _byte_offset;
+		uint32_t ret = *d++ << (_bit_offset + 24);
+		ret |= *d++ << (_bit_offset + 16);
+		ret |= *d++ << (_bit_offset + 8);
+		ret |= *d++ << _bit_offset;
+		return (ret >> (32 - _width)) & _mask;
+	}
+
+	const std::string &name() const { return _name; }
+
+private:
+	std::string _name;
+	int _byte_offset;
+	int _bit_offset;
+	int _width;
+	int _mask;
+};
+
+
+
 struct hid_main_item {
-	hid_main_item(main_type t, hid_global_data &g, hid_local_data &l) :
+	hid_main_item(main_type t, int &bitpos, hid_global_data &g, hid_local_data &l,
+			std::vector<uint32_t> &usage) :
 		type(t), global(g), local(l)
-	{}
+	{
+		size_t usize = usage.size();
+		for (uint32_t i = 0; i < global.report_count; i++) {
+			const char *ustr = i < usize ? usage_string(global.usage_table, usage[i]) : "??";
+			values.push_back(hid_value(ustr, bitpos, global.report_size));
+			bitpos += global.report_size;
+		}
+	}
 
 	~hid_main_item()
 	{
@@ -82,6 +124,7 @@ struct hid_main_item {
 	hid_global_data global;
 	hid_local_data local;
 	std::vector<hid_main_item *> children;
+	std::vector<hid_value> values;
 };
 
 
@@ -103,6 +146,7 @@ private:
 	std::vector<hid_main_item *> _item_stack;
 	std::vector<uint32_t> _usage;
 	std::string _indent;
+	int _bitpos;
 	int _depth;
 };
 

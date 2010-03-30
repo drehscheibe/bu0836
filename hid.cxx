@@ -554,12 +554,12 @@ string unit_string(uint32_t u)
 
 
 
-hid_parser::hid_parser() : _item(0)
+hid_parser::hid_parser() : _item(0), _bitpos(0)
 {
 	_data_stack.push_back(hid_global_data());
 	_global = &_data_stack[0];
 
-	_item = new hid_main_item(ROOT, *_global, _local);
+	_item = new hid_main_item(ROOT, _bitpos, *_global, _local, _usage);
 	_item_stack.push_back(_item);
 }
 
@@ -631,20 +631,20 @@ void hid_parser::do_main(int tag, uint32_t value)
 	switch (tag) {
 	case 0x8:   // Input
 		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
-		current->children.push_back(new hid_main_item(INPUT, *_global, _local));
+		current->children.push_back(new hid_main_item(INPUT, _bitpos, *_global, _local, _usage));
 		break;
 	case 0x9:   // Output
 		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
-		current->children.push_back(new hid_main_item(OUTPUT, *_global, _local));
+		current->children.push_back(new hid_main_item(OUTPUT, _bitpos, *_global, _local, _usage));
 		break;
 	case 0xb:   // Feature
 		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
-		current->children.push_back(new hid_main_item(FEATURE, *_global, _local));
+		current->children.push_back(new hid_main_item(FEATURE, _bitpos, *_global, _local, _usage));
 		break;
 	case 0xa: { // Collection
 			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
-			hid_main_item *collection = new hid_main_item(COLLECTION, *_global, _local);
+			hid_main_item *collection = new hid_main_item(COLLECTION, _bitpos, *_global, _local, _usage);
 			current->children.push_back(collection);
 			_item_stack.push_back(collection);
 		}
