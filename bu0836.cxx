@@ -277,18 +277,16 @@ int controller::get_data()
 		log(INFO) << setw(2) << i * 16 << ' ' << bytes(_image + i * 16, 16) << endl;
 	log(INFO) << dec;
 
-	// read from data endpoint
+	// display input report
 	int len;
 	ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
 	if (ret < 0)
 		log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
 
-	uint16_t x = buf[0] | buf[1] << 8;
-	uint16_t y = buf[2] | buf[3] << 8;
-	log(INFO) << endl << bytes(buf, len) << "  " << dec << "  x=" << x << "  y=" << y << endl;
+	log(INFO) << endl << bytes(buf, len) << endl;
 
 	if (parser.data().size())
-		parser.print_collection(parser.data()[0], buf);
+		parser.print_input_report(parser.data()[0], buf);
 
 	return ret;
 }
