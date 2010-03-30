@@ -665,7 +665,7 @@ void hid_parser::do_main(int tag, uint32_t value)
 	case 0xa: { // Collection
 			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
-			hid_main_item *collection = new hid_main_item(COLLECTION, 0, _bitpos, *_global, _local, _usage);
+			hid_main_item *collection = new hid_main_item(COLLECTION, value, _bitpos, *_global, _local, _usage);
 			current->children().push_back(collection);
 			_item_stack.push_back(collection);
 		}
@@ -817,10 +817,27 @@ void hid_parser::print_input_report(hid_main_item *item, const unsigned char *da
 	if (item->type() != INPUT)
 		return;
 
-	if (item->data_type() & 1)    // constant
+	if (item->data_type() & 1)    // padding constant
 		return;
 
+	const hid_global_data global = item->global();
+	const hid_local_data local = item->local();
+
 	vector<hid_value>::const_iterator val, vend = item->values().end();
-	for (val = item->values().begin(); val != vend; ++val)
-		cerr << val->name() << " = " << val->get_value(data) << endl;
+	for (val = item->values().begin(); val != vend; ++val) {
+		uint32_t v = val->get_value(data);
+		double d = v;
+		if (global.physical_minimum != global.physical_maximum)
+			d *= global.physical_maximum / global.logical_maximum;
+
+		cout << BBLACK << val->name() << "=" << NORM;
+		if (item->global().report_size == 1) {
+			cout << (v ? RED : GREEN) << v << NORM;
+		} else {
+			double norm = d / item->global().logical_maximum;
+			cout << CYAN << d << NORM << setprecision(5) << " (" << MAGENTA << norm << NORM << ')';
+		}
+		cout << ' ';
+	}
+	cout << endl;
 }

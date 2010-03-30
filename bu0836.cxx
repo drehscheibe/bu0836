@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <signal.h>
 #include <sstream>
 
 #include "bu0836.hxx"
@@ -11,6 +12,17 @@
 #include "options.h"
 
 using namespace std;
+
+
+bool interrupted = false;
+
+
+
+void interrupt_handler(int)
+{
+	log(INFO) << RED << "Interrupted" << NORM << endl;
+	interrupted = true;
+}
 
 
 
@@ -277,16 +289,33 @@ int controller::get_data()
 		log(INFO) << setw(2) << i * 16 << ' ' << bytes(_image + i * 16, 16) << endl;
 	log(INFO) << dec;
 
+
 	// display input report
-	int len;
-	ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
-	if (ret < 0)
-		log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
+	struct sigaction sa;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	sa.sa_handler = interrupt_handler;
+	sigaction(SIGHUP, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
 
-	log(INFO) << endl << bytes(buf, len) << endl;
+	do {
+		int len;
+		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
+		if (ret < 0) {
+			log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
+			continue;
+		}
 
-	if (parser.data().size())
-		parser.print_input_report(parser.data()[0], buf);
+		log(BULK) << endl << bytes(buf, len) << endl;
+		log(INFO) << endl;
+
+		if (parser.data().size())
+			parser.print_input_report(parser.data()[0], buf);
+
+		usleep(100000);
+	} while (!interrupted);
 
 	return ret;
 }

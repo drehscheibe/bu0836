@@ -117,6 +117,8 @@ public:
 
 	main_type type() const { return _type; }
 	uint32_t data_type() const { return _data_type; }
+	const hid_global_data &global() const { return _global; }
+	const hid_local_data &local() const { return _local; }
 	std::vector<hid_value> &values() { return _values; }
 	std::vector<hid_main_item *> &children() { return _children; }
 
@@ -137,13 +139,13 @@ public:
 	~hid_parser();
 	void parse(const unsigned char *data, int len);
 	void print_input_report(hid_main_item *, const unsigned char *data);
-
 	const std::vector<hid_main_item *> data() const { return _item_stack; }
 
 private:
 	void do_main(int tag, uint32_t value);
 	void do_global(int tag, uint32_t value);
 	void do_local(int tag, uint32_t value);
+
 	std::vector<hid_global_data> _data_stack;
 	hid_global_data *_global;
 	hid_local_data _local;
