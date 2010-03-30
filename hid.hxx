@@ -80,11 +80,15 @@ public:
 	uint32_t get_value(const unsigned char *d) const
 	{
 		d += _byte_offset;
-		uint32_t ret = uint32_t(*d++) << (_bit_offset + 24);
-		ret |= uint32_t(*d++) << (_bit_offset + 16);
-		ret |= uint32_t(*d++) << (_bit_offset + 8);
-		ret |= uint32_t(*d++) << _bit_offset;
-		return (ret >> (32 - _width)) & _mask;
+		uint32_t ret = uint32_t(*d++);
+		if (_width > 8)
+			ret |= uint32_t(*d++) << 8;
+		if (_width > 16)
+			ret |= uint32_t(*d++) << 16;
+		if (_width > 24)
+			ret |= uint32_t(*d) << 24;
+		ret >>= _bit_offset;
+		return ret & _mask;
 	}
 
 	const std::string &name() const { return _name; }
@@ -94,7 +98,7 @@ private:
 	int _byte_offset;
 	int _bit_offset;
 	int _width;
-	int _mask;
+	int32_t _mask;
 };
 
 
