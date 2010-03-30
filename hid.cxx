@@ -554,6 +554,27 @@ string unit_string(uint32_t u)
 
 
 
+hid_main_item::hid_main_item(main_type t, int &bitpos, hid_global_data &g, hid_local_data &l,
+		vector<uint32_t> &usage) :
+	_type(t), _global(g), _local(l)
+{
+	size_t usize = usage.size();
+	for (uint32_t i = 0; i < _global.report_count; i++) {
+		std::string ustr;
+		if (i < usize) {
+			ustr = usage_string(_global.usage_table, usage[i]);
+		} else {
+			ostringstream x;
+			x << '#' << _local.usage_minimum + i;
+			ustr = x.str();
+		}
+		_values.push_back(hid_value(ustr, bitpos, _global.report_size));
+		bitpos += _global.report_size;
+	}
+}
+
+
+
 hid_parser::hid_parser() : _item(0), _bitpos(0)
 {
 	_data_stack.push_back(hid_global_data());
@@ -631,21 +652,21 @@ void hid_parser::do_main(int tag, uint32_t value)
 	switch (tag) {
 	case 0x8:   // Input
 		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
-		current->children.push_back(new hid_main_item(INPUT, _bitpos, *_global, _local, _usage));
+		current->children().push_back(new hid_main_item(INPUT, _bitpos, *_global, _local, _usage));
 		break;
 	case 0x9:   // Output
 		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
-		current->children.push_back(new hid_main_item(OUTPUT, _bitpos, *_global, _local, _usage));
+		current->children().push_back(new hid_main_item(OUTPUT, _bitpos, *_global, _local, _usage));
 		break;
 	case 0xb:   // Feature
 		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
-		current->children.push_back(new hid_main_item(FEATURE, _bitpos, *_global, _local, _usage));
+		current->children().push_back(new hid_main_item(FEATURE, _bitpos, *_global, _local, _usage));
 		break;
 	case 0xa: { // Collection
 			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
 			hid_main_item *collection = new hid_main_item(COLLECTION, _bitpos, *_global, _local, _usage);
-			current->children.push_back(collection);
+			current->children().push_back(collection);
 			_item_stack.push_back(collection);
 		}
 		break;
@@ -783,4 +804,20 @@ void hid_parser::do_local(int tag, uint32_t value)
 		break;
 	}
 	log(INFO) << " = " << value;
+}
+
+
+
+void hid_parser::print_collection(hid_main_item *item, const unsigned char *data)
+{
+	vector<hid_main_item *>::const_iterator it, end = item->children().end();
+	for (it = item->children().begin(); it != end; ++it)
+		print_collection(*it, data);
+
+	if (item->type() != INPUT)
+		return;
+
+	vector<hid_value>::const_iterator val, vend = item->values().end();
+	for (val = item->values().begin(); val != vend; ++val)
+		cerr << val->name() << " = " << val->get_value(data) << endl;
 }

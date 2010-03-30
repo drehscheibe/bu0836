@@ -69,22 +69,21 @@ enum main_type {
 
 class hid_value {
 public:
-	hid_value(const char *name, int offset, int width) :
+	hid_value(const std::string &name, int offset, int width) :
 		_name(name),
-		_byte_offset(offset / 8),
+		_byte_offset(offset >> 3),
 		_bit_offset(offset & 7),
 		_width(width),
 		_mask((1 << width) - 1)
-	{
-	}
+	{}
 
 	uint32_t get_value(const unsigned char *d) const
 	{
 		d += _byte_offset;
-		uint32_t ret = *d++ << (_bit_offset + 24);
-		ret |= *d++ << (_bit_offset + 16);
-		ret |= *d++ << (_bit_offset + 8);
-		ret |= *d++ << _bit_offset;
+		uint32_t ret = uint32_t(*d++) << (_bit_offset + 24);
+		ret |= uint32_t(*d++) << (_bit_offset + 16);
+		ret |= uint32_t(*d++) << (_bit_offset + 8);
+		ret |= uint32_t(*d++) << _bit_offset;
 		return (ret >> (32 - _width)) & _mask;
 	}
 
@@ -100,31 +99,28 @@ private:
 
 
 
-struct hid_main_item {
+class hid_main_item {
+public:
 	hid_main_item(main_type t, int &bitpos, hid_global_data &g, hid_local_data &l,
-			std::vector<uint32_t> &usage) :
-		type(t), global(g), local(l)
-	{
-		size_t usize = usage.size();
-		for (uint32_t i = 0; i < global.report_count; i++) {
-			const char *ustr = i < usize ? usage_string(global.usage_table, usage[i]) : "??";
-			values.push_back(hid_value(ustr, bitpos, global.report_size));
-			bitpos += global.report_size;
-		}
-	}
+			std::vector<uint32_t> &usage);
 
 	~hid_main_item()
 	{
-		std::vector<hid_main_item *>::const_iterator it, end = children.end();
-		for (it = children.begin(); it != end; ++it)
+		std::vector<hid_main_item *>::const_iterator it, end = _children.end();
+		for (it = _children.begin(); it != end; ++it)
 			delete *it;
 	}
 
-	main_type type;
-	hid_global_data global;
-	hid_local_data local;
-	std::vector<hid_main_item *> children;
-	std::vector<hid_value> values;
+	main_type type() const { return _type; }
+	std::vector<hid_value> &values() { return _values; }
+	std::vector<hid_main_item *> &children() { return _children; }
+
+private:
+	main_type _type;
+	hid_global_data _global;
+	hid_local_data _local;
+	std::vector<hid_main_item *> _children;
+	std::vector<hid_value> _values;
 };
 
 
@@ -134,6 +130,9 @@ public:
 	hid_parser();
 	~hid_parser();
 	void parse(const unsigned char *data, int len);
+	void print_collection(hid_main_item *, const unsigned char *data);
+
+	const std::vector<hid_main_item *> data() const { return _item_stack; }
 
 private:
 	void do_main(int tag, uint32_t value);

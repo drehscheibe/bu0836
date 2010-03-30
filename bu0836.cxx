@@ -287,6 +287,9 @@ int controller::get_data()
 	uint16_t y = buf[2] | buf[3] << 8;
 	log(INFO) << endl << hexstr(buf, len) << "  " << dec << "  x=" << x << "  y=" << y << endl;
 
+	if (parser.data().size())
+		parser.print_collection(parser.data()[0], buf);
+
 	return ret;
 }
 
