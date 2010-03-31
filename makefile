@@ -6,7 +6,6 @@ GIT=`cat .git/refs/heads/master`
 LIBUSB_CFLAGS=`libusb-config --cflags`
 LIBUSB_LIBS=`libusb-config --libs`
 
-VALGRIND=
 ifeq ($(MAKECMDGOALS),vg)
 	VALGRIND=-DVALGRIND
 endif
@@ -23,7 +22,7 @@ vg: bu0836
 	@#valgrind --tool=exp-ptrcheck ./bu0836 -vvvvv --list --device=00 --monitor
 
 bu0836: logging.o options.o hid.o bu0836.o main.o makefile
-	g++ -g -o bu0836 logging.o options.o bu0836.o hid.o main.o ${LIBUSB_LIBS}
+	g++ -g -o bu0836 logging.o options.o bu0836.o hid.o main.o -lm ${LIBUSB_LIBS}
 
 main.o: bu0836.hxx logging.hxx options.h main.cxx makefile
 	g++ ${FLAGS} -DGIT=${GIT} -I/usr/include/libusb-1.0 -c main.cxx

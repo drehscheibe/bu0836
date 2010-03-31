@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -729,6 +730,7 @@ void hid_parser::do_global(int tag, uint32_t value, int32_t svalue)
 	case 0x5:
 		log(INFO) << "Unit Exponent = " << svalue;
 		_global->unit_exponent = svalue;
+		_global->unit_exponent_factor = pow(10, svalue);
 		return;
 	case 0x6:
 		log(INFO) << "Unit = " << unit_string(value);
