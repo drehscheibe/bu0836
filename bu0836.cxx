@@ -305,6 +305,7 @@ int controller::get_data()
 		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
 		if (ret < 0) {
 			log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
+			sleep(2);
 			continue;
 		}
 

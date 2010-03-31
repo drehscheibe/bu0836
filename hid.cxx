@@ -554,8 +554,8 @@ string unit_string(uint32_t u)
 
 
 
-hid_main_item::hid_main_item(main_type t, uint32_t dt, int &bitpos, hid_global_data &g, hid_local_data &l,
-		vector<uint32_t> &usage) :
+hid_main_item::hid_main_item(main_type t, uint32_t dt, hid_global_data &g, hid_local_data &l,
+		vector<uint32_t> &usage, int &bitpos) :
 	_type(t), _data_type(dt), _global(g), _local(l)
 {
 	size_t usize = usage.size();
@@ -575,12 +575,21 @@ hid_main_item::hid_main_item(main_type t, uint32_t dt, int &bitpos, hid_global_d
 
 
 
+hid_main_item::~hid_main_item()
+{
+	vector<hid_main_item *>::const_iterator it, end = _children.end();
+	for (it = _children.begin(); it != end; ++it)
+		delete *it;
+}
+
+
+
 hid_parser::hid_parser() : _item(0), _bitpos(0)
 {
 	_data_stack.push_back(hid_global_data());
 	_global = &_data_stack[0];
 
-	_item = new hid_main_item(ROOT, 0, _bitpos, *_global, _local, _usage);
+	_item = new hid_main_item(ROOT, 0, *_global, _local, _usage, _bitpos);
 	_item_stack.push_back(_item);
 }
 
@@ -652,20 +661,20 @@ void hid_parser::do_main(int tag, uint32_t value)
 	switch (tag) {
 	case 0x8:   // Input
 		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
-		current->children().push_back(new hid_main_item(INPUT, value, _bitpos, *_global, _local, _usage));
+		current->children().push_back(new hid_main_item(INPUT, value, *_global, _local, _usage, _bitpos));
 		break;
 	case 0x9:   // Output
 		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
-		current->children().push_back(new hid_main_item(OUTPUT, value, _bitpos, *_global, _local, _usage));
+		current->children().push_back(new hid_main_item(OUTPUT, value, *_global, _local, _usage, _bitpos));
 		break;
 	case 0xb:   // Feature
 		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
-		current->children().push_back(new hid_main_item(FEATURE, value, _bitpos, *_global, _local, _usage));
+		current->children().push_back(new hid_main_item(FEATURE, value, *_global, _local, _usage, _bitpos));
 		break;
 	case 0xa: { // Collection
 			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
-			hid_main_item *collection = new hid_main_item(COLLECTION, value, _bitpos, *_global, _local, _usage);
+			hid_main_item *collection = new hid_main_item(COLLECTION, value, *_global, _local, _usage, _bitpos);
 			current->children().push_back(collection);
 			_item_stack.push_back(collection);
 		}
