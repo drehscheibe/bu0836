@@ -316,7 +316,11 @@ int controller::get_data()
 			parser.print_input_report(parser.data()[0], buf);
 
 		usleep(100000);
+#ifdef VALGRIND
+	} while (0);
+#else
 	} while (!interrupted);
+#endif
 
 	return ret;
 }

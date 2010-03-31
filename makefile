@@ -6,6 +6,11 @@ GIT=`cat .git/refs/heads/master`
 LIBUSB_CFLAGS=`libusb-config --cflags`
 LIBUSB_LIBS=`libusb-config --libs`
 
+VALGRIND=
+ifeq ($(MAKECMDGOALS),vg)
+	VALGRIND=-DVALGRIND
+endif
+
 all: bu0836 makefile
 	@echo DEBUG BUILD # FIXME
 	./bu0836
@@ -13,7 +18,7 @@ all: bu0836 makefile
 check: bu0836
 	cppcheck -f --enable=all .
 
-vg valgrind: bu0836
+vg: bu0836
 	valgrind --tool=memcheck --leak-check=full ./bu0836 -vvvvv --list --device=00 --monitor
 	@#valgrind --tool=exp-ptrcheck ./bu0836 -vvvvv --list --device=00 --monitor
 
@@ -24,7 +29,7 @@ main.o: bu0836.hxx logging.hxx options.h main.cxx makefile
 	g++ ${FLAGS} -DGIT=${GIT} -I/usr/include/libusb-1.0 -c main.cxx
 
 bu0836.o: bu0836.cxx bu0836.hxx hid.hxx logging.hxx makefile
-	g++ ${FLAGS} -I/usr/include/libusb-1.0 -c bu0836.cxx
+	g++ ${FLAGS} ${VALGRIND} -I/usr/include/libusb-1.0 -c bu0836.cxx
 
 hid.o: hid.cxx hid.hxx logging.hxx makefile
 	g++ ${FLAGS} -c hid.cxx
@@ -42,5 +47,5 @@ help:
 	@echo "targets:"
 	@echo "    all"
 	@echo "    check            (requires cppcheck)"
-	@echo "    vg, valgrind     (requires valgrind)"
+	@echo "    vg               (requires valgrind)"
 	@echo "    clean"
