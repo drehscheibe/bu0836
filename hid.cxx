@@ -585,12 +585,9 @@ hid_main_item::~hid_main_item()
 
 
 
-hid_parser::hid_parser() : _item(0), _bitpos(0)
+hid_parser::hid_parser() : _item(0), _bitpos(0), _depth(0)
 {
-	_data_stack.push_back(hid_global_data());
-	_global = &_data_stack[0];
-
-	_item = new hid_main_item(ROOT, 0, 0, *_global, _local, _bitpos);
+	_item = new hid_main_item(ROOT, 0, 0, _global, _local, _bitpos);
 	_item_stack.push_back(_item);
 }
 
@@ -605,7 +602,6 @@ hid_parser::~hid_parser()
 
 void hid_parser::parse(const unsigned char *data, int len)
 {
-	_depth = 0;
 	for (const unsigned char *d = data; d < data + len; ) {
 		if (*d == 0xfe) { // long item
 			int size = *++d;
@@ -671,20 +667,20 @@ void hid_parser::do_main(int tag, uint32_t value)
 	switch (tag) {
 	case 0x8:   // Input
 		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
-		current->children().push_back(new hid_main_item(INPUT, value, current, *_global, _local, _bitpos));
+		current->children().push_back(new hid_main_item(INPUT, value, current, _global, _local, _bitpos));
 		break;
 	case 0x9:   // Output
 		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
-		current->children().push_back(new hid_main_item(OUTPUT, value, current, *_global, _local, _bitpos));
+		current->children().push_back(new hid_main_item(OUTPUT, value, current, _global, _local, _bitpos));
 		break;
 	case 0xb:   // Feature
 		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
-		current->children().push_back(new hid_main_item(FEATURE, value, current, *_global, _local, _bitpos));
+		current->children().push_back(new hid_main_item(FEATURE, value, current, _global, _local, _bitpos));
 		break;
 	case 0xa: { // Collection
 			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
-			hid_main_item *collection = new hid_main_item(COLLECTION, value, current, *_global, _local, _bitpos);
+			hid_main_item *collection = new hid_main_item(COLLECTION, value, current, _global, _local, _bitpos);
 			current->children().push_back(collection);
 			_item_stack.push_back(collection);
 		}
@@ -709,57 +705,56 @@ void hid_parser::do_global(int tag, uint32_t value, int32_t svalue)
 	switch (tag) {
 	case 0x0:
 		log(INFO) << "Usage Page '" << usage_table_string(value) << '\'';
-		_global->usage_table = value;
+		_global.usage_table = value;
 		return;
 	case 0x1:
 		log(INFO) << "Logical Minimum = " << svalue;
-		_global->logical_minimum = svalue;
+		_global.logical_minimum = svalue;
 		return;
 	case 0x2:
 		log(INFO) << "Logical Maximum = " << svalue;
-		_global->logical_maximum = svalue;
+		_global.logical_maximum = svalue;
 		return;
 	case 0x3:
 		log(INFO) << "Physical Minimum = " << svalue;
-		_global->physical_minimum = svalue;
+		_global.physical_minimum = svalue;
 		return;
 	case 0x4:
 		log(INFO) << "Physical Maximum = " << svalue;
-		_global->physical_maximum = svalue;
+		_global.physical_maximum = svalue;
 		return;
 	case 0x5:
 		log(INFO) << "Unit Exponent = " << svalue;
-		_global->unit_exponent = svalue;
-		_global->unit_exponent_factor = pow(10, svalue);
+		_global.unit_exponent = svalue;
+		_global.unit_exponent_factor = pow(10, svalue);
 		return;
 	case 0x6:
 		log(INFO) << "Unit = " << unit_string(value);
-		_global->unit = value;
+		_global.unit = value;
 		return;
 	case 0x7:
 		log(INFO) << "Report Size = " << value;
-		_global->report_size = value;
+		_global.report_size = value;
 		return;
 	case 0x8:
 		log(INFO) << "Report ID = " << value;
-		_global->report_id = value;
+		_global.report_id = value;
 		return;
 	case 0x9:
 		log(INFO) << "Report Count = " << value;
-		_global->report_count = value;
+		_global.report_count = value;
 		return;
 	case 0xa:
 		log(INFO) << "Push";
-		_data_stack.push_back(hid_global_data(_global));
-		_global = &_data_stack[_data_stack.size() - 1];
+		_data_stack.push_back(_global);
 		return;
 	case 0xb:
 		log(INFO) << "Pop";
-		if (_data_stack.size() > 1) {
-			_data_stack.pop_back();
-			_global = &_data_stack[_data_stack.size() - 1];
-		} else {
+		if (_data_stack.empty()) {
 			log(ALERT) << ORIGIN"can't pop -- stack empty" << endl;
+		} else {
+			_global = _data_stack[_data_stack.size() - 1];
+			_data_stack.pop_back();
 		}
 		return;
 	default:
@@ -773,10 +768,10 @@ void hid_parser::do_local(int tag, uint32_t value)
 {
 	switch (tag) {
 	case 0x0:
-		if (_global->usage_table >= 0xff00 && _global->usage_table <= 0xffff) // vendor defined
+		if (_global.usage_table >= 0xff00 && _global.usage_table <= 0xffff) // vendor defined
 			log(INFO) << "Usage " << value;
 		else
-			log(INFO) << "Usage '" << usage_string(_global->usage_table, value) << '\'';
+			log(INFO) << "Usage '" << usage_string(_global.usage_table, value) << '\'';
 		_local.usage.push_back(value);
 		return;
 	case 0x1:

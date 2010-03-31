@@ -19,13 +19,6 @@ struct hid_global_data {
 		unit_exponent_factor(0.0)
 	{}
 
-	hid_global_data(hid_global_data *d) : usage_table(d->usage_table), // FIXME
-		logical_minimum(d->logical_minimum), logical_maximum(d->logical_maximum),
-		physical_minimum(d->physical_minimum), physical_maximum(d->physical_maximum),
-		unit(d->unit), report_size(d->report_size), report_id(d->report_id),
-		report_count(d->report_count), unit_exponent_factor(d->unit_exponent_factor)
-	{}
-
 	uint32_t usage_table;
 	int32_t logical_minimum;
 	int32_t logical_maximum;
@@ -149,7 +142,7 @@ private:
 	void do_local(int tag, uint32_t value);
 
 	std::vector<hid_global_data> _data_stack;
-	hid_global_data *_global;
+	hid_global_data _global;
 	hid_local_data _local;
 	hid_main_item *_item;
 	std::vector<hid_main_item *> _item_stack;
