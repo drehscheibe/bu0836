@@ -554,9 +554,9 @@ string unit_string(uint32_t u)
 
 
 
-hid_main_item::hid_main_item(main_type t, uint32_t dt, hid_global_data &g, hid_local_data &l,
-		int &bitpos) :
-	_type(t), _data_type(dt), _global(g), _local(l)
+hid_main_item::hid_main_item(main_type t, uint32_t dt, hid_main_item *p, hid_global_data &g,
+		hid_local_data &l, int &bitpos) :
+	_type(t), _data_type(dt), _parent(p), _global(g), _local(l)
 {
 	size_t usize = _local.usage.size();
 	for (uint32_t i = 0; i < _global.report_count; i++) {
@@ -589,7 +589,7 @@ hid_parser::hid_parser() : _item(0), _bitpos(0)
 	_data_stack.push_back(hid_global_data());
 	_global = &_data_stack[0];
 
-	_item = new hid_main_item(ROOT, 0, *_global, _local, _bitpos);
+	_item = new hid_main_item(ROOT, 0, 0, *_global, _local, _bitpos);
 	_item_stack.push_back(_item);
 }
 
@@ -670,20 +670,20 @@ void hid_parser::do_main(int tag, uint32_t value)
 	switch (tag) {
 	case 0x8:   // Input
 		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
-		current->children().push_back(new hid_main_item(INPUT, value, *_global, _local, _bitpos));
+		current->children().push_back(new hid_main_item(INPUT, value, current, *_global, _local, _bitpos));
 		break;
 	case 0x9:   // Output
 		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
-		current->children().push_back(new hid_main_item(OUTPUT, value, *_global, _local, _bitpos));
+		current->children().push_back(new hid_main_item(OUTPUT, value, current, *_global, _local, _bitpos));
 		break;
 	case 0xb:   // Feature
 		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
-		current->children().push_back(new hid_main_item(FEATURE, value, *_global, _local, _bitpos));
+		current->children().push_back(new hid_main_item(FEATURE, value, current, *_global, _local, _bitpos));
 		break;
 	case 0xa: { // Collection
 			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
-			hid_main_item *collection = new hid_main_item(COLLECTION, value, *_global, _local, _bitpos);
+			hid_main_item *collection = new hid_main_item(COLLECTION, value, current, *_global, _local, _bitpos);
 			current->children().push_back(collection);
 			_item_stack.push_back(collection);
 		}
@@ -839,20 +839,26 @@ void hid_parser::print_input_report(hid_main_item *item, const unsigned char *da
 
 	const hid_global_data global = item->global();
 	const hid_local_data local = item->local();
+	uint32_t colltype = item->parent() ? item->parent()->data_type() : 0;
 
 	vector<hid_value>::const_iterator val, vend = item->values().end();
 	for (val = item->values().begin(); val != vend; ++val) {
+		cout << BBLACK << val->name() << "=" << NORM;
+
 		uint32_t v = val->get_value(data);
 		double d = v;
 		if (global.physical_minimum != global.physical_maximum)
 			d *= global.physical_maximum / global.logical_maximum;
 
-		cout << BBLACK << val->name() << "=" << NORM;
 		if (item->global().report_size == 1) {
 			cout << (v ? RED : GREEN) << v << NORM;
-		} else {
+
+		} else if (colltype == 0) {
 			double norm = d / item->global().logical_maximum;
 			cout << CYAN << d << NORM << setprecision(5) << " (" << MAGENTA << norm << NORM << ')';
+
+		} else {
+			cout << BLUE << d << NORM << endl;
 		}
 		cout << ' ';
 	}

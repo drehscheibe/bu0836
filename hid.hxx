@@ -107,12 +107,13 @@ private:
 
 class hid_main_item {
 public:
-	hid_main_item(main_type t, uint32_t dt, hid_global_data &g, hid_local_data &l,
-			int &bitpos);
+	hid_main_item(main_type t, uint32_t dt, hid_main_item *parent, hid_global_data &g,
+			hid_local_data &l, int &bitpos);
 	~hid_main_item();
 
 	main_type type() const { return _type; }
 	uint32_t data_type() const { return _data_type; }
+	const hid_main_item *parent() const { return _parent; }
 	const hid_global_data &global() const { return _global; }
 	const hid_local_data &local() const { return _local; }
 	std::vector<hid_value> &values() { return _values; }
@@ -121,6 +122,7 @@ public:
 private:
 	main_type _type;
 	uint32_t _data_type;
+	hid_main_item *_parent;
 	hid_global_data _global;
 	hid_local_data _local;
 	std::vector<hid_main_item *> _children;
