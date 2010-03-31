@@ -41,13 +41,15 @@ struct hid_global_data {
 
 struct hid_local_data {
 	hid_local_data() { reset(); }
+
 	void reset() {
-		usage = usage_minimum = usage_maximum = designator_index = designator_minimum
+		usage.clear();
+		usage_minimum = usage_maximum = designator_index = designator_minimum
 				= designator_maximum = string_index = string_minimum
 				= string_maximum = delimiter = 0;
 	}
 
-	uint32_t usage;
+	std::vector<uint32_t> usage;
 	uint32_t usage_minimum;
 	uint32_t usage_maximum;
 	uint32_t designator_index;
@@ -106,7 +108,7 @@ private:
 class hid_main_item {
 public:
 	hid_main_item(main_type t, uint32_t dt, hid_global_data &g, hid_local_data &l,
-			std::vector<uint32_t> &usage, int &bitpos);
+			int &bitpos);
 	~hid_main_item();
 
 	main_type type() const { return _type; }
@@ -146,7 +148,6 @@ private:
 	hid_local_data _local;
 	hid_main_item *_item;
 	std::vector<hid_main_item *> _item_stack;
-	std::vector<uint32_t> _usage;
 	std::string _indent;
 	int _bitpos;
 	int _depth;

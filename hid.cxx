@@ -555,14 +555,14 @@ string unit_string(uint32_t u)
 
 
 hid_main_item::hid_main_item(main_type t, uint32_t dt, hid_global_data &g, hid_local_data &l,
-		vector<uint32_t> &usage, int &bitpos) :
+		int &bitpos) :
 	_type(t), _data_type(dt), _global(g), _local(l)
 {
-	size_t usize = usage.size();
+	size_t usize = _local.usage.size();
 	for (uint32_t i = 0; i < _global.report_count; i++) {
 		std::string ustr;
 		if (i < usize) {
-			ustr = usage_string(_global.usage_table, usage[i]);
+			ustr = usage_string(_global.usage_table, _local.usage[i]);
 		} else {
 			ostringstream x;
 			x << '#' << _local.usage_minimum + i;
@@ -589,7 +589,7 @@ hid_parser::hid_parser() : _item(0), _bitpos(0)
 	_data_stack.push_back(hid_global_data());
 	_global = &_data_stack[0];
 
-	_item = new hid_main_item(ROOT, 0, *_global, _local, _usage, _bitpos);
+	_item = new hid_main_item(ROOT, 0, *_global, _local, _bitpos);
 	_item_stack.push_back(_item);
 }
 
@@ -661,20 +661,20 @@ void hid_parser::do_main(int tag, uint32_t value)
 	switch (tag) {
 	case 0x8:   // Input
 		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
-		current->children().push_back(new hid_main_item(INPUT, value, *_global, _local, _usage, _bitpos));
+		current->children().push_back(new hid_main_item(INPUT, value, *_global, _local, _bitpos));
 		break;
 	case 0x9:   // Output
 		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
-		current->children().push_back(new hid_main_item(OUTPUT, value, *_global, _local, _usage, _bitpos));
+		current->children().push_back(new hid_main_item(OUTPUT, value, *_global, _local, _bitpos));
 		break;
 	case 0xb:   // Feature
 		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
-		current->children().push_back(new hid_main_item(FEATURE, value, *_global, _local, _usage, _bitpos));
+		current->children().push_back(new hid_main_item(FEATURE, value, *_global, _local, _bitpos));
 		break;
 	case 0xa: { // Collection
 			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
-			hid_main_item *collection = new hid_main_item(COLLECTION, value, *_global, _local, _usage, _bitpos);
+			hid_main_item *collection = new hid_main_item(COLLECTION, value, *_global, _local, _bitpos);
 			current->children().push_back(collection);
 			_item_stack.push_back(collection);
 		}
@@ -690,7 +690,6 @@ void hid_parser::do_main(int tag, uint32_t value)
 		break;
 	}
 	_local.reset();
-	_usage.clear();
 }
 
 
@@ -762,12 +761,12 @@ void hid_parser::do_global(int tag, uint32_t value)
 void hid_parser::do_local(int tag, uint32_t value)
 {
 	switch (tag) {
-	case 0x0: // usage
+	case 0x0:
 		if (_global->usage_table >= 0xff00 && _global->usage_table <= 0xffff) // vendor defined
 			log(INFO) << "Usage " << value;
 		else
 			log(INFO) << "Usage '" << usage_string(_global->usage_table, value) << '\'';
-		_usage.push_back(value);
+		_local.usage.push_back(value);
 		return;
 	case 0x1:
 		log(INFO) << "Usage Minimum";
