@@ -26,11 +26,11 @@ struct hid_global_data {
 	{}
 
 	uint32_t usage_table;
-	uint32_t logical_minimum;
-	uint32_t logical_maximum;
-	uint32_t physical_minimum;
-	uint32_t physical_maximum;
-	uint32_t unit_exponent;
+	int32_t logical_minimum;
+	int32_t logical_maximum;
+	int32_t physical_minimum;
+	int32_t physical_maximum;
+	int32_t unit_exponent;
 	uint32_t unit;
 	uint32_t report_size;
 	uint32_t report_id;
@@ -140,7 +140,7 @@ public:
 
 private:
 	void do_main(int tag, uint32_t value);
-	void do_global(int tag, uint32_t value);
+	void do_global(int tag, uint32_t value, int32_t svalue);
 	void do_local(int tag, uint32_t value);
 
 	std::vector<hid_global_data> _data_stack;

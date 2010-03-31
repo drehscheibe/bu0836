@@ -622,13 +622,22 @@ void hid_parser::parse(const unsigned char *data, int len)
 
 			int type = (*d >> 2) & 0x3;
 			int tag = (*d++ >> 4) & 0xf;
-			uint32_t value = 0;
+
+			uint32_t value = 0;     // unsigned
 			if (size > 0)
 				value = *d++;
 			if (size > 1)
 				value |= *d++ << 8;
 			if (size > 2)
 				value |= *d++ << 16, value |= *d++ << 24;
+
+			int32_t svalue;         // signed
+			if (size == 1)
+				svalue = int8_t(value);
+			else if (size == 2)
+				svalue = int16_t(value);
+			else if (size == 4)
+				svalue = int32_t(value);
 
 			if (type == 0) {        // Main
 				log(INFO) << MAGENTA;
@@ -637,7 +646,7 @@ void hid_parser::parse(const unsigned char *data, int len)
 
 			} else if (type == 1) { // Global
 				log(INFO) << _indent << YELLOW;
-				do_global(tag, value);
+				do_global(tag, value, svalue);
 				log(INFO) << NORM << endl;
 
 			} else if (type == 2) { // Local
@@ -694,7 +703,7 @@ void hid_parser::do_main(int tag, uint32_t value)
 
 
 
-void hid_parser::do_global(int tag, uint32_t value)
+void hid_parser::do_global(int tag, uint32_t value, int32_t svalue)
 {
 	switch (tag) {
 	case 0x0:
@@ -702,24 +711,24 @@ void hid_parser::do_global(int tag, uint32_t value)
 		_global->usage_table = value;
 		return;
 	case 0x1:
-		log(INFO) << "Logical Minimum = " << value;
-		_global->logical_minimum = value;
+		log(INFO) << "Logical Minimum = " << svalue;
+		_global->logical_minimum = svalue;
 		return;
 	case 0x2:
-		log(INFO) << "Logical Maximum = " << value;
-		_global->logical_maximum = value;
+		log(INFO) << "Logical Maximum = " << svalue;
+		_global->logical_maximum = svalue;
 		return;
 	case 0x3:
-		log(INFO) << "Physical Minimum = " << value;
-		_global->physical_minimum = value;
+		log(INFO) << "Physical Minimum = " << svalue;
+		_global->physical_minimum = svalue;
 		return;
 	case 0x4:
-		log(INFO) << "Physical Maximum = " << value;
-		_global->physical_maximum = value;
+		log(INFO) << "Physical Maximum = " << svalue;
+		_global->physical_maximum = svalue;
 		return;
 	case 0x5:
-		log(INFO) << "Unit Exponent = " << value;
-		_global->unit_exponent = value;
+		log(INFO) << "Unit Exponent = " << svalue;
+		_global->unit_exponent = svalue;
 		return;
 	case 0x6:
 		log(INFO) << "Unit = " << unit_string(value);
