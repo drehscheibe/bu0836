@@ -8,6 +8,8 @@
 
 #include <libusb.h>
 
+#include "hid.hxx"
+
 
 
 struct usb_hid_descriptor {
@@ -34,11 +36,12 @@ public:
 	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc);
 	~controller();
 	int claim();
-	int get_data();
 	int get_image();
 	int set_image();
 	int save_image(const char *);
 	int load_image(const char *);
+	int show_input_reports();
+	int dump_internal_data();
 
 	const std::string &bus_address() const { return _bus_address; }
 	const std::string &id() const { return _id; }
@@ -49,6 +52,10 @@ public:
 	const std::string &jsid() const { return _jsid; }
 
 private:
+	int parse_hid(void);
+
+	hid_parser _parser;   // rename to hid
+
 	std::string _bus_address;
 	std::string _id;
 	std::string _manufacturer;
@@ -60,6 +67,7 @@ private:
 	libusb_device_handle *_handle;
 	libusb_device *_device;
 	libusb_device_descriptor _desc;
+	usb_hid_descriptor *_hid_descriptor;
 	bool _claimed;
 	bool _kernel_detached;
 	unsigned char _image[256];

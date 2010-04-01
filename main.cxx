@@ -22,6 +22,7 @@ static void help(void)
 	//cout << "  -b, --button <n>     set button mode for given button (and its sibling)" << endl;
 	cout << "  -O, --save <s>       save memory image to file <s>" << endl;
 	cout << "  -I, --load <s>       load memory image from file <s>" << endl;
+	cout << "  -X, --dump           show HID report and EEPROM image" << endl;
 	cout << endl;
 	cout << "Examples:" << endl;
 	cout << "  $ bu0836 -l" << endl;
@@ -46,7 +47,7 @@ static void version(void)
 int main(int argc, const char *argv[]) try
 {
 	enum { HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION, MONITOR_OPTION, NORMAL_OPTION,
-			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION };
+			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION };
 
 	const struct command_line_option options[] = {
 		{ "--help",    "-h", 0, "\0" },
@@ -61,6 +62,7 @@ int main(int argc, const char *argv[]) try
 		{ "--rotary",  "-r", 1, "\1" },
 		{ "--save",    "-O", 1, "\1" },
 		{ "--load",    "-I", 1, "\1" },
+		{ "--dump",    "-X", 0, "\1" },
 		OPTIONS_LAST
 	};
 
@@ -126,7 +128,7 @@ int main(int argc, const char *argv[]) try
 
 		case MONITOR_OPTION:
 			log(INFO) << "monitoring" << endl;
-			selected->get_data();
+			selected->show_input_reports();
 			break;
 
 		case NORMAL_OPTION:
@@ -156,6 +158,10 @@ int main(int argc, const char *argv[]) try
 			if (!selected->load_image(ctx.argument)) // && !selected->set_image()
 				log(INFO) << "loaded" << endl;
 			break;
+
+		case DUMP_OPTION:
+			log(INFO) << "dumping HID report and EEPROM image" << endl;
+			selected->dump_internal_data();
 
 		// ignored options
 		case HELP_OPTION:

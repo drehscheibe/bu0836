@@ -91,6 +91,7 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 	_handle(handle),
 	_device(device),
 	_desc(desc),
+	_hid_descriptor(0),
 	_claimed(false),
 	_kernel_detached(false)
 {
@@ -141,6 +142,7 @@ controller::~controller()
 	}
 
 	libusb_close(_handle);
+	delete [] _hid_descriptor;
 }
 
 
@@ -164,6 +166,46 @@ int controller::claim()
 			return ret;
 		}
 		_claimed = true;
+		parse_hid();
+	}
+
+	return 0;
+}
+
+
+
+int controller::parse_hid()
+{
+	unsigned char buf[255];
+	int ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, sizeof(buf));
+	if (ret < 0) {
+		log(ALERT) << "libusb_get_descriptor: " << usb_strerror(ret) << endl;
+		return ret;
+	}
+
+	_hid_descriptor = (usb_hid_descriptor *)new unsigned char[ret];
+	memcpy(_hid_descriptor, buf, ret);
+	int numreports = _hid_descriptor->bNumDescriptors;
+
+	log(BULK) << "HID: type=" << int(_hid_descriptor->bDescriptorType) << "  num=" << numreports << endl;
+
+	for (int i = 0; i < numreports; i++) {
+		int len = _hid_descriptor->wDescriptorLength(i);
+		log(BULK) << "REPORT " << i << ": type=" << int(_hid_descriptor->descriptors[i].bDescriptorType)
+				<< "  len=" << len << endl;
+
+		unsigned char *buf = new unsigned char[len];
+		ret = libusb_get_descriptor(_handle, LIBUSB_DT_REPORT, 0, buf, len);
+		if (ret < 0) {
+			log(ALERT) << "libusb_get_descriptor/LIBUSB_DT_REPORT: " << usb_strerror(ret) << endl;
+		} else if (ret != len) {
+			log(ALERT) << "libusb_get_descriptor/LIBUSB_DT_REPORT: only " << ret << " of " << len
+					<< " bytes delivered" << endl;
+		} else {
+			_parser.parse(buf, ret);
+			log(INFO) << endl;
+		}
+		delete [] buf;
 	}
 	return 0;
 }
@@ -254,47 +296,12 @@ int controller::load_image(const char *path)
 
 
 
-int controller::get_data()
+int controller::show_input_reports()
 {
 	int ret = claim();
 	if (ret)
 		return ret;
 
-	hid_parser parser;
-
-	// get HID descriptor
-	unsigned char buf[1024];
-	ret = libusb_get_descriptor(_handle, LIBUSB_DT_HID, 0, buf, 255);
-	if (ret < 0) {
-		log(ALERT) << "hid-desc: " << usb_strerror(ret) << endl;
-	} else {
-		usb_hid_descriptor *hid = (usb_hid_descriptor *)buf;
-		log(INFO) << "HID: " << int(hid->bDescriptorType) << " / " << int(hid->bNumDescriptors) << endl;
-		for (int n = 0; n < int(hid->bNumDescriptors); n++) {
-			unsigned len = hid->wDescriptorLength(n);
-			log(INFO) << "\t" << int(hid->descriptors[n].bDescriptorType) << " / " << len << endl;
-
-			if (len < sizeof(buf)) {
-				ret = libusb_get_descriptor(_handle, LIBUSB_DT_REPORT, 0, buf, len);
-				if (ret >= 0) {
-					log(INFO) << "\t\treq=" << len << "  rec=" << ret << endl << endl;
-					parser.parse(buf, ret);
-					log(INFO) << endl;
-				}
-			}
-		}
-	}
-
-	// display EEPROM image
-	if (get_image())
-		throw string(ORIGIN);
-	log(INFO) << setfill('0') << hex;
-	for (int i = 0; i < 16; i++)
-		log(INFO) << setw(2) << i * 16 << ' ' << bytes(_image + i * 16, 16) << endl;
-	log(INFO) << dec;
-
-
-	// display input report
 	struct sigaction sa;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
@@ -304,6 +311,7 @@ int controller::get_data()
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGQUIT, &sa, NULL);
 
+	unsigned char buf[1024];
 	do {
 		int len;
 		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
@@ -316,13 +324,31 @@ int controller::get_data()
 		log(BULK) << endl << bytes(buf, len) << endl;
 		log(INFO) << endl;
 
-		if (parser.data().size())
-			parser.print_input_report(parser.data()[0], buf);
+		if (_parser.data().size())
+			_parser.print_input_report(_parser.data()[0], buf);
 
 		usleep(100000);
 	} while (!interrupted);
 
-	return ret;
+	return 0;
+}
+
+
+
+int controller::dump_internal_data()
+{
+	int ret = claim();
+	if (ret)
+		return ret;
+
+	// display EEPROM image
+	if (get_image())
+		throw string(ORIGIN);
+	log(ALWAYS) << setfill('0') << hex;
+	for (int i = 0; i < 16; i++)
+		log(ALWAYS) << setw(2) << i * 16 << ' ' << bytes(_image + i * 16, 16) << endl;
+	log(ALWAYS) << dec;
+	return 0;
 }
 
 
