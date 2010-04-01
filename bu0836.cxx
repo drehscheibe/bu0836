@@ -405,7 +405,8 @@ int bu0836::find(string which, controller **ctrl) const
 	int num = 0;
 	vector<controller *>::const_iterator it, end = _devices.end();
 	for (it = _devices.begin(); it != end; ++it)
-		if ((*it)->bus_address() == which || (*it)->serial().find(which) != string::npos)
+		if ((*it)->serial().rfind(which) == (*it)->serial().size() - which.size()
+				|| (*it)->bus_address() == which)
 			*ctrl = *it, num++;
 
 	if (num != 1)

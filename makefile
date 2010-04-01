@@ -12,7 +12,6 @@ endif
 
 all: bu0836 makefile
 	@echo DEBUG BUILD # FIXME
-	./bu0836
 
 check: bu0836
 	cppcheck -f --enable=all .

@@ -13,16 +13,16 @@ static void help(void)
 	cout << "  -v, --verbose        increase verbosity level" << endl;
 	cout << endl;
 	cout << "  -l, --list           list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
-	cout << "  -d, --device <s>     select device by bus id or serial number (or significant substring thereof);" << endl;
-	cout << "                       not needed when only one device is attached" << endl;
-	cout << "  -m, --monitor        monitor device output" << endl;
+	cout << "  -d, --device <s>     select device by bus id or serial number (or significant ending thereof);" << endl;
+	cout << "                       not needed if only one device is attached" << endl;
+	cout << "  -m, --monitor        monitor device output (terminate with Ctrl-c)" << endl;
 	//cout << "  -i, --invert <n>     set inverted mode for given axis" << endl;
 	//cout << "  -n, --normal <n>     set normal mode for given axis" << endl;
 	//cout << "  -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
 	//cout << "  -b, --button <n>     set button mode for given button (and its sibling)" << endl;
 	cout << "  -O, --save <s>       save memory image to file <s>" << endl;
 	cout << "  -I, --load <s>       load memory image from file <s>" << endl;
-	cout << "  -X, --dump           show HID report and EEPROM image" << endl;
+	cout << "  -X, --dump           display EEPROM image" << endl;
 	cout << endl;
 	cout << "Examples:" << endl;
 	cout << "  $ bu0836 -l" << endl;
@@ -38,6 +38,8 @@ static void version(void)
 {
 #ifdef GIT
 	cout << ""STRINGIZE(GIT) << endl;
+#else
+	cout << "0.00000" << endl;
 #endif
 	exit(EXIT_SUCCESS);
 }
