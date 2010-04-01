@@ -585,7 +585,7 @@ hid_main_item::~hid_main_item()
 
 
 
-hid_parser::hid_parser() : _item(0), _bitpos(0), _depth(0)
+hid::hid() : _item(0), _bitpos(0), _depth(0)
 {
 	_item = new hid_main_item(ROOT, 0, 0, _global, _local, _bitpos);
 	_item_stack.push_back(_item);
@@ -593,14 +593,14 @@ hid_parser::hid_parser() : _item(0), _bitpos(0), _depth(0)
 
 
 
-hid_parser::~hid_parser()
+hid::~hid()
 {
 	delete _item;
 }
 
 
 
-void hid_parser::parse(const unsigned char *data, int len)
+void hid::parse(const unsigned char *data, int len)
 {
 	for (const unsigned char *d = data; d < data + len; ) {
 		if (*d == 0xfe) { // long item
@@ -661,7 +661,7 @@ void hid_parser::parse(const unsigned char *data, int len)
 
 
 
-void hid_parser::do_main(int tag, uint32_t value)
+void hid::do_main(int tag, uint32_t value)
 {
 	hid_main_item *current = _item_stack[_item_stack.size() - 1];
 	switch (tag) {
@@ -700,7 +700,7 @@ void hid_parser::do_main(int tag, uint32_t value)
 
 
 
-void hid_parser::do_global(int tag, uint32_t value, int32_t svalue)
+void hid::do_global(int tag, uint32_t value, int32_t svalue)
 {
 	switch (tag) {
 	case 0x0:
@@ -764,7 +764,7 @@ void hid_parser::do_global(int tag, uint32_t value, int32_t svalue)
 
 
 
-void hid_parser::do_local(int tag, uint32_t value)
+void hid::do_local(int tag, uint32_t value)
 {
 	switch (tag) {
 	case 0x0:
@@ -822,7 +822,7 @@ void hid_parser::do_local(int tag, uint32_t value)
 
 
 
-void hid_parser::print_input_report(hid_main_item *item, const unsigned char *data)
+void hid::print_input_report(hid_main_item *item, const unsigned char *data)
 {
 	vector<hid_main_item *>::const_iterator it, end = item->children().end();
 	for (it = item->children().begin(); it != end; ++it)

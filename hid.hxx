@@ -127,10 +127,10 @@ private:
 
 
 
-class hid_parser {
+class hid {
 public:
-	hid_parser();
-	~hid_parser();
+	hid();
+	~hid();
 
 	void parse(const unsigned char *data, int len);
 	void print_input_report(hid_main_item *, const unsigned char *data);

@@ -54,7 +54,7 @@ public:
 private:
 	int parse_hid(void);
 
-	hid_parser _parser;   // rename to hid
+	hid _hid;
 
 	std::string _bus_address;
 	std::string _id;

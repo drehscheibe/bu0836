@@ -202,7 +202,7 @@ int controller::parse_hid()
 			log(ALERT) << "libusb_get_descriptor/LIBUSB_DT_REPORT: only " << ret << " of " << len
 					<< " bytes delivered" << endl;
 		} else {
-			_parser.parse(buf, ret);
+			_hid.parse(buf, ret);
 			log(INFO) << endl;
 		}
 		delete [] buf;
@@ -324,8 +324,8 @@ int controller::show_input_reports()
 		log(BULK) << endl << bytes(buf, len) << endl;
 		log(INFO) << endl;
 
-		if (_parser.data().size())
-			_parser.print_input_report(_parser.data()[0], buf);
+		if (_hid.data().size())
+			_hid.print_input_report(_hid.data()[0], buf);
 
 		usleep(100000);
 	} while (!interrupted);
