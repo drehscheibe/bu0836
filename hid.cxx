@@ -628,21 +628,21 @@ void hid_parser::parse(const unsigned char *data, int len)
 			if (size > 2)
 				value |= *d++ << 16, value |= *d++ << 24;
 
-			int32_t svalue;         // signed
-			if (size == 1)
-				svalue = int8_t(value);
-			else if (size == 2)
-				svalue = int16_t(value);
-			else if (size == 4)
-				svalue = int32_t(value);
-
 			if (type == 0) {        // Main
 				log(INFO) << MAGENTA;
 				do_main(tag, value);
 				log(INFO) << NORM << endl;
 
 			} else if (type == 1) { // Global
-				log(INFO) << _indent << YELLOW;
+				int32_t svalue; // some vars expect signed values
+				if (size == 1)
+					svalue = int8_t(value);
+				else if (size == 2)
+					svalue = int16_t(value);
+				else if (size == 4)
+					svalue = int32_t(value);
+
+				log(INFO) << _indent << YELLOW; // TODO decode usage page/usage combination (?)
 				do_global(tag, value, svalue);
 				log(INFO) << NORM << endl;
 

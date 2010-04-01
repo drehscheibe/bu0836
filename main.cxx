@@ -160,7 +160,7 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case DUMP_OPTION:
-			log(INFO) << "dumping HID report and EEPROM image" << endl;
+			log(INFO) << "EEPROM image" << endl;
 			selected->dump_internal_data();
 
 		// ignored options
