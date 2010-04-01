@@ -301,6 +301,10 @@ int controller::show_input_reports()
 	int ret = claim();
 	if (ret)
 		return ret;
+	if (_hid.data().empty()) {
+		log(ALERT) << "show_input_reports: no hid data" << endl;
+		return 1;
+	}
 
 	struct sigaction sa;
 	sigemptyset(&sa.sa_mask);
@@ -323,9 +327,7 @@ int controller::show_input_reports()
 
 		log(BULK) << endl << bytes(buf, len) << endl;
 		log(INFO) << endl;
-
-		if (_hid.data().size())
-			_hid.print_input_report(_hid.data()[0], buf);
+		_hid.print_input_report(_hid.data()[0], buf);
 
 		usleep(100000);
 	} while (!interrupted);

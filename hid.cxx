@@ -561,7 +561,11 @@ string unit_string(uint32_t u)
 
 hid_main_item::hid_main_item(main_type t, uint32_t dt, hid_main_item *p, hid_global_data &g,
 		hid_local_data &l, int &bitpos) :
-	_type(t), _data_type(dt), _parent(p), _global(g), _local(l)
+	_type(t),
+	_data_type(dt),
+	_parent(p),
+	_global(g),
+	_local(l)
 {
 	size_t usize = _local.usage.size();
 	for (uint32_t i = 0; i < _global.report_count; i++) {

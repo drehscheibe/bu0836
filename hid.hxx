@@ -13,16 +13,23 @@ std::string bytes(const unsigned char *p, unsigned int num, size_t width = 0);
 
 
 struct hid_global_data {
-	hid_global_data() : usage_table(0), logical_minimum(0), logical_maximum(0),
-		physical_minimum(0), physical_maximum(0), unit_exponent(0),
-		unit(0), report_size(0), report_id(0), report_count(0),
+	hid_global_data() :
+		usage_table(0),
+		logical_minimum(0),
+		logical_maximum(0),
+		physical_minimum(0),
+		physical_maximum(0),
+		unit_exponent(0),
+		unit(0),
+		report_size(0),
+		report_id(0),
+		report_count(0),
 		unit_exponent_factor(1.0)
 	{}
 
 	class undef {
 	public:
-		undef() : _value(0), _defined(false) {}
-		undef(int v) : _value(v), _defined(false) {}
+		undef(int v = 0) : _value(v), _defined(false) {}
 		bool defined() const { return _defined; }
 		bool undefined() const { return !_defined; }
 		int32_t operator=(int32_t v) { _defined = true; return _value = v; }
