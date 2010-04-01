@@ -9,6 +9,10 @@
 
 using namespace std;
 
+// TODO
+// - report id
+// - collection -> Usage
+// - ignore main items in vendor defined collections (?)
 
 
 static string string_join(const vector<string> &v, const char *join = " ")
@@ -634,7 +638,7 @@ void hid::parse(const unsigned char *data, int len)
 				log(INFO) << NORM << endl;
 
 			} else if (type == 1) { // Global
-				int32_t svalue; // some vars expect signed values
+				int32_t svalue = 0; // some vars expect signed values
 				if (size == 1)
 					svalue = int8_t(value);
 				else if (size == 2)
@@ -843,19 +847,16 @@ void hid::print_input_report(hid_main_item *item, const unsigned char *data)
 		cout << BBLACK << val->name() << "=" << NORM;
 
 		uint32_t v = val->get_value(data);
-		double d = v;
-		if (global.physical_minimum != global.physical_maximum)
-			d *= global.physical_maximum / global.logical_maximum;
 
-		if (item->global().report_size == 1) {
+		if (global.report_size == 1) {
 			cout << (v ? RED : GREEN) << v << NORM;
 
-		} else if (colltype == 0) {
-			double norm = d / item->global().logical_maximum;
-			cout << CYAN << d << NORM << setprecision(5) << " (" << MAGENTA << norm << NORM << ')';
+		} else if (colltype == 0) { // physical (i.e. axes)
+			double norm = double(v) / global.logical_maximum;
+			cout << CYAN << v << NORM << setprecision(5) << " (" << MAGENTA << norm << NORM << ')';
 
 		} else {
-			cout << BLUE << d << NORM << endl;
+			cout << YELLOW << v << NORM << endl;
 		}
 		cout << ' ';
 	}

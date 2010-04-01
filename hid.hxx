@@ -16,15 +16,29 @@ struct hid_global_data {
 	hid_global_data() : usage_table(0), logical_minimum(0), logical_maximum(0),
 		physical_minimum(0), physical_maximum(0), unit_exponent(0),
 		unit(0), report_size(0), report_id(0), report_count(0),
-		unit_exponent_factor(0.0)
+		unit_exponent_factor(1.0)
 	{}
+
+	class undef {
+	public:
+		undef() : _value(0), _defined(false) {}
+		undef(int v) : _value(v), _defined(false) {}
+		bool defined() const { return _defined; }
+		bool undefined() const { return !_defined; }
+		int32_t operator=(int32_t v) { _defined = true; return _value = v; }
+		int32_t operator()(void) const { return _value; }
+
+	private:
+		int32_t _value;
+		bool _defined;
+	};
 
 	uint32_t usage_table;
 	int32_t logical_minimum;
 	int32_t logical_maximum;
-	int32_t physical_minimum;
-	int32_t physical_maximum;
-	int32_t unit_exponent;
+	undef physical_minimum;
+	undef physical_maximum;
+	undef unit_exponent;
 	uint32_t unit;
 	uint32_t report_size;
 	uint32_t report_id;
@@ -87,6 +101,16 @@ public:
 			ret |= uint32_t(*d) << 24;
 		ret >>= _bit_offset;
 		return ret & _mask;
+	}
+
+	int32_t get_svalue(const unsigned char *d) const
+	{
+		uint32_t v = get_value(d);
+		if (_width == 16)
+			return int16_t(v);
+		if (_width == 8)
+			return int8_t(v);
+		return int32_t(v);
 	}
 
 	const std::string &name() const { return _name; }
