@@ -88,15 +88,16 @@ enum main_type {
 
 class hid_value {
 public:
-	hid_value(const std::string &name, int offset, int width) :
+	hid_value(const std::string &name, unsigned offset, unsigned width) :
 		_name(name),
 		_byte_offset(offset >> 3),
 		_bit_offset(offset & 7),
 		_width(width),
-		_mask((1 << width) - 1)
+		_mask((1 << width) - 1),
+		_msb(1 << (width - 1))
 	{}
 
-	uint32_t get_value(const unsigned char *d) const
+	uint32_t get_unsigned(const unsigned char *d) const
 	{
 		d += _byte_offset;
 		uint32_t ret = uint32_t(*d++);
@@ -110,24 +111,21 @@ public:
 		return ret & _mask;
 	}
 
-	int32_t get_svalue(const unsigned char *d) const
+	int32_t get_signed(const unsigned char *d) const
 	{
-		uint32_t v = get_value(d);
-		if (_width == 16)
-			return int16_t(v);
-		if (_width == 8)
-			return int8_t(v);
-		return int32_t(v);
+		uint32_t v = get_unsigned(d);
+		return _width && v & _msb ? v | ~_mask : v;
 	}
 
 	const std::string &name() const { return _name; }
 
 private:
 	std::string _name;
-	int _byte_offset;
-	int _bit_offset;
-	int _width;
-	int32_t _mask;
+	unsigned _byte_offset;
+	unsigned _bit_offset;
+	unsigned _width;
+	uint32_t _mask;
+	uint32_t _msb;
 };
 
 

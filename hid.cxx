@@ -577,8 +577,13 @@ hid_main_item::hid_main_item(main_type t, uint32_t dt, hid_main_item *p, hid_glo
 			x << '#' << _local.usage_minimum + i;
 			ustr = x.str();
 		}
-		_values.push_back(hid_value(ustr, bitpos, _global.report_size));
-		bitpos += _global.report_size;
+
+		if (_global.report_size) {
+			_values.push_back(hid_value(ustr, bitpos, _global.report_size));
+			bitpos += _global.report_size;
+		} else {
+			log(WARN) << "data field with zero width" << endl;
+		}
 	}
 }
 
@@ -850,7 +855,7 @@ void hid::print_input_report(hid_main_item *item, const unsigned char *data)
 	for (val = item->values().begin(); val != vend; ++val) {
 		cout << BBLACK << val->name() << "=" << NORM;
 
-		uint32_t v = val->get_value(data);
+		uint32_t v = val->get_unsigned(data);
 
 		if (global.report_size == 1) {
 			cout << (v ? RED : GREEN) << v << NORM;
@@ -860,7 +865,7 @@ void hid::print_input_report(hid_main_item *item, const unsigned char *data)
 			cout << CYAN << v << NORM << setprecision(5) << " (" << MAGENTA << norm << NORM << ')';
 
 		} else {
-			cout << YELLOW << v << NORM << endl;
+			cout << YELLOW << v << " (" << val->get_signed(data) << ')' << NORM << endl;
 		}
 		cout << ' ';
 	}
