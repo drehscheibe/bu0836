@@ -8,22 +8,24 @@
 
 
 namespace {
-	bool has_color(int fd)
-	{
-		if (isatty(fd)) {
-			const char *term = getenv("TERM");
-			if (term && strcmp(term, "dumb"))
-				return true;
-		}
-		return false;
+
+bool has_color(int fd)
+{
+	if (isatty(fd)) {
+		const char *term = getenv("TERM");
+		if (term && strcmp(term, "dumb"))
+			return true;
 	}
+	return false;
+}
 
-	class nullbuf : public std::streambuf { } nb;
-	std::ostream cnull(&nb);
+class nullbuf : public std::streambuf { } nb;
+std::ostream cnull(&nb);
 
-	bool cout_color = has_color(STDOUT_FILENO);
-	bool cerr_color = has_color(STDERR_FILENO);
-	int log_level = ALERT;
+bool cout_color = has_color(STDOUT_FILENO);
+bool cerr_color = has_color(STDERR_FILENO);
+int log_level = ALERT;
+
 }
 
 

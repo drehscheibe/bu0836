@@ -29,7 +29,7 @@
 
 
 enum {
-	BULK,
+	BULK = 1,
 	DEBUG,
 	INFO,
 	WARN,
