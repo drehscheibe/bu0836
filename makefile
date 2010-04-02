@@ -10,6 +10,12 @@ ifeq ($(MAKECMDGOALS),vg)
 	VALGRIND=-DVALGRIND
 endif
 
+ifeq ($(MAKECMDGOALS),static)
+	FLAGS:=${FLAGS} -m32
+	CC:="gcc -m32"
+	CXX:="g++ -m32"
+endif
+
 all: bu0836 makefile
 	@echo DEBUG BUILD # FIXME
 
@@ -38,8 +44,11 @@ logging.o: logging.cxx logging.hxx makefile
 options.o: options.c options.h makefile
 	g++ ${FLAGS} -c options.c
 
+static: logging.o options.o hid.o bu0836.o main.o makefile
+	g++ -m32 -g -o sbu0836 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
+
 clean:
-	rm -rf *.o bu0836 core.bu0836.* cmake_install.cmake CMakeFiles CMakeCache.txt
+	rm -rf *.o bu0836 sbu0836 core.bu0836.* cmake_install.cmake CMakeFiles CMakeCache.txt
 
 help:
 	@echo "targets:"
