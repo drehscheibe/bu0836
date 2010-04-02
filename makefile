@@ -10,6 +10,10 @@ ifeq ($(MAKECMDGOALS),vg)
 	VALGRIND=-DVALGRIND
 endif
 
+ifeq ($(MAKECMDGOALS),massif)
+	VALGRIND=-DVALGRIND
+endif
+
 ifeq ($(MAKECMDGOALS),static)
 	FLAGS:=${FLAGS} -m32
 	CC:="gcc -m32"
@@ -18,13 +22,6 @@ endif
 
 all: bu0836 makefile
 	@echo DEBUG BUILD # FIXME
-
-check: bu0836
-	cppcheck -f --enable=all .
-
-vg: bu0836
-	valgrind --tool=memcheck --leak-check=full ./bu0836 -vvvvv --list --device=00 --monitor
-	@#valgrind --tool=exp-ptrcheck ./bu0836 -vvvvv --list --device=00 --monitor
 
 bu0836: logging.o options.o hid.o bu0836.o main.o makefile
 	g++ -g -o bu0836 logging.o options.o bu0836.o hid.o main.o -lm ${LIBUSB_LIBS}
@@ -47,6 +44,16 @@ options.o: options.c options.h makefile
 static: logging.o options.o hid.o bu0836.o main.o makefile
 	g++ -m32 -g -o sbu0836 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
 
+check: bu0836
+	cppcheck -f --enable=all .
+
+vg: bu0836
+	valgrind --tool=memcheck --leak-check=full ./bu0836 -vvvvv --list --device=00 --monitor
+	@#valgrind --tool=exp-ptrcheck ./bu0836 -vvvvv --list --device=00 --monitor
+
+massif: bu0836
+	valgrind --tool=massif ./bu0836 -vvvvv --list --device=00 --monitor
+
 clean:
 	rm -rf *.o bu0836 sbu0836 core.bu0836.* cmake_install.cmake CMakeFiles CMakeCache.txt
 
@@ -55,4 +62,6 @@ help:
 	@echo "    all"
 	@echo "    check            (requires cppcheck)"
 	@echo "    vg               (requires valgrind)"
+	@echo "    massif"
+	@echo "    static           build 32 bit version with statically linked libusb"
 	@echo "    clean"
