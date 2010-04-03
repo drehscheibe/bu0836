@@ -29,7 +29,6 @@ static void help(void)
 	cout << "                       ... to list available devices" << endl;
 	cout << "  $ bu0836 -d2:4 -i0" << endl;
 	cout << "                       ... invert first axis of device 2:4" << endl;
-	exit(EXIT_SUCCESS);
 }
 
 
@@ -39,9 +38,8 @@ static void version(void)
 #ifdef GIT
 	cout << ""STRINGIZE(GIT) << endl;
 #else
-	cout << "0.00000" << endl;
+	cout << "0.0" << endl;
 #endif
-	exit(EXIT_SUCCESS);
 }
 
 
@@ -73,13 +71,19 @@ int main(int argc, const char *argv[]) try
 
 	// first pass options
 	init_options_context(&ctx, argc, argv, options);
-	while ((option = get_option(&ctx)) != OPTIONS_DONE)
-		if (option == HELP_OPTION)
+	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
+		if (option == HELP_OPTION) {
 			help();
-		else if (option == VERSION_OPTION)
+			return EXIT_SUCCESS;
+
+		} else if (option == VERSION_OPTION) {
 			version();
-		else if (option == VERBOSE_OPTION)
+			return EXIT_SUCCESS;
+
+		} else if (option == VERBOSE_OPTION) {
 			set_log_level(get_log_level() - 1);
+		}
+	}
 
 	bu0836 dev;
 	controller *selected = 0;
@@ -118,12 +122,12 @@ int main(int argc, const char *argv[]) try
 		case LIST_OPTION:
 			for (size_t i = 0; i < dev.size(); i++) {
 				const char *marker = &dev[i] == selected ? " <<" : "";
-				cout << color("33") << dev[i].bus_address() << color()
+				cout << YELLOW << dev[i].bus_address() << NORM
 						<< "  " << dev[i].manufacturer()
 						<< ", " << dev[i].product()
-						<< ", " << color("33") << dev[i].serial() << color()
+						<< ", " << YELLOW << dev[i].serial() << NORM
 						<< ", v" << dev[i].release()
-						<< color("32") << marker << color()
+						<< GREEN << marker << NORM
 						<< endl;
 			}
 			break;
