@@ -96,14 +96,15 @@ public:
 	{
 		d += _byte_offset;
 		uint32_t ret = uint32_t(*d++);
-		if (_width > 8)
+		if (_width > 8) {
 			ret |= uint32_t(*d++) << 8;
-		if (_width > 16)
-			ret |= uint32_t(*d++) << 16;
-		if (_width > 24)
-			ret |= uint32_t(*d) << 24;
-		ret >>= _bit_offset;
-		return ret & _mask;
+			if (_width > 16) {
+				ret |= uint32_t(*d++) << 16;
+				if (_width > 24)
+					ret |= uint32_t(*d) << 24;
+			}
+		}
+		return (ret >> _bit_offset) & _mask;
 	}
 
 	int32_t get_signed(const unsigned char *d) const
