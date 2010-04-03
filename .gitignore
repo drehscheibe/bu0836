@@ -1,5 +1,5 @@
 *.o
 bu0836
-sbu0836
+bu0836-static32
 core.bu0836.*
 ...

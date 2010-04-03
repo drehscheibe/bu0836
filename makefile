@@ -42,7 +42,7 @@ options.o: options.c options.h makefile
 	g++ ${FLAGS} -c options.c
 
 static: logging.o options.o hid.o bu0836.o main.o makefile
-	g++ -m32 -g -o sbu0836 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
+	g++ -m32 -g -o bu0836-static32 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
 
 check: bu0836
 	cppcheck -f --enable=all .
@@ -55,7 +55,7 @@ massif: bu0836
 	valgrind --tool=massif ./bu0836 -vvvvv --list --device=00 --monitor
 
 clean:
-	rm -rf *.o bu0836 sbu0836 core.bu0836.* cmake_install.cmake CMakeFiles CMakeCache.txt
+	rm -rf *.o bu0836 bu0836-static32 core.bu0836.* cmake_install.cmake CMakeFiles CMakeCache.txt
 
 help:
 	@echo "targets:"
