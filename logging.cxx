@@ -1,9 +1,13 @@
 #include <cstring>     // strcmp
+#include <iomanip>
 #include <iostream>
 #include <stdlib.h>    // getenv, STDOUT_FILENO
+#include <sstream>
 #include <unistd.h>    // isatty
 
 #include "logging.hxx"
+
+using namespace std;
 
 
 
@@ -19,8 +23,8 @@ bool has_color(int fd)
 	return false;
 }
 
-class nullbuf : public std::streambuf { } nb;
-std::ostream cnull(&nb);
+class nullbuf : public streambuf { } nb;
+ostream cnull(&nb);
 
 bool cout_color = has_color(STDOUT_FILENO);
 bool cerr_color = has_color(STDERR_FILENO);
@@ -30,8 +34,8 @@ int log_level = ALERT;
 
 
 
-std::ostream &operator<<(std::ostream &os, const color &c) {
-	if ((os == std::cerr && cerr_color) || (os == std::cout && cout_color))
+ostream &operator<<(ostream &os, const color &c) {
+	if ((os == cerr && cerr_color) || (os == cout && cout_color))
 		return os << "\033[" << c._color << 'm';
 	return os;
 }
@@ -52,7 +56,21 @@ void set_log_level(int level)
 
 
 
-std::ostream &log(int priority = ALWAYS)
+ostream &log(int priority = ALWAYS)
 {
-	return priority >= log_level ? std::cerr : cnull;
+	return priority >= log_level ? cerr : cnull;
+}
+
+
+
+string bytes(const unsigned char *p, unsigned int num, size_t width)
+{
+	ostringstream x;
+	x << hex << setfill('0');
+	while (num--)
+		x << setw(2) << int(*p++) << ' ';
+	string s = x.str();
+	if (width > s.length())
+		s.resize(width, ' ');
+	return s;
 }

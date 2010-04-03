@@ -2,12 +2,15 @@
 #define _LOGGING_HXX_
 
 #include <iosfwd>
+#include <string>
 
 #define STRINGIZE(X) DO_STRINGIZE(X)
 #define DO_STRINGIZE(X) #X
 #define ORIGIN __FILE__":"STRINGIZE(__LINE__)": "
 
 #define NORM color()
+#define BOLD color("1")
+
 #define BLACK color("30")
 #define RED color("31")
 #define GREEN color("32")
@@ -54,5 +57,6 @@ std::ostream &operator<<(std::ostream &, const color &);
 int get_log_level();
 void set_log_level(int);
 std::ostream &log(int log_level);
+std::string bytes(const unsigned char *p, unsigned int num, size_t width = 0);
 
 #endif

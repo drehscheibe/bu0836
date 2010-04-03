@@ -7,11 +7,6 @@
 
 
 
-const char *usage_string(uint32_t usage, uint32_t id);
-std::string bytes(const unsigned char *p, unsigned int num, size_t width = 0);
-
-
-
 struct hid_global_data {
 	hid_global_data() :
 		usage_table(0),
