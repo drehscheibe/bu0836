@@ -16,6 +16,10 @@ using namespace std;
 
 
 
+namespace hid {
+
+
+
 static string string_join(const vector<string> &v, const char *join = " ")
 {
 	size_t size = v.size();
@@ -858,3 +862,7 @@ void hid::print_input_report(hid_main_item *item, const unsigned char *data)
 	}
 	cout << endl;
 }
+
+
+
+} // namespace hid
