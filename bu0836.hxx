@@ -37,7 +37,8 @@ public:
 	~controller();
 	int claim();
 	int get_image();
-	int set_image();
+	int print_status();
+	int set_image(int which = ~0);
 	int save_image(const char *);
 	int load_image(const char *);
 	int show_input_reports();
@@ -53,6 +54,20 @@ public:
 
 private:
 	int parse_hid(void);
+	int getrotmode (int b) const {
+		uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b / 2) & 1;
+		uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b / 2) & 1;
+		return b0 | (b1 << 1);
+	}
+	void setrotmode(int b, int mode) {
+		uint16_t mask = 1 << b / 2;
+		uint16_t b0 = _eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8);
+		uint16_t b1 = _eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8);
+		b0 = mode & 1 ? b0 | mask : b0 & ~mask;
+		b1 = mode & 2 ? b1 | mask : b1 & ~mask;
+		_eeprom.rotenc0[0] = b0 & 0xff, _eeprom.rotenc0[1] = (b0 >> 8) & 0xff;
+		_eeprom.rotenc1[0] = b1 & 0xff, _eeprom.rotenc1[1] = (b1 >> 8) & 0xff;
+	}
 
 	hid::hid _hid;
 
@@ -70,7 +85,17 @@ private:
 	usb_hid_descriptor *_hid_descriptor;
 	bool _claimed;
 	bool _kernel_detached;
-	unsigned char _image[256];
+
+	struct {
+		uint8_t ___a[11];
+		uint8_t invert;
+		uint8_t ___b[2];
+		uint8_t zoom[8];
+		uint8_t rotenc0[2];
+		uint8_t rotenc1[2];
+		uint8_t pulse;
+		uint8_t ___c[229];
+	} _eeprom;
 
 	static const int _INTERFACE = 0;
 };

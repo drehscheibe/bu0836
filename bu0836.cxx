@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -13,6 +14,7 @@
 
 using namespace std;
 
+namespace {
 
 #ifdef VALGRIND
 bool interrupted = true;
@@ -30,7 +32,7 @@ void interrupt_handler(int)
 
 
 
-static const char *usb_strerror(int errno)
+const char *usb_strerror(int errno)
 {
 	switch (errno) {
 	case LIBUSB_SUCCESS:
@@ -68,7 +70,7 @@ static const char *usb_strerror(int errno)
 
 
 
-static string bcd2str(int n)
+string bcd2str(int n)
 {
 	ostringstream o;
 	o << hex << ((n >> 12) & 0xf) << ((n >> 8) & 0xf) << '.' << ((n >> 4) & 0xf) << (n & 0xf);
@@ -77,13 +79,15 @@ static string bcd2str(int n)
 
 
 
-static string strip(string s)
+string strip(string s)
 {
 	const char spaces[] = " \t\n\r\b";
 	string::size_type start = s.find_first_not_of(spaces, 0);
 	string::size_type end = s.find_last_not_of(spaces, string::npos);
 	return start == string::npos || end == string::npos ? "" : s.substr(start, end - start + 1);
 }
+
+} // namespace
 
 
 
@@ -95,6 +99,8 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 	_claimed(false),
 	_kernel_detached(false)
 {
+	assert(sizeof(_eeprom) == 0x100); // FIXME + <cassert>
+
 	ostringstream s;
 	s << int(libusb_get_bus_number(_device)) << ':' << int(libusb_get_device_address(_device));
 	_bus_address = s.str();
@@ -233,14 +239,65 @@ int controller::get_image()
 		if (buf[0] & 0x0f)
 			continue;
 		progress &= ~(1 << (buf[0] >> 4));
-		memcpy(_image + buf[0], buf + 1, 16);
+		memcpy((uint8_t *)&_eeprom + buf[0], buf + 1, 16);
+	}
+	if (!maxtries) {
+		log(ALERT) << "get_image: maxtries" << endl;  // FIXME msg
+		return -2;
 	}
 	return 0;
 }
 
 
 
-int controller::set_image()
+int controller::print_status()
+{
+	int ret = get_image();
+	if (ret)
+		return ret; // FIXME handle ret value
+
+	cout << BBLACK << "_____________________________ Axes ____________________________" << NORM << endl << endl;
+	cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
+	cout << "inverted:    ";
+	for (int i = 0; i < 8; i++)
+		if (_eeprom.invert & (1 << i))
+			cout << RED << "I      ";
+		else
+			cout << GREEN << "-      ";
+	cout << NORM << endl;
+	cout << "zoom:  ";
+	for (int i = 0; i < 8; i++)
+		cout << (_eeprom.zoom[i] ? RED : GREEN) << setw(7) << int(_eeprom.zoom[i]);
+	cout << NORM << endl << endl << endl;
+
+	const char *s[] = { "  -   - ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
+	cout << BBLACK << "_______________________ Buttons/Encoders ______________________" << NORM << endl << endl;
+	cout << " #0  #1  #2  #3  #4  #5  #6  #7  #8  #9 #10 #11 #12 #13 #14 #15" << endl;
+	for (int i = 0; i < 16; i += 2) {
+		int m = getrotmode(i);
+		cout << (m ? RED : GREEN) << s[m];
+	}
+	cout << NORM << endl << endl;
+
+	cout << "#16 #17 #18 #19 #20 #21 #22 #23 #24 #25 #26 #27 #28 #29 #30 #31" << endl;
+	for (int i = 16; i < 32; i += 2) {
+		int m = getrotmode(i);
+		cout << (m ? RED : GREEN) << s[m];
+	}
+	cout << NORM << endl << endl;
+
+	cout << "pulse width: ";
+	if (_eeprom.pulse == 6)
+		cout << GREEN;
+	else
+		cout << RED;
+	cout << int(_eeprom.pulse) * 8 << " ms" << NORM << endl;
+	return 0;
+}
+
+
+
+int controller::set_image(int which)
 {
 	int ret = claim();
 	if (ret)
@@ -248,8 +305,11 @@ int controller::set_image()
 
 	unsigned char buf[17];
 	for (unsigned char i = 0; i < 16; i++) {
+		if (!(which & (1 << i)))
+			continue;
+
 		buf[0] = i << 4;
-		memcpy(buf + 1, _image + buf[0], 16);
+		memcpy(buf + 1, (uint8_t *)&_eeprom + buf[0], 16);
 		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
 				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
 		if (ret < 0) {
@@ -267,10 +327,10 @@ int controller::save_image(const char *path)
 	ofstream file(path, ofstream::binary | ofstream::trunc);
 	if (!file)
 		throw string("cannot write to '") + path + '\'';
-	file.write((char *)_image, sizeof(_image));
+	file.write((const char *)&_eeprom, sizeof(_eeprom));
 
 	file.seekp(0, ofstream::end);
-	if (file.tellp() != sizeof(_image))
+	if (file.tellp() != sizeof(_eeprom))
 		throw string("file '") + path + "' has wrong size";
 
 	file.close();
@@ -284,10 +344,10 @@ int controller::load_image(const char *path)
 	ifstream file(path, ifstream::binary);
 	if (!file)
 		throw string("cannot read from '") + path + '\'';
-	file.read((char *)_image, sizeof(_image));
+	file.read((char *)&_eeprom, sizeof(_eeprom));
 
 	file.seekg(0, ifstream::end);
-	if (file.tellg() != sizeof(_image))
+	if (file.tellg() != sizeof(_eeprom))
 		throw string("file '") + path + "' has wrong size";
 
 	file.close();
@@ -348,7 +408,7 @@ int controller::dump_internal_data()
 		throw string(ORIGIN);
 	log(ALWAYS) << setfill('0') << hex;
 	for (int i = 0; i < 16; i++)
-		log(ALWAYS) << setw(2) << i * 16 << ' ' << bytes(_image + i * 16, 16) << endl;
+		log(ALWAYS) << setw(2) << i * 16 << ' ' << bytes((const unsigned char *)&_eeprom + i * 16, 16) << endl;
 	log(ALWAYS) << dec;
 	return 0;
 }

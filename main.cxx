@@ -112,6 +112,7 @@ int main(int argc, const char *argv[]) try
 		HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION,
 		AXIS_OPTION, BUTTON_OPTION, MONITOR_OPTION, NORMAL_OPTION,
 		INVERT_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
+		STATUS_OPTION,
 	};
 
 	const struct command_line_option options[] = {
@@ -129,6 +130,7 @@ int main(int argc, const char *argv[]) try
 		{ "--save",    "-O", 1, "\1" },
 		{ "--load",    "-I", 1, "\1" },
 		{ "--dump",    "-X", 0, "\1" },
+		{ "--status",  "-t", 0, "\1" },
 		OPTIONS_LAST
 	};
 
@@ -239,6 +241,9 @@ int main(int argc, const char *argv[]) try
 		case DUMP_OPTION:
 			log(INFO) << "EEPROM image" << endl;
 			selected->dump_internal_data();
+
+		case STATUS_OPTION:
+			selected->print_status();
 
 		// ignored options
 		case HELP_OPTION:
