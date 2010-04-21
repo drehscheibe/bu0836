@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "bu0836.hxx"
 #include "logging.hxx"
 #include "options.h"
@@ -5,7 +7,10 @@
 using namespace std;
 
 
-static void help(void)
+
+namespace {
+
+void help(void)
 {
 	cout << "Usage:  bu0836 [<options>] ..." << endl;
 	cout << "  -h, --help           show this help screen and exit" << endl;
@@ -15,11 +20,9 @@ static void help(void)
 	cout << "  -l, --list           list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
 	cout << "  -d, --device <s>     select device by bus id or serial number (or significant ending thereof);" << endl;
 	cout << "                       not needed if only one device is attached" << endl;
+	cout << "  -a, --axes <list>    select axes (comma separated numbers with optional ranges, e.g. 0,2,4-6)" << endl;
+	cout << "  -b, --buttons <list> select buttons" << endl;
 	cout << "  -m, --monitor        monitor device output (terminate with Ctrl-c)" << endl;
-	//cout << "  -i, --invert <n>     set inverted mode for given axis" << endl;
-	//cout << "  -n, --normal <n>     set normal mode for given axis" << endl;
-	//cout << "  -r, --rotary <n>     set rotary mode for given button (and its sibling)" << endl;
-	//cout << "  -b, --button <n>     set button mode for given button (and its sibling)" << endl;
 	cout << "  -O, --save <s>       save memory image to file <s>" << endl;
 	cout << "  -I, --load <s>       load memory image from file <s>" << endl;
 	cout << "  -X, --dump           display EEPROM image" << endl;
@@ -33,7 +36,7 @@ static void help(void)
 
 
 
-static void version(void)
+void version(void)
 {
 #ifdef GIT
 	cout << ""STRINGIZE(GIT) << endl;
@@ -44,10 +47,72 @@ static void version(void)
 
 
 
+uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
+{
+	uint32_t m = 0;
+	bool range = false;
+	const unsigned undef = ~0;
+	unsigned low = undef, high = undef;
+	istringstream s(list);
+
+	while (1) {
+		int next = s.get();
+		if (s.eof() || next == ',') {
+			if (range)
+				throw string("incomplete range in number list");
+
+			if (low != undef) {
+				if (high == undef)
+					high = low;
+				for (unsigned i = low; i <= high; i++)
+					m |= 1 << i;
+			}
+
+			if (s.eof())
+				break;
+
+			low = high = undef;
+
+		} else if (isdigit(next)) {
+			s.putback(next);
+			unsigned i;
+			s >> i;
+			if (i > max) {
+				log(WARN) << "number in axis/button list out of range: " << i << " (max: " << max << ')' << endl;
+				i = max;
+			}
+
+			if (!range && low == undef)
+				low = i;
+			else if (range && high == undef)
+				high = i;
+			else
+				throw string("unexpected number in list");
+			range = false;
+
+		} else if (next == '-') {
+			if (low == undef || range)
+				throw string("unexpected range in number list");
+			range = true;
+
+		} else if (!isspace(next)) {
+			throw string("malformed number list");
+		}
+	}
+	return m;
+}
+
+} // namespace
+
+
+
 int main(int argc, const char *argv[]) try
 {
-	enum { HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION, MONITOR_OPTION, NORMAL_OPTION,
-			INVERT_OPTION, BUTTON_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION };
+	enum {
+		HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION,
+		AXIS_OPTION, BUTTON_OPTION, MONITOR_OPTION, NORMAL_OPTION,
+		INVERT_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
+	};
 
 	const struct command_line_option options[] = {
 		{ "--help",    "-h", 0, "\0" },
@@ -55,10 +120,11 @@ int main(int argc, const char *argv[]) try
 		{ "--verbose", "-v", 0, "\0" },
 		{ "--list",    "-l", 0, "\0" },
 		{ "--device",  "-d", 1, "\0" },
+		{ "--axes",    "-a", 1, "\0" },
+		{ "--buttons", "-b", 1, "\0" },
 		{ "--monitor", "-m", 0, "\1" },
 		{ "--normal",  "-n", 1, "\1" },
 		{ "--invert",  "-i", 1, "\1" },
-		{ "--button",  "-b", 1, "\1" },
 		{ "--rotary",  "-r", 1, "\1" },
 		{ "--save",    "-O", 1, "\1" },
 		{ "--load",    "-I", 1, "\1" },
@@ -119,6 +185,15 @@ int main(int argc, const char *argv[]) try
 			break;
 		}
 
+		case AXIS_OPTION:
+			log(INFO) << "selecting axes " << hex << numlist_to_bitmap(ctx.argument, 7) << dec << endl;
+			break;
+
+		case BUTTON_OPTION:
+			log(INFO) << "selecting buttons " << hex << numlist_to_bitmap(ctx.argument, 31) << dec << endl;
+			break;
+
+
 		case LIST_OPTION:
 			for (size_t i = 0; i < dev.size(); i++) {
 				const char *marker = &dev[i] == selected ? " <<" : "";
@@ -143,10 +218,6 @@ int main(int argc, const char *argv[]) try
 
 		case INVERT_OPTION:
 			log(INFO) << "setting axis " << ctx.argument << " to inverted" << endl;
-			break;
-
-		case BUTTON_OPTION:
-			log(INFO) << "setting up button " << ctx.argument << " for button function" << endl;
 			break;
 
 		case ROTARY_OPTION:
