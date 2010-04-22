@@ -60,9 +60,9 @@ private:
 		return b0 | (b1 << 1);
 	}
 	void setrotmode(int b, int mode) {
-		uint16_t mask = 1 << b / 2;
 		uint16_t b0 = _eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8);
 		uint16_t b1 = _eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8);
+		uint16_t mask = 1 << b / 2;
 		b0 = mode & 1 ? b0 | mask : b0 & ~mask;
 		b1 = mode & 2 ? b1 | mask : b1 & ~mask;
 		_eeprom.rotenc0[0] = b0 & 0xff, _eeprom.rotenc0[1] = (b0 >> 8) & 0xff;

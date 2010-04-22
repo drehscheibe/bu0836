@@ -239,7 +239,7 @@ int controller::get_image()
 		if (buf[0] & 0x0f)
 			continue;
 		progress &= ~(1 << (buf[0] >> 4));
-		memcpy((uint8_t *)&_eeprom + buf[0], buf + 1, 16);
+		memcpy(reinterpret_cast<uint8_t *>(&_eeprom) + buf[0], buf + 1, 16);
 	}
 	if (!maxtries) {
 		log(ALERT) << "get_image: maxtries" << endl;  // FIXME msg
@@ -270,7 +270,7 @@ int controller::print_status()
 		cout << (_eeprom.zoom[i] ? RED : GREEN) << setw(7) << int(_eeprom.zoom[i]);
 	cout << NORM << endl << endl << endl;
 
-	const char *s[] = { "  -   - ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
+	const char *s[4] = { "  -   - ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
 	cout << BBLACK << "_______________________ Buttons/Encoders ______________________" << NORM << endl << endl;
 	cout << " #0  #1  #2  #3  #4  #5  #6  #7  #8  #9 #10 #11 #12 #13 #14 #15" << endl;
 	for (int i = 0; i < 16; i += 2) {
@@ -309,7 +309,7 @@ int controller::set_image(int which)
 			continue;
 
 		buf[0] = i << 4;
-		memcpy(buf + 1, (uint8_t *)&_eeprom + buf[0], 16);
+		memcpy(buf + 1, reinterpret_cast<uint8_t *>(&_eeprom) + buf[0], 16);
 		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
 				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
 		if (ret < 0) {
@@ -327,7 +327,7 @@ int controller::save_image(const char *path)
 	ofstream file(path, ofstream::binary | ofstream::trunc);
 	if (!file)
 		throw string("cannot write to '") + path + '\'';
-	file.write((const char *)&_eeprom, sizeof(_eeprom));
+	file.write(reinterpret_cast<const char *>(&_eeprom), sizeof(_eeprom));
 
 	file.seekp(0, ofstream::end);
 	if (file.tellp() != sizeof(_eeprom))
@@ -344,7 +344,7 @@ int controller::load_image(const char *path)
 	ifstream file(path, ifstream::binary);
 	if (!file)
 		throw string("cannot read from '") + path + '\'';
-	file.read((char *)&_eeprom, sizeof(_eeprom));
+	file.read(reinterpret_cast<char *>(&_eeprom), sizeof(_eeprom));
 
 	file.seekg(0, ifstream::end);
 	if (file.tellg() != sizeof(_eeprom))
@@ -408,7 +408,8 @@ int controller::dump_internal_data()
 		throw string(ORIGIN);
 	log(ALWAYS) << setfill('0') << hex;
 	for (int i = 0; i < 16; i++)
-		log(ALWAYS) << setw(2) << i * 16 << ' ' << bytes((const unsigned char *)&_eeprom + i * 16, 16) << endl;
+		log(ALWAYS) << setw(2) << i * 16 << ' '
+				<< bytes(reinterpret_cast<unsigned char *>(&_eeprom) + i * 16, 16) << endl;
 	log(ALWAYS) << dec;
 	return 0;
 }
