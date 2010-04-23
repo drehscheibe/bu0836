@@ -257,40 +257,45 @@ int controller::print_status()
 
 	cout << BBLACK << "_____________________________ Axes ____________________________" << NORM << endl << endl;
 	cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
+
 	cout << "inverted:    ";
 	for (int i = 0; i < 8; i++)
-		if (_eeprom.invert & (1 << i))
+		if (get_invert(i))
 			cout << RED << "I      ";
 		else
 			cout << GREEN << "-      ";
 	cout << NORM << endl;
+
 	cout << "zoom:  ";
-	for (int i = 0; i < 8; i++)
-		cout << (_eeprom.zoom[i] ? RED : GREEN) << setw(7) << int(_eeprom.zoom[i]);
+	for (int i = 0; i < 8; i++) {
+		int zoom = get_zoom(i);
+		cout << (zoom ? RED : GREEN) << setw(7) << zoom;
+	}
 	cout << NORM << endl << endl << endl;
 
-	const char *s[4] = { "  -   - ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
+	const char *s[4] = { " -   -  ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
 	cout << BBLACK << "_______________________ Buttons/Encoders ______________________" << NORM << endl << endl;
-	cout << " #0  #1  #2  #3  #4  #5  #6  #7  #8  #9 #10 #11 #12 #13 #14 #15" << endl;
+	cout << "#00 #01 #02 #03 #04 #05 #06 #07 #08 #09 #10 #11 #12 #13 #14 #15" << endl;
 	for (int i = 0; i < 16; i += 2) {
-		int m = getrotmode(i);
+		int m = get_encoder_mode(i);
 		cout << (m ? RED : GREEN) << s[m];
 	}
 	cout << NORM << endl << endl;
 
 	cout << "#16 #17 #18 #19 #20 #21 #22 #23 #24 #25 #26 #27 #28 #29 #30 #31" << endl;
 	for (int i = 16; i < 32; i += 2) {
-		int m = getrotmode(i);
+		int m = get_encoder_mode(i);
 		cout << (m ? RED : GREEN) << s[m];
 	}
 	cout << NORM << endl << endl;
 
 	cout << "pulse width: ";
-	if (_eeprom.pulse == 6)
+	int pulse = get_pulse_width();
+	if (pulse == 6) // 48 ms
 		cout << GREEN;
 	else
 		cout << RED;
-	cout << int(_eeprom.pulse) * 8 << " ms" << NORM << endl;
+	cout << pulse * 8 << " ms" << NORM << endl << endl;
 	return 0;
 }
 

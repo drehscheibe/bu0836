@@ -52,14 +52,20 @@ public:
 	const std::string &release() const { return _release; }
 	const std::string &jsid() const { return _jsid; }
 
-private:
-	int parse_hid(void);
-	int getrotmode (int b) const {
-		uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b / 2) & 1;
-		uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b / 2) & 1;
-		return b0 | (b1 << 1);
+	void set_invert(int axis, bool value) {
+		uint8_t mask = 1 << axis;
+		_eeprom.invert = value ? _eeprom.invert | mask : _eeprom.invert & ~mask;
 	}
-	void setrotmode(int b, int mode) {
+
+	bool get_invert(int axis) const { return (_eeprom.invert & (1 << axis)) != 0; }
+
+	void set_zoom(int axis, unsigned char value) { _eeprom.zoom[axis & 7] = value; }
+	int get_zoom(int axis) const { return _eeprom.zoom[axis & 7]; }
+
+	void set_pulse_width(int n) { _eeprom.pulse = n < 1 ? 1 : n > 11 ? 11 : n; }
+	int get_pulse_width() const { return _eeprom.pulse; }
+
+	void set_encoder_mode(int b, int mode) {
 		uint16_t b0 = _eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8);
 		uint16_t b1 = _eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8);
 		uint16_t mask = 1 << b / 2;
@@ -68,6 +74,15 @@ private:
 		_eeprom.rotenc0[0] = b0 & 0xff, _eeprom.rotenc0[1] = (b0 >> 8) & 0xff;
 		_eeprom.rotenc1[0] = b1 & 0xff, _eeprom.rotenc1[1] = (b1 >> 8) & 0xff;
 	}
+
+	int get_encoder_mode(int b) const {
+		uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b / 2) & 1;
+		uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b / 2) & 1;
+		return b0 | (b1 << 1);
+	}
+
+private:
+	int parse_hid(void);
 
 	hid::hid _hid;
 
