@@ -619,7 +619,7 @@ void hid::parse(const unsigned char *data, int len)
 			if (size == 3)
 				size++;
 
-			log(INFO) << dec << setw(3) << d - data << ": " << BBLACK << bytes(d, 1 + size, 19) << NORM;
+			log(BULK) << dec << setw(3) << d - data << ": " << BBLACK << bytes(d, 1 + size, 19) << NORM;
 
 			int type = (*d >> 2) & 0x3;
 			int tag = (*d++ >> 4) & 0xf;
@@ -633,9 +633,9 @@ void hid::parse(const unsigned char *data, int len)
 				value |= *d++ << 16, value |= *d++ << 24;
 
 			if (type == 0) {        // Main
-				log(INFO) << MAGENTA;
+				log(BULK) << MAGENTA;
 				do_main(tag, value);
-				log(INFO) << NORM << endl;
+				log(BULK) << NORM << endl;
 
 			} else if (type == 1) { // Global
 				int32_t svalue = 0; // some vars expect signed values
@@ -646,21 +646,22 @@ void hid::parse(const unsigned char *data, int len)
 				else if (size == 4)
 					svalue = int32_t(value);
 
-				log(INFO) << _indent << YELLOW; // TODO decode usage page/usage combination (?)
+				log(BULK) << _indent << YELLOW; // TODO decode usage page/usage combination (?)
 				do_global(tag, value, svalue);
-				log(INFO) << NORM << endl;
+				log(BULK) << NORM << endl;
 
 			} else if (type == 2) { // Local
-				log(INFO) << _indent << CYAN;
+				log(BULK) << _indent << CYAN;
 				do_local(tag, value);
-				log(INFO) << NORM << endl;
+				log(BULK) << NORM << endl;
 
 			} else {                // Reserved
-				log(INFO) << _indent << "Reserved" << endl; // FIXME
+				log(BULK) << _indent << "Reserved" << endl; // FIXME
 				log(ALERT) << ORIGIN"short item: skipping item of reserved type" << endl;
 			}
 		}
 	}
+	log(BULK) << endl;
 }
 
 
@@ -670,19 +671,19 @@ void hid::do_main(int tag, uint32_t value)
 	hid_main_item *current = _item_stack[_item_stack.size() - 1];
 	switch (tag) {
 	case 0x8:   // Input
-		log(INFO) << _indent << "Input " << input_output_feature_string(INPUT, value);
+		log(BULK) << _indent << "Input " << input_output_feature_string(INPUT, value);
 		current->children().push_back(new hid_main_item(INPUT, value, current, _global, _local, _bitpos));
 		break;
 	case 0x9:   // Output
-		log(INFO) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
+		log(BULK) << _indent << "Output " << input_output_feature_string(OUTPUT, value);
 		current->children().push_back(new hid_main_item(OUTPUT, value, current, _global, _local, _bitpos));
 		break;
 	case 0xb:   // Feature
-		log(INFO) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
+		log(BULK) << _indent << "Feature " << input_output_feature_string(FEATURE, value);
 		current->children().push_back(new hid_main_item(FEATURE, value, current, _global, _local, _bitpos));
 		break;
 	case 0xa: { // Collection
-			log(INFO) << _indent << "Collection '" << collection_string(value) << '\'';
+			log(BULK) << _indent << "Collection '" << collection_string(value) << '\'';
 			_indent.assign(++_depth, '\t');
 			hid_main_item *collection = new hid_main_item(COLLECTION, value, current, _global, _local, _bitpos);
 			current->children().push_back(collection);
@@ -692,7 +693,7 @@ void hid::do_main(int tag, uint32_t value)
 	case 0xc: // End Collection
 		if (_depth) {
 			_indent.assign(--_depth, '\t');
-			log(INFO) << _indent << "End Collection ";
+			log(BULK) << _indent << "End Collection ";
 			_item_stack.pop_back();
 		} else {
 			log(ALERT) << "ignoring excess 'End Collection'" << endl;
@@ -708,52 +709,52 @@ void hid::do_global(int tag, uint32_t value, int32_t svalue)
 {
 	switch (tag) {
 	case 0x0:
-		log(INFO) << "Usage Page '" << usage_table_string(value) << '\'';
+		log(BULK) << "Usage Page '" << usage_table_string(value) << '\'';
 		_global.usage_table = value;
 		return;
 	case 0x1:
-		log(INFO) << "Logical Minimum = " << svalue;
+		log(BULK) << "Logical Minimum = " << svalue;
 		_global.logical_minimum = svalue;
 		return;
 	case 0x2:
-		log(INFO) << "Logical Maximum = " << svalue;
+		log(BULK) << "Logical Maximum = " << svalue;
 		_global.logical_maximum = svalue;
 		return;
 	case 0x3:
-		log(INFO) << "Physical Minimum = " << svalue;
+		log(BULK) << "Physical Minimum = " << svalue;
 		_global.physical_minimum = svalue;
 		return;
 	case 0x4:
-		log(INFO) << "Physical Maximum = " << svalue;
+		log(BULK) << "Physical Maximum = " << svalue;
 		_global.physical_maximum = svalue;
 		return;
 	case 0x5:
-		log(INFO) << "Unit Exponent = " << svalue;
+		log(BULK) << "Unit Exponent = " << svalue;
 		_global.unit_exponent = svalue;
 		_global.unit_exponent_factor = pow(10, svalue);
 		return;
 	case 0x6:
-		log(INFO) << "Unit = " << unit_string(value);
+		log(BULK) << "Unit = " << unit_string(value);
 		_global.unit = value;
 		return;
 	case 0x7:
-		log(INFO) << "Report Size = " << value;
+		log(BULK) << "Report Size = " << value;
 		_global.report_size = value;
 		return;
 	case 0x8:
-		log(INFO) << "Report ID = " << value;
+		log(BULK) << "Report ID = " << value;
 		_global.report_id = value;
 		return;
 	case 0x9:
-		log(INFO) << "Report Count = " << value;
+		log(BULK) << "Report Count = " << value;
 		_global.report_count = value;
 		return;
 	case 0xa:
-		log(INFO) << "Push";
+		log(BULK) << "Push";
 		_data_stack.push_back(_global);
 		return;
 	case 0xb:
-		log(INFO) << "Pop";
+		log(BULK) << "Pop";
 		if (_data_stack.empty()) {
 			log(ALERT) << ORIGIN"can't pop -- stack empty" << endl;
 		} else {
@@ -773,55 +774,55 @@ void hid::do_local(int tag, uint32_t value)
 	switch (tag) {
 	case 0x0:
 		if (_global.usage_table >= 0xff00 && _global.usage_table <= 0xffff) // vendor defined
-			log(INFO) << "Usage " << value;
+			log(BULK) << "Usage " << value;
 		else
-			log(INFO) << "Usage '" << usage_string(_global.usage_table, value) << '\'';
+			log(BULK) << "Usage '" << usage_string(_global.usage_table, value) << '\'';
 		_local.usage.push_back(value);
 		return;
 	case 0x1:
-		log(INFO) << "Usage Minimum";
+		log(BULK) << "Usage Minimum";
 		_local.usage_minimum = value;
 		break;
 	case 0x2:
-		log(INFO) << "Usage Maximum";
+		log(BULK) << "Usage Maximum";
 		_local.usage_maximum = value;
 		break;
 	case 0x3:
-		log(INFO) << "Designator Index";
+		log(BULK) << "Designator Index";
 		_local.designator_index = value;
 		break;
 	case 0x4:
-		log(INFO) << "Designator Minimum";
+		log(BULK) << "Designator Minimum";
 		_local.designator_minimum = value;
 		break;
 	case 0x5:
-		log(INFO) << "Designator Maximum";
+		log(BULK) << "Designator Maximum";
 		_local.designator_maximum = value;
 		break;
 	case 0x6:
-		log(INFO) << "???";
+		log(BULK) << "???";
 		break;
 	case 0x7:
-		log(INFO) << "String Index";
+		log(BULK) << "String Index";
 		_local.string_index = value;
 		break;
 	case 0x8:
-		log(INFO) << "String Minimum";
+		log(BULK) << "String Minimum";
 		_local.string_minimum = value;
 		break;
 	case 0x9:
-		log(INFO) << "String Maximum";
+		log(BULK) << "String Maximum";
 		_local.string_maximum = value;
 		break;
 	case 0xa:
-		log(INFO) << "Delimiter";
+		log(BULK) << "Delimiter";
 		_local.delimiter = value;
 		break;
 	default:
-		log(INFO) << "Reserved";
+		log(BULK) << "Reserved";
 		break;
 	}
-	log(INFO) << " = " << value;
+	log(BULK) << " = " << value;
 }
 
 

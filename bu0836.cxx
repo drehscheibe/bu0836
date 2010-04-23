@@ -209,7 +209,6 @@ int controller::parse_hid()
 					<< " bytes delivered" << endl;
 		} else {
 			_hid.parse(buf, ret);
-			log(INFO) << endl;
 		}
 		delete [] buf;
 	}
