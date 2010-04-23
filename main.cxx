@@ -12,26 +12,48 @@ namespace {
 
 void help(void)
 {
-	cout << "Usage:  bu0836 [<options>] ..." << endl;
-	cout << "  -h, --help           show this help screen and exit" << endl;
-	cout << "      --version        show version number and exit" << endl;
-	cout << "  -v, --verbose        increase verbosity level" << endl;
+	cout << "Usage:  bu0836 [<options>]" << endl;
 	cout << endl;
-	cout << "  -l, --list           list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
-	cout << "  -d, --device <s>     select device by bus id or serial number (or significant ending thereof);" << endl;
-	cout << "                       not needed if only one device is attached" << endl;
-	cout << "  -a, --axes <list>    select axes (comma separated numbers with optional ranges, e.g. 0,2,4-6)" << endl;
-	cout << "  -b, --buttons <list> select buttons" << endl;
-	cout << "  -m, --monitor        monitor device output (terminate with Ctrl-c)" << endl;
-	cout << "  -O, --save <s>       save memory image to file <s>" << endl;
-	cout << "  -I, --load <s>       load memory image from file <s>" << endl;
-	cout << "  -X, --dump           display EEPROM image" << endl;
+	cout << "  -h, --help             show this help screen and exit" << endl;
+	cout << "      --version          show version number and exit" << endl;
+	cout << "  -v, --verbose          increase verbosity level" << endl;
+	cout << "  -l, --list             list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
+	cout << "  -d, --device <s>       select device by bus id or serial number (or significant ending thereof);" << endl;
+	cout << "                         not needed if only one device is attached" << endl;
 	cout << endl;
+	cout << "  -s, --status           show current device configuration" << endl;
+	cout << "  -m, --monitor          monitor device output (terminate with Ctrl-c)" << endl;
+	cout << "  -r, --reset            reset device configuration to \"factory default\"" << endl;
+	cout << "                         (equivalent of --axes=0-7 --invert=0 --zoom=0 --buttons=0-31 --encoder=0)" << endl;
+	cout << "  -O, --save <s>         save EEPROM image to file <s>" << endl;
+	cout << "  -I, --load <s>         load EEPROM image from file <s>" << endl;
+	cout << "  -X, --dump             display EEPROM image" << endl;
+	cout << endl;
+	cout << "  -a, --axes <list>      select axes (overrides prior axis selection)" << endl;
+	cout << "  -i, --invert <n>       set selected axes to inverted (n=1) or normal (n=0) mode" << endl;
+	cout << "  -z, --zoom <n>         set zoom factor for selected axes" << endl;
+	cout << endl;
+	cout << "  -b, --buttons <list>   select buttons (overrides prior button selection)" << endl;
+	cout << "  -e, --encoder <s>      set encoder mode for selected buttons (and their associated siblings):" << endl;
+	cout << "                         \"0\" or \"off\" for normal button function," << endl;
+	cout << "                         \"1\" or \"1:1\" for quarter wave encoder," << endl;
+	cout << "                         \"2\" or \"1:2\" for half wave encoder," << endl;
+	cout << "                         \"3\" or \"1:4\" for full wave encoder" << endl;
+	cout << "  -p, --pulse-width <n>  set pulse width for all encoders" << endl;
+	cout << endl << endl;
+	cout << "  <list> is a number or number range, or a list thereof separated by commas," << endl;
+	cout << "         e.g. \"0\" or \"1,3,5\" or \"0-5\" or \"0,2,6-10,30\"" << endl;
+	cout << endl << endl;
 	cout << "Examples:" << endl;
 	cout << "  $ bu0836 -l" << endl;
-	cout << "                       ... to list available devices" << endl;
-	cout << "  $ bu0836 -d2:4 -i0" << endl;
-	cout << "                       ... invert first axis of device 2:4" << endl;
+	cout << "                         ... list available devices" << endl;
+	cout << "  $ bu0836 -d2:4 -a0,2 -i1" << endl;
+	cout << "                         ... invert first and third axis of device 2:4" << endl;
+	cout << "  $ bu0836 -dA12101 -a0-7 -z0" << endl;
+	cout << "                         ... turn zoom off for all axes of device with serial number A12101" << endl;
+	cout << "  $ bu0836 -d36 -b4 -e1:2" << endl;
+	cout << "                         ... configure buttons 4 and 5 of device whose serial" << endl;
+	cout << "                             number ends with 36 for half wave encoder" << endl;
 }
 
 
@@ -102,6 +124,22 @@ uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 	return m;
 }
 
+
+
+void list_devices(bu0836& dev)
+{
+	for (size_t i = 0; i < dev.size(); i++) {
+		const char *marker = &dev[i] == dev.selected() ? " <<" : "";
+		cout << YELLOW << dev[i].bus_address() << NORM
+				<< "\t" << dev[i].manufacturer()
+				<< ", " << dev[i].product()
+				<< ", " << YELLOW << dev[i].serial() << NORM
+				<< ", v" << dev[i].release()
+				<< GREEN << marker << NORM
+				<< endl;
+	}
+}
+
 } // namespace
 
 
@@ -109,28 +147,34 @@ uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 int main(int argc, const char *argv[]) try
 {
 	enum {
-		HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION,
-		AXIS_OPTION, BUTTON_OPTION, MONITOR_OPTION, NORMAL_OPTION,
-		INVERT_OPTION, ROTARY_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
-		STATUS_OPTION,
+		HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION,
+		LIST_OPTION, DEVICE_OPTION, STATUS_OPTION, MONITOR_OPTION,
+		RESET_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
+		AXES_OPTION, INVERT_OPTION, ZOOM_OPTION,
+		BUTTONS_OPTION, ENCODER_OPTION, PULSEWIDTH_OPTION,
 	};
 
 	const struct command_line_option options[] = {
-		{ "--help",    "-h", 0, "\0" },
-		{ "--version",    0, 0, "\0" },
-		{ "--verbose", "-v", 0, "\0" },
-		{ "--list",    "-l", 0, "\0" },
-		{ "--device",  "-d", 1, "\0" },
-		{ "--axes",    "-a", 1, "\0" },
-		{ "--buttons", "-b", 1, "\0" },
-		{ "--monitor", "-m", 0, "\1" },
-		{ "--normal",  "-n", 1, "\1" },
-		{ "--invert",  "-i", 1, "\1" },
-		{ "--rotary",  "-r", 1, "\1" },
-		{ "--save",    "-O", 1, "\1" },
-		{ "--load",    "-I", 1, "\1" },
-		{ "--dump",    "-X", 0, "\1" },
-		{ "--status",  "-t", 0, "\1" },
+		{ "--help",        "-h", 0, "\0" },
+		{ "--version",        0, 0, "\0" },
+		{ "--verbose",     "-v", 0, "\0" },
+		{ "--list",        "-l", 0, "\0" },
+		{ "--device",      "-d", 1, "\0" },
+		//
+		{ "--status",      "-s", 0, "d" },
+		{ "--monitor",     "-m", 0, "d" },
+		{ "--reset",       "-r", 0, "d" },
+		{ "--save",        "-O", 1, "d" },
+		{ "--load",        "-I", 1, "d" },
+		{ "--dump",        "-X", 0, "d" },
+		//
+		{ "--axes",        "-a", 1, "\0" },
+		{ "--invert",      "-i", 1, "a" },
+		{ "--zoom",        "-z", 1, "a" },
+		//
+		{ "--buttons",     "-b", 1, "\0" },
+		{ "--encoder",     "-e", 1, "b" },
+		{ "--pulse-width", "-p", 1, "\0" },
 		OPTIONS_LAST
 	};
 
@@ -154,32 +198,40 @@ int main(int argc, const char *argv[]) try
 	}
 
 	bu0836 dev;
-	controller *selected = 0;
-
-	int numdev = dev.size();
-	if (numdev == 1)
-		selected = &dev[0];
-	else if (!numdev)
+	if (dev.empty())
 		throw string("no BU0836* found");
+
+	uint32_t selected_axes = 0;
+	uint32_t selected_buttons = 0;
 
 	// second pass options
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 
-		if (option >= 0 && options[option].ext[0]) {
-			if (!selected)
-				throw string("you need to select a device before you can use the ") + options[option].long_opt
-						+ " option, for\n       example with -d" + dev[0].bus_address() + " or -d"
-						+ dev[0].serial() + ". Use the --list option for available devices.";
-
-			selected->claim();
+		// check for option dependencies
+		if (option >= 0) {
+			if (options[option].ext[0]) {
+				if (!dev.selected())
+					throw string("you need to select a device before you can use the ") + options[option].long_opt
+							+ " option, for\n       example with -d" + dev[0].bus_address() + " or -d"
+							+ dev[0].serial() + ". Use the --list option for available devices.";
+				dev.selected()->claim();
+			}
+			if (options[option].ext[0] == 'a' && !selected_axes)
+				throw string("no axes selected for ") + options[option].long_opt + " option";
+			if (options[option].ext[0] == 'b' && !selected_buttons)
+				throw string("no buttons selected for ") + options[option].long_opt + " option";
 		}
 
 		switch (option) {
+		case LIST_OPTION:
+			list_devices(dev);
+			break;
+
 		case DEVICE_OPTION: {
-			int num = dev.find(ctx.argument, &selected);
+			int num = dev.select(ctx.argument);
 			if (num == 1)
-				log(INFO) << "selecting device '" << selected->serial() << '\'' << endl;
+				log(INFO) << "selecting device '" << dev.selected()->serial() << '\'' << endl;
 			else if (num)
 				throw string("ambiguous device specifier");
 			else
@@ -187,63 +239,96 @@ int main(int argc, const char *argv[]) try
 			break;
 		}
 
-		case AXIS_OPTION:
-			log(INFO) << "selecting axes " << hex << numlist_to_bitmap(ctx.argument, 7) << dec << endl;
-			break;
-
-		case BUTTON_OPTION:
-			log(INFO) << "selecting buttons " << hex << numlist_to_bitmap(ctx.argument, 31) << dec << endl;
-			break;
-
-
-		case LIST_OPTION:
-			for (size_t i = 0; i < dev.size(); i++) {
-				const char *marker = &dev[i] == selected ? " <<" : "";
-				cout << YELLOW << dev[i].bus_address() << NORM
-						<< "  " << dev[i].manufacturer()
-						<< ", " << dev[i].product()
-						<< ", " << YELLOW << dev[i].serial() << NORM
-						<< ", v" << dev[i].release()
-						<< GREEN << marker << NORM
-						<< endl;
-			}
+		case STATUS_OPTION:
+			dev.selected()->print_status();
 			break;
 
 		case MONITOR_OPTION:
-			log(INFO) << "monitoring" << endl;
-			selected->show_input_reports();
+			dev.selected()->show_input_reports();
 			break;
 
-		case NORMAL_OPTION:
-			log(INFO) << "setting axis " << ctx.argument << " to normal" << endl;
-			break;
-
-		case INVERT_OPTION:
-			log(INFO) << "setting axis " << ctx.argument << " to inverted" << endl;
-			break;
-
-		case ROTARY_OPTION:
-			log(INFO) << "setting up button " << ctx.argument << " for rotary switch" << endl;
+		case RESET_OPTION:
+			log(INFO) << "resetting configuration to \"factory default\"" << endl;
+			for (int i = 0; i < 8; i++) {
+				dev.selected()->set_invert(i, false);
+				dev.selected()->set_zoom(i, 0);
+			}
+			for (int i = 0; i < 32; i += 2)
+				dev.selected()->set_encoder_mode(i, 0);
+			dev.selected()->set_pulse_width(6);
 			break;
 
 		case SAVE_OPTION:
-			log(INFO) << "save image to file '" << ctx.argument << '\'' << endl;
-			if (!selected->get_image() && !selected->save_image(ctx.argument))
+			log(INFO) << "saving image to file '" << ctx.argument << '\'' << endl;
+			if (!dev.selected()->get_image() && !dev.selected()->save_image(ctx.argument))
 				log(INFO) << "saved" << endl;
 			break;
 
 		case LOAD_OPTION:
-			log(INFO) << "load image from file '" << ctx.argument << '\'' << endl;
-			if (!selected->load_image(ctx.argument)) // && !selected->set_image()
+			log(INFO) << "loading image from file '" << ctx.argument << '\'' << endl;
+			if (!dev.selected()->load_image(ctx.argument)) // && !dev.selected()->set_image()
 				log(INFO) << "loaded" << endl;
 			break;
 
 		case DUMP_OPTION:
 			log(INFO) << "EEPROM image" << endl;
-			selected->dump_internal_data();
+			dev.selected()->dump_internal_data();
+			break;
 
-		case STATUS_OPTION:
-			selected->print_status();
+		case AXES_OPTION:
+			selected_axes = numlist_to_bitmap(ctx.argument, 7);
+			log(INFO) << "selecting axes 0x" << hex << selected_axes << dec << endl;
+			break;
+
+		case INVERT_OPTION: {
+			log(INFO) << "setting axes to inverted=" << ctx.argument << endl;
+			string arg = ctx.argument;
+			bool invert;
+			if (arg == "0" || arg == "false")
+				invert = false;
+			else if (arg == "1" || arg == "true")
+				invert = true;
+			else
+				throw string("invalid argument to --invert option; use 0/false and 1/true");
+			for (uint32_t i = 0; i < 8; i++)
+				if (selected_axes & (1 << i))
+					dev.selected()->set_invert(i, invert);
+			break;
+		}
+
+		case ZOOM_OPTION:
+			log(INFO) << "setting axes to zoom=" << ctx.argument << endl;
+			break;
+
+		case BUTTONS_OPTION:
+			selected_buttons = numlist_to_bitmap(ctx.argument, 31);
+			log(INFO) << "selecting buttons 0x" << hex << selected_buttons << dec << endl;
+			break;
+
+		case ENCODER_OPTION: {
+			string arg = ctx.argument;
+			int enc;
+			if (arg == "off" || arg == "false" || arg == "0")
+				enc = 0;
+			else if (arg == "1:1" || arg == "1")
+				enc = 1;
+			else if (arg == "1:2" || arg == "2")
+				enc = 2;
+			else if (arg == "1:4" || arg == "3")
+				enc = 3;
+			else
+				throw string("bad --encoder option \"") + arg + "\" (use \"off\", \"1:1\", \"1:2\", or \"1:4\")";
+			log(INFO) << "configuring buttons for encoder mode " << enc << endl;
+			break;
+		}
+
+		case PULSEWIDTH_OPTION: {
+			istringstream x(ctx.argument);
+			unsigned i;
+			x >> i;
+			log(INFO) << "pulse width = " << i << " " << bool(x.eof()) << endl;
+			break;
+		}
 
 		// ignored options
 		case HELP_OPTION:

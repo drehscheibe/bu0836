@@ -121,12 +121,15 @@ class bu0836 {
 public:
 	bu0836(int debug_level = 3);
 	~bu0836();
-	int find(std::string which, controller **ctrl) const;
+	int select(std::string which);
+	controller *selected() const { return _selected; }
 	size_t size() const { return _devices.size(); }
+	bool empty() const { return _devices.empty(); }
 	controller& operator[](unsigned int index) { return *_devices[index]; }
 
 private:
 	std::vector<controller *> _devices;
+	controller *_selected;
 
 	static const int _CONTEXT = 0;
 	static const int _VOTI = 0x16c0; // BODNAR products: 0x05b4--0x05bd, 0x2774--0x27d7

@@ -453,6 +453,8 @@ bu0836::bu0836(int debug_level)
 			_devices.push_back(new controller(handle, dev, desc));
 	}
 	libusb_free_device_list(list, 1);
+
+	_selected = size() == 1 ? _devices[0] : 0;
 }
 
 
@@ -467,16 +469,16 @@ bu0836::~bu0836()
 
 
 
-int bu0836::find(string which, controller **ctrl) const
+int bu0836::select(string which)
 {
 	int num = 0;
 	vector<controller *>::const_iterator it, end = _devices.end();
 	for (it = _devices.begin(); it != end; ++it)
 		if ((*it)->serial().rfind(which) == (*it)->serial().size() - which.size()
 				|| (*it)->bus_address() == which)
-			*ctrl = *it, num++;
+			_selected = *it, num++;
 
 	if (num != 1)
-		*ctrl = 0;
+		_selected = 0;
 	return num;
 }
