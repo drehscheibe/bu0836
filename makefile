@@ -48,7 +48,7 @@ check: bu0836
 	cppcheck -f --enable=all .
 
 vg: bu0836
-	valgrind --tool=memcheck --leak-check=full ./bu0836 -vvvvv --list --device=0 --axes=0,2,4-6 -X --monitor
+	valgrind --tool=memcheck --leak-check=full ./bu0836 -vvvvv --list --device=0 --axes=0,2,4-6 -X --monitor --axes=0-7 --invert=0 --zoom=0 --buttons=0-31 --encoder=0
 	@#valgrind --tool=exp-ptrcheck ./bu0836 -vvvvv --list --device=00 --monitor
 
 massif: bu0836
