@@ -29,6 +29,8 @@ using namespace std;
 
 
 
+namespace logging {
+
 namespace {
 
 bool has_color(int fd)
@@ -48,7 +50,33 @@ bool cout_color = has_color(STDOUT_FILENO);
 bool cerr_color = has_color(STDERR_FILENO);
 int log_level = ALERT;
 
-}
+} // namespace
+
+
+
+color reset("0");
+color bold("1");
+color underline("4");
+color blink("5");
+color reverse("7");
+
+color black("30");
+color red("31");
+color green("32");
+color brown("33");
+color blue("34");
+color magenta("35");
+color cyan("36");
+color white("37");
+
+color bg_black("40");
+color bg_red("41");
+color bg_green("42");
+color bg_brown("43");
+color bg_blue("44");
+color bg_magenta("45");
+color bg_cyan("46");
+color bg_white("47");
 
 
 
@@ -92,3 +120,5 @@ string bytes(const unsigned char *p, unsigned int num, size_t width)
 		s.resize(width, ' ');
 	return s;
 }
+
+} // namespace logging

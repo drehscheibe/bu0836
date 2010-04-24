@@ -45,7 +45,7 @@ static: logging.o options.o hid.o bu0836.o main.o makefile
 	g++ -m32 -g -o bu0836-static32 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
 
 check: bu0836
-	cppcheck -f --enable=all .
+	cppcheck -f -q --enable=all .
 
 vg: bu0836
 	valgrind --tool=memcheck --leak-check=full ./bu0836 -vvvvv --list --device=0 --axes=0,2,4-6 -X --monitor --axes=0-7 --invert=0 --zoom=0 --buttons=0-31 --encoder=0

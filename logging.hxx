@@ -26,28 +26,9 @@
 #define DO_STRINGIZE(X) #X
 #define ORIGIN __FILE__":"STRINGIZE(__LINE__)": "
 
-#define NORM color()
-#define BOLD color("1")
-
-#define BLACK color("30")
-#define RED color("31")
-#define GREEN color("32")
-#define YELLOW color("33")
-#define BLUE color("34")
-#define MAGENTA color("35")
-#define CYAN color("36")
-#define WHITE color("37")
-
-#define BBLACK color("1;30")
-#define BRED color("1;31")
-#define BGREEN color("1;32")
-#define BYELLOW color("1;33")
-#define BBLUE color("1;34")
-#define BMAGENTA color("1;35")
-#define BCYAN color("1;36")
-#define BWHITE color("1;37")
 
 
+namespace logging {
 
 enum {
 	BULK = 1,
@@ -71,10 +52,38 @@ private:
 
 
 
+extern color reset;
+extern color bold;
+extern color underline;
+extern color blink;
+extern color reverse;
+
+extern color black;
+extern color red;
+extern color green;
+extern color brown;
+extern color blue;
+extern color magenta;
+extern color cyan;
+extern color white;
+
+extern color bg_black;
+extern color bg_red;
+extern color bg_green;
+extern color bg_brown;
+extern color bg_blue;
+extern color bg_magenta;
+extern color bg_cyan;
+extern color bg_white;
+
+
+
 std::ostream &operator<<(std::ostream &, const color &);
 int get_log_level();
 void set_log_level(int);
 std::ostream &log(int log_level);
 std::string bytes(const unsigned char *p, unsigned int num, size_t width = 0);
+
+} // namespace logging
 
 #endif

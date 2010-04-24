@@ -23,6 +23,7 @@
 #include "options.h"
 
 using namespace std;
+using namespace logging;
 
 
 
@@ -149,12 +150,12 @@ void list_devices(bu0836& dev)
 {
 	for (size_t i = 0; i < dev.size(); i++) {
 		const char *marker = &dev[i] == dev.selected() ? " <<" : "";
-		cout << YELLOW << dev[i].bus_address() << NORM
+		cout << brown << dev[i].bus_address() << reset
 				<< "\t" << dev[i].manufacturer()
 				<< ", " << dev[i].product()
-				<< ", " << YELLOW << dev[i].serial() << NORM
+				<< ", " << brown << dev[i].serial() << reset
 				<< ", v" << dev[i].release()
-				<< GREEN << marker << NORM
+				<< green << marker << reset
 				<< endl;
 	}
 }
@@ -171,7 +172,7 @@ void commit_changes(bu0836& dev)
 		dev[i].print_status();
 		int key;
 		do {
-			cerr << CYAN << "Write configuration to controller? [Y/n] " << NORM;
+			cerr << cyan << "Write configuration to controller? [Y/n] " << reset;
 			key = cin.get();
 			cin.clear();
 			if (key == '\n')

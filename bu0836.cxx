@@ -31,6 +31,9 @@
 #include "options.h"
 
 using namespace std;
+using namespace logging;
+
+
 
 namespace {
 
@@ -44,7 +47,7 @@ bool interrupted = false;
 
 void interrupt_handler(int)
 {
-	log(INFO) << RED << "Interrupted" << NORM << endl;
+	log(INFO) << red << "Interrupted" << reset << endl;
 	interrupted = true;
 }
 
@@ -275,48 +278,48 @@ int controller::print_status()
 		return ret; // FIXME handle ret value
 
 
-	cout << BOLD << jsid() << endl;
-	cout << BBLACK << "_____________________________ Axes ____________________________" << NORM << endl << endl;
+	cout << bold << jsid() << endl;
+	cout << bold << black << "_____________________________ Axes ____________________________" << reset << endl << endl;
 	cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
 
 	cout << "inverted:    ";
 	for (int i = 0; i < 8; i++)
 		if (get_invert(i))
-			cout << RED << "I      ";
+			cout << red << "I      ";
 		else
-			cout << GREEN << "-      ";
-	cout << NORM << endl;
+			cout << green << "-      ";
+	cout << reset << endl;
 
 	cout << "zoom:  ";
 	for (int i = 0; i < 8; i++) {
 		int zoom = get_zoom(i);
-		cout << (zoom ? RED : GREEN) << setw(7) << zoom;
+		cout << (zoom ? red : green) << setw(7) << zoom;
 	}
-	cout << NORM << endl << endl << endl;
+	cout << reset << endl << endl << endl;
 
 	const char *s[4] = { " -   -  ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
-	cout << BBLACK << "_______________________ Buttons/Encoders ______________________" << NORM << endl << endl;
+	cout << bold << black << "_______________________ Buttons/Encoders ______________________" << reset << endl << endl;
 	cout << "#00 #01 #02 #03 #04 #05 #06 #07 #08 #09 #10 #11 #12 #13 #14 #15" << endl;
 	for (int i = 0; i < 16; i += 2) {
 		int m = get_encoder_mode(i);
-		cout << (m ? RED : GREEN) << s[m];
+		cout << (m ? red : green) << s[m];
 	}
-	cout << NORM << endl << endl;
+	cout << reset << endl << endl;
 
 	cout << "#16 #17 #18 #19 #20 #21 #22 #23 #24 #25 #26 #27 #28 #29 #30 #31" << endl;
 	for (int i = 16; i < 32; i += 2) {
 		int m = get_encoder_mode(i);
-		cout << (m ? RED : GREEN) << s[m];
+		cout << (m ? red : green) << s[m];
 	}
-	cout << NORM << endl << endl;
+	cout << reset << endl << endl;
 
 	cout << "pulse width: ";
 	int pulse = get_pulse_width();
 	if (pulse == 6) // 48 ms
-		cout << GREEN;
+		cout << green;
 	else
-		cout << RED;
-	cout << pulse * 8 << " ms" << NORM << endl << endl;
+		cout << red;
+	cout << pulse * 8 << " ms" << reset << endl << endl;
 	return 0;
 }
 

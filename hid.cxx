@@ -26,6 +26,9 @@
 #include "hid.hxx"
 
 using namespace std;
+using namespace logging;
+
+
 
 // TODO
 // - report id
@@ -35,8 +38,6 @@ using namespace std;
 
 
 namespace hid {
-
-
 
 static string string_join(const vector<string> &v, const char *join = " ")
 {
@@ -637,7 +638,7 @@ void hid::parse(const unsigned char *data, int len)
 			if (size == 3)
 				size++;
 
-			log(BULK) << dec << setw(3) << d - data << ": " << BBLACK << bytes(d, 1 + size, 19) << NORM;
+			log(BULK) << dec << setw(3) << d - data << ": " << bold << black << bytes(d, 1 + size, 19) << reset;
 
 			int type = (*d >> 2) & 0x3;
 			int tag = (*d++ >> 4) & 0xf;
@@ -651,9 +652,9 @@ void hid::parse(const unsigned char *data, int len)
 				value |= *d++ << 16, value |= *d++ << 24;
 
 			if (type == 0) {        // Main
-				log(BULK) << MAGENTA;
+				log(BULK) << magenta;
 				do_main(tag, value);
-				log(BULK) << NORM << endl;
+				log(BULK) << reset << endl;
 
 			} else if (type == 1) { // Global
 				int32_t svalue = 0; // some vars expect signed values
@@ -664,14 +665,14 @@ void hid::parse(const unsigned char *data, int len)
 				else if (size == 4)
 					svalue = int32_t(value);
 
-				log(BULK) << _indent << YELLOW; // TODO decode usage page/usage combination (?)
+				log(BULK) << _indent << brown; // TODO decode usage page/usage combination (?)
 				do_global(tag, value, svalue);
-				log(BULK) << NORM << endl;
+				log(BULK) << reset << endl;
 
 			} else if (type == 2) { // Local
-				log(BULK) << _indent << CYAN;
+				log(BULK) << _indent << cyan;
 				do_local(tag, value);
-				log(BULK) << NORM << endl;
+				log(BULK) << reset << endl;
 
 			} else {                // Reserved
 				log(BULK) << _indent << "Reserved" << endl; // FIXME
@@ -863,25 +864,23 @@ void hid::print_input_report(hid_main_item *item, const unsigned char *data)
 
 	vector<hid_value>::const_iterator val, vend = item->values().end();
 	for (val = item->values().begin(); val != vend; ++val) {
-		cout << BBLACK << val->name() << "=" << NORM;
+		cout << bold << black << val->name() << "=" << reset;
 
 		uint32_t v = val->get_unsigned(data);
 
 		if (global.report_size == 1) {
-			cout << (v ? RED : GREEN) << v << NORM;
+			cout << (v ? red : green) << v << reset;
 
 		} else if (colltype == 0) { // physical (i.e. axes)
 			double norm = double(v) / global.logical_maximum;
-			cout << CYAN << v << NORM << setprecision(5) << " (" << MAGENTA << norm << NORM << ')';
+			cout << cyan << v << reset << setprecision(5) << " (" << magenta << norm << reset << ')';
 
 		} else {
-			cout << YELLOW << v << " (" << val->get_signed(data) << ')' << NORM << endl;
+			cout << brown << v << " (" << val->get_signed(data) << ')' << reset << endl;
 		}
 		cout << ' ';
 	}
 	cout << endl;
 }
-
-
 
 } // namespace hid
