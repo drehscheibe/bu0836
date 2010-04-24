@@ -68,23 +68,28 @@ void help(void)
 	cout << "  $ bu0836 -l" << endl;
 	cout << "                         ... list available devices" << endl;
 	cout << "  $ bu0836 -d2:4 -a0,2 -i1" << endl;
-	cout << "                         ... invert first and third axis of device 2:4" << endl;
-	cout << "  $ bu0836 -dA12101 -a0-7 -z0" << endl;
-	cout << "                         ... turn zoom off for all axes of device with serial number A12101" << endl;
+	cout << "                         ... invert first and third axis of device with USB bus address 2:4" << endl;
+	cout << "  $ bu0836 -dA12136 -a0-7 -z0" << endl;
+	cout << "                         ... turn zoom off for all axes of device with serial number A12136" << endl;
 	cout << "  $ bu0836 -d36 -b4 -e1:2" << endl;
-	cout << "                         ... configure buttons 4 and 5 of device whose serial" << endl;
-	cout << "                             number ends with 36 for half wave encoder" << endl;
+	cout << "                         ... configure buttons 4 and 5 of device (whose serial" << endl;
+	cout << "                             number ends with) 36 for half wave encoder" << endl;
 }
 
 
 
 void version(void)
 {
-#ifdef GIT
-	cout << ""STRINGIZE(GIT) << endl;
-#else
-	cout << "0.0" << endl;
+#ifdef TAG
+	cout << "bu0836  v"STRINGIZE(TAG)"  ("STRINGIZE(SHA)")";
+#if MOD
+	cout << "++";
 #endif
+	cout << endl;
+#else
+	cout << "??" << endl;
+#endif
+	cout << "Copyright (C)  Melchior FRANZ  <melchior.franz@gmail.com>" << endl;
 }
 
 
@@ -306,6 +311,7 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case SYNC_OPTION:
+			log(INFO) << "write changes to EEPROM" << endl;
 			dev.selected()->sync();
 			break;
 
