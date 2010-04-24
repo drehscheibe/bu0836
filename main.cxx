@@ -43,6 +43,7 @@ void help(void)
 	cout << "  -m, --monitor          monitor device output (terminate with Ctrl-c)" << endl;
 	cout << "  -r, --reset            reset device configuration to \"factory default\"" << endl;
 	cout << "                         (equivalent of --axes=0-7 --invert=0 --zoom=0 --buttons=0-31 --encoder=0)" << endl;
+	cout << "  -y, --sync             write current changes to the controller's EEPROM" << endl;
 	cout << "  -O, --save <s>         save EEPROM image to file <s>" << endl;
 	cout << "  -I, --load <s>         load EEPROM image from file <s>" << endl;
 	cout << "  -X, --dump             display EEPROM image" << endl;
@@ -158,6 +159,32 @@ void list_devices(bu0836& dev)
 	}
 }
 
+
+
+void commit_changes(bu0836& dev)
+{
+	for (size_t i = 0; i < dev.size(); i++) {
+		if (!dev[i].is_dirty())
+			continue;
+
+		cerr << endl << endl << endl << endl;
+		dev[i].print_status();
+		int key;
+		do {
+			cerr << CYAN << "Write configuration to controller? [Y/n] " << NORM;
+			key = cin.get();
+			cin.clear();
+			if (key == '\n')
+				key = 'y';
+			else
+				cin.ignore(80, cin.widen('\n'));
+		} while (!cin.fail() && key != 'n' && key != 'N' && key != 'y' && key != 'Y');
+
+		if (key == 'y' || key == 'Y')
+			dev[i].sync();
+	}
+}
+
 } // namespace
 
 
@@ -167,7 +194,7 @@ int main(int argc, const char *argv[]) try
 	enum {
 		HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION,
 		LIST_OPTION, DEVICE_OPTION, STATUS_OPTION, MONITOR_OPTION,
-		RESET_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
+		RESET_OPTION, SYNC_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
 		AXES_OPTION, INVERT_OPTION, ZOOM_OPTION,
 		BUTTONS_OPTION, ENCODER_OPTION, PULSEWIDTH_OPTION,
 	};
@@ -182,6 +209,7 @@ int main(int argc, const char *argv[]) try
 		{ "--status",      "-s", 0, "d" },
 		{ "--monitor",     "-m", 0, "d" },
 		{ "--reset",       "-r", 0, "d" },
+		{ "--sync",        "-y", 0, "d" },
 		{ "--save",        "-O", 1, "d" },
 		{ "--load",        "-I", 1, "d" },
 		{ "--dump",        "-X", 0, "d" },
@@ -276,6 +304,10 @@ int main(int argc, const char *argv[]) try
 			dev.selected()->set_pulse_width(6);
 			break;
 
+		case SYNC_OPTION:
+			dev.selected()->sync();
+			break;
+
 		case SAVE_OPTION:
 			log(INFO) << "saving image to file '" << ctx.argument << '\'' << endl;
 			if (!dev.selected()->get_image() && !dev.selected()->save_image(ctx.argument))
@@ -314,9 +346,16 @@ int main(int argc, const char *argv[]) try
 			break;
 		}
 
-		case ZOOM_OPTION:
-			log(INFO) << "setting axes to zoom=" << ctx.argument << endl;
+		case ZOOM_OPTION: {
+			istringstream x(ctx.argument);
+			unsigned zoom;
+			x >> zoom;
+			log(INFO) << "setting axes to zoom=" << zoom << endl;
+			for (uint32_t i = 0; i < 8; i++)
+				if (selected_axes & (1 << i))
+					dev.selected()->set_zoom(i, zoom);
 			break;
+		}
 
 		case BUTTONS_OPTION:
 			selected_buttons = numlist_to_bitmap(ctx.argument, 31);
@@ -337,6 +376,9 @@ int main(int argc, const char *argv[]) try
 			else
 				throw string("bad --encoder option \"") + arg + "\" (use \"off\", \"1:1\", \"1:2\", or \"1:4\")";
 			log(INFO) << "configuring buttons for encoder mode " << enc << endl;
+			for (uint32_t i = 0; i < 31; i++)
+				if (selected_buttons & (1 << i))
+					dev.selected()->set_encoder_mode(i, enc);
 			break;
 		}
 
@@ -374,6 +416,8 @@ int main(int argc, const char *argv[]) try
 			return EXIT_FAILURE;
 		}
 	}
+
+	commit_changes(dev);
 	return EXIT_SUCCESS;
 
 } catch (const string &msg) {

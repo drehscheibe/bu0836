@@ -61,6 +61,7 @@ public:
 	int load_image(const char *);
 	int show_input_reports();
 	int dump_internal_data();
+	bool is_dirty() const { return _dirty; }
 
 	const std::string &bus_address() const { return _bus_address; }
 	const std::string &id() const { return _id; }
@@ -73,14 +74,15 @@ public:
 	void set_invert(int axis, bool value) {
 		uint8_t mask = 1 << axis;
 		_eeprom.invert = value ? _eeprom.invert | mask : _eeprom.invert & ~mask;
+		_dirty = true;
 	}
 
 	bool get_invert(int axis) const { return (_eeprom.invert & (1 << axis)) != 0; }
 
-	void set_zoom(int axis, unsigned char value) { _eeprom.zoom[axis & 7] = value; }
+	void set_zoom(int axis, unsigned char value) { _eeprom.zoom[axis & 7] = value, _dirty = true; }
 	int get_zoom(int axis) const { return _eeprom.zoom[axis & 7]; }
 
-	void set_pulse_width(int n) { _eeprom.pulse = n < 1 ? 1 : n > 11 ? 11 : n; }
+	void set_pulse_width(int n) { _eeprom.pulse = n < 1 ? 1 : n > 11 ? 11 : n, _dirty = true; }
 	int get_pulse_width() const { return _eeprom.pulse; }
 
 	void set_encoder_mode(int b, int mode) {
@@ -91,12 +93,22 @@ public:
 		b1 = mode & 2 ? b1 | mask : b1 & ~mask;
 		_eeprom.rotenc0[0] = b0 & 0xff, _eeprom.rotenc0[1] = (b0 >> 8) & 0xff;
 		_eeprom.rotenc1[0] = b1 & 0xff, _eeprom.rotenc1[1] = (b1 >> 8) & 0xff;
+		_dirty = true;
 	}
 
 	int get_encoder_mode(int b) const {
 		uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b / 2) & 1;
 		uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b / 2) & 1;
 		return b0 | (b1 << 1);
+	}
+
+	int sync() {
+		if (!_dirty)
+			return 0;
+		int ret = set_image(0x3);
+		if (!ret)
+			_dirty = false;
+		return ret;
 	}
 
 private:
@@ -118,6 +130,7 @@ private:
 	usb_hid_descriptor *_hid_descriptor;
 	bool _claimed;
 	bool _kernel_detached;
+	bool _dirty;
 
 	struct {
 		uint8_t ___a[11];

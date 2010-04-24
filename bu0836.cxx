@@ -115,7 +115,8 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 	_desc(desc),
 	_hid_descriptor(0),
 	_claimed(false),
-	_kernel_detached(false)
+	_kernel_detached(false),
+	_dirty(false)
 {
 	assert(sizeof(_eeprom) == 0x100); // FIXME + <cassert>
 
@@ -273,6 +274,8 @@ int controller::print_status()
 	if (ret)
 		return ret; // FIXME handle ret value
 
+
+	cout << BOLD << jsid() << endl;
 	cout << BBLACK << "_____________________________ Axes ____________________________" << NORM << endl << endl;
 	cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
 
@@ -373,6 +376,7 @@ int controller::load_image(const char *path)
 		throw string("file '") + path + "' has wrong size";
 
 	file.close();
+	_dirty = true;
 	return 0;
 }
 
