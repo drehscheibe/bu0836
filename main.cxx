@@ -317,13 +317,13 @@ int main(int argc, const char *argv[]) try
 
 		case SAVE_OPTION:
 			log(INFO) << "saving image to file '" << ctx.argument << '\'' << endl;
-			if (!dev.selected()->get_image() && !dev.selected()->save_image(ctx.argument))
+			if (!dev.selected()->get_eeprom() && !dev.selected()->save_image(ctx.argument))
 				log(INFO) << "saved" << endl;
 			break;
 
 		case LOAD_OPTION:
 			log(INFO) << "loading image from file '" << ctx.argument << '\'' << endl;
-			if (!dev.selected()->load_image(ctx.argument)) // && !dev.selected()->set_image()
+			if (!dev.selected()->load_image(ctx.argument)) // && !dev.selected()->set_eeprom()
 				log(INFO) << "loaded" << endl;
 			break;
 

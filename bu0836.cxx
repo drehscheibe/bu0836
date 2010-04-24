@@ -195,6 +195,10 @@ int controller::claim()
 		}
 		_claimed = true;
 		parse_hid();
+
+		ret = get_eeprom();
+		if (ret)
+			return ret;
 	}
 
 	return 0;
@@ -239,20 +243,16 @@ int controller::parse_hid()
 
 
 
-int controller::get_image()
+int controller::get_eeprom()
 {
-	int ret = claim();
-	if (ret)
-		return ret;
-
 	unsigned char buf[17];
 	int progress = 0xffff;
 	int maxtries = 50;
 	while (progress && maxtries--) {
-		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01,
+		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01,
 				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
 		if (ret < 0) {
-			log(ALERT) << "get_image/libusb_control_transfer: " << usb_strerror(ret) << endl;
+			log(ALERT) << "get_eeprom/libusb_control_transfer: " << usb_strerror(ret) << endl;
 			return -1;
 		}
 		if (ret != sizeof(buf))
@@ -263,7 +263,7 @@ int controller::get_image()
 		memcpy(reinterpret_cast<uint8_t *>(&_eeprom) + buf[0], buf + 1, 16);
 	}
 	if (!maxtries) {
-		log(ALERT) << "get_image: maxtries" << endl;  // FIXME msg
+		log(ALERT) << "get_eeprom: maxtries" << endl;  // FIXME msg
 		return -2;
 	}
 	return 0;
@@ -271,13 +271,67 @@ int controller::get_image()
 
 
 
+int controller::set_eeprom(int which)
+{
+	cerr << "SET IMAGE" << endl;  // FIXME
+	return 0;
+
+	unsigned char buf[17];
+	for (unsigned char i = 0; i < 16; i++) {
+		if (!(which & (1 << i)))
+			continue;
+
+		buf[0] = i << 4;
+		memcpy(buf + 1, reinterpret_cast<uint8_t *>(&_eeprom) + buf[0], 16);
+		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
+				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
+		if (ret < 0) {
+			log(ALERT) << "set_eeprom/libusb_control_transfer: " << usb_strerror(ret) << endl;
+			return -1;
+		}
+	}
+	return 0;
+}
+
+
+
+int controller::save_image(const char *path)
+{
+	ofstream file(path, ofstream::binary | ofstream::trunc);
+	if (!file)
+		throw string("cannot write to '") + path + '\'';
+	file.write(reinterpret_cast<const char *>(&_eeprom), sizeof(_eeprom));
+
+	file.seekp(0, ofstream::end);
+	if (file.tellp() != sizeof(_eeprom))
+		throw string("file '") + path + "' has wrong size";
+
+	file.close();
+	return 0;
+}
+
+
+
+int controller::load_image(const char *path)
+{
+	ifstream file(path, ifstream::binary);
+	if (!file)
+		throw string("cannot read from '") + path + '\'';
+	file.read(reinterpret_cast<char *>(&_eeprom), sizeof(_eeprom));
+
+	file.seekg(0, ifstream::end);
+	if (file.tellg() != sizeof(_eeprom))
+		throw string("file '") + path + "' has wrong size";
+
+	file.close();
+	_dirty = true;
+	return 0;
+}
+
+
+
 int controller::print_status()
 {
-	int ret = get_image();
-	if (ret)
-		return ret; // FIXME handle ret value
-
-
 	cout << bold << jsid() << endl;
 	cout << bold << black << "_____________________________ Axes ____________________________" << reset << endl << endl;
 	cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
@@ -325,71 +379,8 @@ int controller::print_status()
 
 
 
-int controller::set_image(int which)
-{
-	int ret = claim();
-	if (ret)
-		return ret;
-
-	unsigned char buf[17];
-	for (unsigned char i = 0; i < 16; i++) {
-		if (!(which & (1 << i)))
-			continue;
-
-		buf[0] = i << 4;
-		memcpy(buf + 1, reinterpret_cast<uint8_t *>(&_eeprom) + buf[0], 16);
-		ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
-				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
-		if (ret < 0) {
-			log(ALERT) << "set_image/libusb_control_transfer: " << usb_strerror(ret) << endl;
-			return -1;
-		}
-	}
-	return 0;
-}
-
-
-
-int controller::save_image(const char *path)
-{
-	ofstream file(path, ofstream::binary | ofstream::trunc);
-	if (!file)
-		throw string("cannot write to '") + path + '\'';
-	file.write(reinterpret_cast<const char *>(&_eeprom), sizeof(_eeprom));
-
-	file.seekp(0, ofstream::end);
-	if (file.tellp() != sizeof(_eeprom))
-		throw string("file '") + path + "' has wrong size";
-
-	file.close();
-	return 0;
-}
-
-
-
-int controller::load_image(const char *path)
-{
-	ifstream file(path, ifstream::binary);
-	if (!file)
-		throw string("cannot read from '") + path + '\'';
-	file.read(reinterpret_cast<char *>(&_eeprom), sizeof(_eeprom));
-
-	file.seekg(0, ifstream::end);
-	if (file.tellg() != sizeof(_eeprom))
-		throw string("file '") + path + "' has wrong size";
-
-	file.close();
-	_dirty = true;
-	return 0;
-}
-
-
-
 int controller::show_input_reports()
 {
-	int ret = claim();
-	if (ret)
-		return ret;
 	if (_hid.data().empty()) {
 		log(ALERT) << "show_input_reports: no hid data" << endl;
 		return 1;
@@ -407,7 +398,7 @@ int controller::show_input_reports()
 	unsigned char buf[1024];
 	do {
 		int len;
-		ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
+		int ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
 		if (ret < 0) {
 			log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
 			sleep(2);
@@ -428,12 +419,8 @@ int controller::show_input_reports()
 
 int controller::dump_internal_data()
 {
-	int ret = claim();
-	if (ret)
-		return ret;
-
 	// display EEPROM image
-	if (get_image())
+	if (get_eeprom())
 		throw string(ORIGIN);
 	log(ALWAYS) << setfill('0') << hex;
 	for (int i = 0; i < 16; i++)

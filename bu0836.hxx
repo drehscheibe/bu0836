@@ -54,11 +54,11 @@ public:
 	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc);
 	~controller();
 	int claim();
-	int get_image();
-	int print_status();
-	int set_image(int which = ~0);
+	int get_eeprom();
+	int set_eeprom(int which = ~0);
 	int save_image(const char *);
 	int load_image(const char *);
+	int print_status();
 	int show_input_reports();
 	int dump_internal_data();
 	bool is_dirty() const { return _dirty; }
@@ -105,7 +105,7 @@ public:
 	int sync() {
 		if (!_dirty)
 			return 0;
-		int ret = set_image(0x3);
+		int ret = set_eeprom(0x3);
 		if (!ret)
 			_dirty = false;
 		return ret;
