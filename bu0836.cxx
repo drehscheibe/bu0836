@@ -35,6 +35,8 @@ using namespace logging;
 
 
 
+namespace bu0836 {
+
 namespace {
 
 #ifdef VALGRIND
@@ -383,7 +385,7 @@ int controller::dump_internal_data()
 
 
 
-bu0836::bu0836(int debug_level)
+manager::manager(int debug_level)
 {
 	int ret = libusb_init(_CONTEXT);
 	if (ret < 0)
@@ -422,7 +424,7 @@ bu0836::bu0836(int debug_level)
 
 
 
-bu0836::~bu0836()
+manager::~manager()
 {
 	vector<controller *>::const_iterator it, end = _devices.end();
 	for (it = _devices.begin(); it != end; ++it)
@@ -432,7 +434,7 @@ bu0836::~bu0836()
 
 
 
-int bu0836::select(string which)
+int manager::select(string which)
 {
 	int num = 0;
 	vector<controller *>::const_iterator it, end = _devices.end();
@@ -445,3 +447,5 @@ int bu0836::select(string which)
 		_selected = 0;
 	return num;
 }
+
+} // namespace bu0836

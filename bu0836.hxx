@@ -30,6 +30,8 @@
 
 
 
+namespace bu0836 {
+
 struct usb_hid_descriptor {
 	uint8_t  bLength;		// 9
 	uint8_t  bDescriptorType;	// 33 -> LIBUSB_DT_HID
@@ -147,10 +149,10 @@ private:
 
 
 
-class bu0836 {
+class manager {
 public:
-	bu0836(int debug_level = 3);
-	~bu0836();
+	manager(int debug_level = 3);
+	~manager();
 	int select(std::string which);
 	controller *selected() const { return _selected; }
 	size_t size() const { return _devices.size(); }
@@ -166,5 +168,7 @@ private:
 	static const int _BU0836 = 0x05b5;
 	static const int _BU0836A = 0x05ba;
 };
+
+} // namespace bu0836
 
 #endif

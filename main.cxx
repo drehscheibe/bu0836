@@ -153,7 +153,7 @@ uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 
 
 
-void list_devices(bu0836& dev)
+void list_devices(bu0836::manager& dev)
 {
 	for (size_t i = 0; i < dev.size(); i++) {
 		const char *marker = &dev[i] == dev.selected() ? " <<" : "";
@@ -169,7 +169,7 @@ void list_devices(bu0836& dev)
 
 
 
-void print_status(controller *c)
+void print_status(bu0836::controller *c)
 {
 	cout << bold << c->jsid() << endl;
 	cout << black << "_____________________________ Axes ____________________________"
@@ -215,7 +215,7 @@ void print_status(controller *c)
 
 
 
-void commit_changes(bu0836& dev)
+void commit_changes(bu0836::manager& dev)
 {
 	for (size_t i = 0; i < dev.size(); i++) {
 		if (!dev[i].is_dirty())
@@ -297,7 +297,7 @@ int main(int argc, const char *argv[]) try
 		}
 	}
 
-	bu0836 dev;
+	bu0836::manager dev;
 	uint32_t selected_axes = 0;
 	uint32_t selected_buttons = 0;
 
