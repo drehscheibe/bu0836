@@ -16,6 +16,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
+#include <iomanip>
 #include <sstream>
 
 #include "bu0836.hxx"
@@ -35,7 +36,7 @@ void help(void)
 	cout << endl;
 	cout << "  -h, --help             show this help screen and exit" << endl;
 	cout << "      --version          show version number and exit" << endl;
-	cout << "  -v, --verbose          increase verbosity level" << endl;
+	cout << "  -v, --verbose          increase verbosity level (up to four times)" << endl;
 	cout << "  -l, --list             list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
 	cout << "  -d, --device <s>       select device by bus id or serial number (or significant ending thereof);" << endl;
 	cout << "                         not needed if only one device is attached" << endl;
@@ -45,13 +46,13 @@ void help(void)
 	cout << "  -r, --reset            reset device configuration to \"factory default\"" << endl;
 	cout << "                         (equivalent of --axes=0-7 --invert=0 --zoom=0 --buttons=0-31 --encoder=0)" << endl;
 	cout << "  -y, --sync             write current changes to the controller's EEPROM" << endl;
-	cout << "  -O, --save <s>         save EEPROM image to file <s>" << endl;
-	cout << "  -I, --load <s>         load EEPROM image from file <s>" << endl;
-	cout << "  -X, --dump             display EEPROM image" << endl;
+	cout << "  -O, --save <s>         save EEPROM image buffer to file <s>" << endl;
+	cout << "  -I, --load <s>         load EEPROM image buffer from file <s>" << endl;
+	cout << "  -X, --dump             display EEPROM image buffer" << endl;
 	cout << endl;
 	cout << "  -a, --axes <list>      select axes (overrides prior axis selection)" << endl;
 	cout << "  -i, --invert <n>       set selected axes to inverted (n=1) or normal (n=0) mode" << endl;
-	cout << "  -z, --zoom <n>         set zoom factor for selected axes" << endl;
+	cout << "  -z, --zoom <n>         set zoom factor for selected axes (range 0-255)" << endl;
 	cout << endl;
 	cout << "  -b, --buttons <list>   select buttons (overrides prior button selection)" << endl;
 	cout << "  -e, --encoder <s>      set encoder mode for selected buttons (and their associated siblings):" << endl;
@@ -59,7 +60,10 @@ void help(void)
 	cout << "                         \"1\" or \"1:1\" for quarter wave encoder," << endl;
 	cout << "                         \"2\" or \"1:2\" for half wave encoder," << endl;
 	cout << "                         \"3\" or \"1:4\" for full wave encoder" << endl;
-	cout << "  -p, --pulse-width <n>  set pulse width for all encoders" << endl;
+	cout << "  -p, --pulse-width <n>  set pulse width for all encoders; <n> is an integer number in the range 1-11 " << endl;
+	cout << "                         which, multiplied with 8, denotes the pulse width in ms; alternatively, the" << endl;
+	cout << "                         pulse width can be entered directly in ms by appending \"ms\". This number" << endl;
+	cout << "                         is then rounded to the nearest available 8ms step; e.g. -p6 or -p48ms" << endl;
 	cout << endl << endl;
 	cout << "  <list> is a number or number range, or a list thereof separated by commas," << endl;
 	cout << "         e.g. \"0\" or \"1,3,5\" or \"0-5\" or \"0,2,6-10,30\"" << endl;
@@ -96,10 +100,10 @@ void version(void)
 
 uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 {
-	uint32_t m = 0;
+	const unsigned int undef = ~0u;
+	unsigned int low = undef, high = undef;
+	uint32_t bitmap = 0u;
 	bool range = false;
-	const unsigned undef = ~0;
-	unsigned low = undef, high = undef;
 	istringstream s(list);
 
 	while (1) {
@@ -111,8 +115,8 @@ uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 			if (low != undef) {
 				if (high == undef)
 					high = low;
-				for (unsigned i = low; i <= high; i++)
-					m |= 1 << i;
+				for (unsigned int i = low; i <= high; i++)
+					bitmap |= 1 << i;
 			}
 
 			if (s.eof())
@@ -122,12 +126,10 @@ uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 
 		} else if (isdigit(next)) {
 			s.putback(next);
-			unsigned i;
+			unsigned int i;
 			s >> i;
-			if (i > max) {
-				log(WARN) << "number in axis/button list out of range: " << i << " (max: " << max << ')' << endl;
-				i = max;
-			}
+			if (i > max)
+				throw string("number in axis/button list out of range");
 
 			if (!range && low == undef)
 				low = i;
@@ -146,7 +148,7 @@ uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 			throw string("malformed number list");
 		}
 	}
-	return m;
+	return bitmap;
 }
 
 
@@ -167,6 +169,52 @@ void list_devices(bu0836& dev)
 
 
 
+void print_status(controller *c)
+{
+	cout << bold << c->jsid() << endl;
+	cout << black << "_____________________________ Axes ____________________________"
+			<< reset << endl << endl;
+	cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
+
+	cout << "inverted:    ";
+	for (int i = 0; i < 8; i++)
+		if (c->get_invert(i))
+			cout << red << "I      ";
+		else
+			cout << green << "-      ";
+	cout << reset << endl;
+
+	cout << "zoom:  ";
+	for (int i = 0; i < 8; i++) {
+		int zoom = c->get_zoom(i);
+		cout << (zoom ? red : green) << setw(7) << zoom;
+	}
+	cout << reset << endl << endl << endl;
+
+	const char *s[4] = { " -   -  ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
+	cout << bold << black << "_______________________ Buttons/Encoders ______________________"
+			<< reset << endl << endl;
+	cout << "#00 #01 #02 #03 #04 #05 #06 #07 #08 #09 #10 #11 #12 #13 #14 #15" << endl;
+	for (int i = 0; i < 16; i += 2) {
+		int m = c->get_encoder_mode(i);
+		cout << (m ? red : green) << s[m];
+	}
+	cout << reset << endl << endl;
+
+	cout << "#16 #17 #18 #19 #20 #21 #22 #23 #24 #25 #26 #27 #28 #29 #30 #31" << endl;
+	for (int i = 16; i < 32; i += 2) {
+		int m = c->get_encoder_mode(i);
+		cout << (m ? red : green) << s[m];
+	}
+	cout << reset << endl << endl;
+
+	cout << "pulse width: ";
+	int pulse = c->get_pulse_width();
+	cout << (pulse == 6 ? green : red) << pulse * 8 << " ms" << reset << endl << endl;
+}
+
+
+
 void commit_changes(bu0836& dev)
 {
 	for (size_t i = 0; i < dev.size(); i++) {
@@ -174,7 +222,7 @@ void commit_changes(bu0836& dev)
 			continue;
 
 		cerr << endl << endl << endl << endl;
-		dev[i].print_status();
+		print_status(&dev[i]);
 		int key;
 		do {
 			cerr << cyan << "Write configuration to controller? [Y/n] " << reset;
@@ -250,9 +298,6 @@ int main(int argc, const char *argv[]) try
 	}
 
 	bu0836 dev;
-	if (dev.empty())
-		throw string("no BU0836* found");
-
 	uint32_t selected_axes = 0;
 	uint32_t selected_buttons = 0;
 
@@ -263,10 +308,13 @@ int main(int argc, const char *argv[]) try
 		// check for option dependencies
 		if (option >= 0) {
 			if (options[option].ext[0]) {
+				if (dev.empty())
+					throw string("no BU0836 device found");
 				if (!dev.selected())
-					throw string("you need to select a device before you can use the ") + options[option].long_opt
-							+ " option, for\n       example with -d" + dev[0].bus_address() + " or -d"
-							+ dev[0].serial() + ". Use the --list option for available devices.";
+					throw string("you need to select a device before you can use the ")
+							+ options[option].long_opt + " option, for\n       example with -d"
+							+ dev[0].bus_address() + " or -d" + dev[0].serial()
+							+ ". Use the --list option for available devices.";
 				dev.selected()->claim();
 			}
 			if (options[option].ext[0] == 'a' && !selected_axes)
@@ -292,7 +340,7 @@ int main(int argc, const char *argv[]) try
 		}
 
 		case STATUS_OPTION:
-			dev.selected()->print_status();
+			print_status(dev.selected());
 			break;
 
 		case MONITOR_OPTION:
@@ -355,7 +403,7 @@ int main(int argc, const char *argv[]) try
 
 		case ZOOM_OPTION: {
 			istringstream x(ctx.argument);
-			unsigned zoom;
+			unsigned int zoom;
 			x >> zoom;
 			log(INFO) << "setting axes to zoom=" << zoom << endl;
 			for (uint32_t i = 0; i < 8; i++)
@@ -372,7 +420,7 @@ int main(int argc, const char *argv[]) try
 		case ENCODER_OPTION: {
 			string arg = ctx.argument;
 			int enc;
-			if (arg == "off" || arg == "false" || arg == "0")
+			if (arg == "off" || arg == "0")
 				enc = 0;
 			else if (arg == "1:1" || arg == "1")
 				enc = 1;
@@ -391,9 +439,25 @@ int main(int argc, const char *argv[]) try
 
 		case PULSEWIDTH_OPTION: {
 			istringstream x(ctx.argument);
-			unsigned i;
-			x >> i;
-			log(INFO) << "pulse width = " << i << " " << bool(x.eof()) << endl;
+			unsigned int p;
+			x >> p;
+			if (!x.eof()) {
+				string ms;
+				x >> ms;
+				if (ms != "ms")
+					throw string("malformed argument to --pulse-width option; must be integer in the range "
+							"1-11, or in the range 8-88 and followed by \"ms\", e.g. 48ms");
+				if (p < 8)
+					p = 8;
+				else if (p > 88)
+					p = 88;
+				p = (p + 4) / 8;
+			} else if (p < 1 || p > 11) {
+				throw string("requested pulse width out of range (1-11)");
+			}
+
+			log(INFO) << "pulse width = " << p << "  (" << p * 8 << " ms)" << endl;
+			dev.selected()->set_pulse_width(p);
 			break;
 		}
 

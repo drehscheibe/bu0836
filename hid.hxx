@@ -105,7 +105,7 @@ enum main_type {
 
 class hid_value {
 public:
-	hid_value(const std::string &name, unsigned offset, unsigned width) :
+	hid_value(const std::string &name, unsigned int offset, unsigned int width) :
 		_name(name),
 		_byte_offset(offset >> 3),
 		_bit_offset(offset & 7),
@@ -139,9 +139,9 @@ public:
 
 private:
 	std::string _name;
-	unsigned _byte_offset;
-	unsigned _bit_offset;
-	unsigned _width;
+	unsigned int _byte_offset;
+	unsigned int _bit_offset;
+	unsigned int _width;
 	uint32_t _mask;
 	uint32_t _msb;
 };

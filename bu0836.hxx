@@ -58,7 +58,6 @@ public:
 	int set_eeprom(int which = ~0);
 	int save_image(const char *);
 	int load_image(const char *);
-	int print_status();
 	int show_input_reports();
 	int dump_internal_data();
 	bool is_dirty() const { return _dirty; }
