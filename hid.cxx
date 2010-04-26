@@ -22,8 +22,8 @@
 #include <sstream>
 #include <string>
 
-#include "logging.hxx"
 #include "hid.hxx"
+#include "logging.hxx"
 
 using namespace std;
 using namespace logging;
@@ -39,7 +39,7 @@ using namespace logging;
 
 namespace hid {
 
-static string string_join(const vector<string> &v, const char *join = " ")
+string string_join(const vector<string> &v, const char *join = " ")
 {
 	size_t size = v.size();
 	string s;

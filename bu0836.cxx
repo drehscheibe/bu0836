@@ -385,15 +385,39 @@ manager::manager(int debug_level)
 		}
 
 		libusb_device *dev = libusb_get_device(handle);
-
 		libusb_device_descriptor desc;
 		ret = libusb_get_device_descriptor(dev, &desc);
-		if (ret)
+		int capa = 0;
+
+		if (ret) {
 			log(ALERT) << "error: libusb_get_device_descriptor: " << usb_strerror(ret) << endl;
-		else if (desc.idVendor != _VOTI)
+
+		} else if (desc.idVendor == 0x16c0) { // VOTI
+			switch (desc.idProduct) {
+			case 0x05b5: // BU0836
+			case 0x278a:
+			case 0x2795:
+			case 0x05ba: // BU0836A
+				capa |= CONFIG;
+			case 0x05b7: case 0x27bb: case 0x27be: case 0x27c4: case 0x27b9:
+			case 0x27bd: case 0x279a: case 0x27a8: case 0x27a3: case 0x05bb:
+			case 0x279b: case 0x27c7: case 0x27c8: case 0x27c9: case 0x27ca:
+			case 0x27cc: case 0x27cd: case 0x27cf: case 0x27d0: case 0x27d1:
+			case 0x27d2: case 0x2794:
+				capa |= ENCODER;
+			}
+
+		} else if (desc.idVendor == 0x1dd2) {
+			switch (desc.idProduct) {
+			case 0x1001: case 0x1002: case 0x2001: case 0x2002: case 0x2003:
+				capa |= ENCODER;
+			}
+		}
+
+		if (capa)
+			_devices.push_back(new controller(handle, dev, desc)); // TODO add capa
+		else
 			libusb_close(handle);
-		else if (desc.idProduct == _BU0836 || desc.idProduct == _BU0836A)
-			_devices.push_back(new controller(handle, dev, desc));
 	}
 	libusb_free_device_list(list, 1);
 	_selected = size() == 1 ? _devices[0] : 0;
@@ -411,7 +435,7 @@ manager::~manager()
 
 
 
-int manager::select(string which)
+int manager::select(const string &which)
 {
 	int num = 0;
 	vector<controller *>::const_iterator it, end = _devices.end();

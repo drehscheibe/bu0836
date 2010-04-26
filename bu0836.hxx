@@ -21,16 +21,22 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <libusb.h>
 #include <stdint.h>
 #include <vector>
-
-#include <libusb.h>
 
 #include "hid.hxx"
 
 
 
 namespace bu0836 {
+
+enum capabilities {
+	CONFIG = 0x1,   // accepted by BU0836\ configuration.exe
+	ENCODER = 0x2,  // accepted by BU0836_encoders.exe
+};
+
+
 
 struct usb_hid_descriptor {
 	uint8_t  bLength;		// 9
@@ -153,7 +159,7 @@ class manager {
 public:
 	manager(int debug_level = 3);
 	~manager();
-	int select(std::string which);
+	int select(const std::string &which);
 	controller *selected() const { return _selected; }
 	size_t size() const { return _devices.size(); }
 	bool empty() const { return _devices.empty(); }
@@ -164,9 +170,6 @@ private:
 	controller *_selected;
 
 	static const int _CONTEXT = 0;
-	static const int _VOTI = 0x16c0; // BODNAR products: 0x05b4--0x05bd, 0x2774--0x27d7
-	static const int _BU0836 = 0x05b5;
-	static const int _BU0836A = 0x05ba;
 };
 
 } // namespace bu0836
