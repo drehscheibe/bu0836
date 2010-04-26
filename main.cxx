@@ -45,21 +45,21 @@ void help(void)
 	cout << "  -m, --monitor          monitor device output (terminate with Ctrl-c)" << endl;
 	cout << "  -r, --reset            reset device configuration to \"factory default\"" << endl;
 	cout << "                         (equivalent of --axes=0-7 --invert=0 --zoom=0 --buttons=0-31 --encoder=0)" << endl;
-	cout << "  -y, --sync             write current changes to the controller's EEPROM" << endl;
+	cout << "  -y, --sync             write current changes to the controller's EEPROM *now*, without prompting" << endl;
 	cout << "  -O, --save <s>         save EEPROM image buffer to file <s>" << endl;
 	cout << "  -I, --load <s>         load EEPROM image buffer from file <s>" << endl;
 	cout << "  -X, --dump             display EEPROM image buffer" << endl;
 	cout << endl;
 	cout << "  -a, --axes <list>      select axes (overrides prior axis selection)" << endl;
-	cout << "  -i, --invert <n>       set selected axes to inverted (n=1) or normal (n=0) mode" << endl;
-	cout << "  -z, --zoom <n>         set zoom factor for selected axes (range 0-255)" << endl;
+	cout << "  -i, --invert <s>       set inverted mode \"on\" or \"off\", respectively 1 or 0" << endl;
+	cout << "  -z, --zoom <s>         set zoom mode \"on\" (1980) or \"off\" (0), or a zoom factor in the range 0-255" << endl;
 	cout << endl;
 	cout << "  -b, --buttons <list>   select buttons (overrides prior button selection)" << endl;
 	cout << "  -e, --encoder <s>      set encoder mode for selected buttons (and their associated siblings):" << endl;
-	cout << "                         \"0\" or \"off\" for normal button function," << endl;
-	cout << "                         \"1\" or \"1:1\" for quarter wave encoder," << endl;
-	cout << "                         \"2\" or \"1:2\" for half wave encoder," << endl;
-	cout << "                         \"3\" or \"1:4\" for full wave encoder" << endl;
+	cout << "                         \"off\" or 0 for normal button function," << endl;
+	cout << "                         \"1:1\" or 1 for quarter wave encoder," << endl;
+	cout << "                         \"1:2\" or 2 for half wave encoder," << endl;
+	cout << "                         \"1:4\" or 3 for full wave encoder" << endl;
 	cout << "  -p, --pulse-width <n>  set pulse width for all encoders; <n> is an integer number in the range 1-11 " << endl;
 	cout << "                         which, multiplied with 8, denotes the pulse width in ms; alternatively, the" << endl;
 	cout << "                         pulse width can be entered directly in ms by appending \"ms\". This number" << endl;
@@ -78,6 +78,8 @@ void help(void)
 	cout << "  $ bu0836 -d36 -b4 -e1:2" << endl;
 	cout << "                         ... configure buttons 4 and 5 of device (whose serial" << endl;
 	cout << "                             number ends with) 36 for half wave encoder" << endl;
+	cout << "  $ bu0836 --reset --sync" << endl;
+	cout << "                         ... reset single attached device and write immediately to EEPROM" << endl;
 }
 
 
@@ -405,9 +407,9 @@ int main(int argc, const char *argv[]) try
 			log(INFO) << "setting axes to inverted=" << ctx.argument << endl;
 			string arg = ctx.argument;
 			bool invert;
-			if (arg == "0" || arg == "false")
+			if (arg == "0" || arg == "off")
 				invert = false;
-			else if (arg == "1" || arg == "true")
+			else if (arg == "1" || arg == "on")
 				invert = true;
 			else
 				throw string("invalid argument to --invert option; use 0/false and 1/true");
@@ -418,13 +420,18 @@ int main(int argc, const char *argv[]) try
 		}
 
 		case ZOOM_OPTION: {
-			istringstream x(ctx.argument);
-			int zoom;
-			x >> zoom;
-			if (zoom < 0)
+			string arg = ctx.argument;
+			int zoom = -1;
+			if (arg == "off") {
 				zoom = 0;
-			else if (zoom > 255)
-				zoom = 255;
+			} else if (arg == "on") {
+				zoom = 198;
+			} else {
+				istringstream x(ctx.argument);
+				x >> zoom;
+				if (x.fail() || !x.eof() || zoom < 0 || zoom > 255)
+					throw string("invalid argument to --zoom: use 'on', 'off', or number in range 0-255");
+			}
 			log(INFO) << "setting axes to zoom=" << zoom << endl;
 			for (uint32_t i = 0; i < 8; i++)
 				if (selected_axes & (1 << i))

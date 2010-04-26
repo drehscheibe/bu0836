@@ -5,8 +5,8 @@ SHA=`git log master --pretty=format:%h -1`
 TAG=`git tag -l|grep ^[0-9]|head -1`
 MOD=`git diff --shortstat|wc -l`
 
-LIBUSB_CFLAGS=`libusb-config --cflags`
-LIBUSB_LIBS=`libusb-config --libs`
+LIBUSB_CFLAGS=`pkg-config libusb-1.0 --cflags`
+LIBUSB_LIBS=`pkg-config libusb-1.0 --libs`
 
 ifeq ($(MAKECMDGOALS),vg)
 	VALGRIND=-DVALGRIND
