@@ -400,6 +400,7 @@ manager::manager(int debug_level)
 			case 0x2795:
 			case 0x05ba: // BU0836A
 				capa |= CONFIG;
+				// fall through
 			case 0x05b7: case 0x27bb: case 0x27be: case 0x27c4: case 0x27b9:
 			case 0x27bd: case 0x279a: case 0x27a8: case 0x27a3: case 0x05bb:
 			case 0x279b: case 0x27c7: case 0x27c8: case 0x27c9: case 0x27ca:

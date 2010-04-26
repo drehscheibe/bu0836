@@ -360,13 +360,17 @@ int main(int argc, const char *argv[]) try
 
 		case RESET_OPTION:
 			log(INFO) << "resetting configuration to \"factory default\"" << endl;
-			for (int i = 0; i < 8; i++) {
-				dev.selected()->set_invert(i, false);
-				dev.selected()->set_zoom(i, 0);
+			if (!(dev.selected()->capabilities() & bu0836::CONFIG)) {
+				for (int i = 0; i < 8; i++) {
+					dev.selected()->set_invert(i, false);
+					dev.selected()->set_zoom(i, 0);
+				}
 			}
-			for (int i = 0; i < 32; i += 2)
-				dev.selected()->set_encoder_mode(i, 0);
-			dev.selected()->set_pulse_width(6);
+			if (!(dev.selected()->capabilities() & bu0836::ENCODER)) {
+				for (int i = 0; i < 32; i += 2)
+					dev.selected()->set_encoder_mode(i, 0);
+				dev.selected()->set_pulse_width(6);
+			}
 			break;
 
 		case SYNC_OPTION:
