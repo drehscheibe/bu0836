@@ -57,11 +57,10 @@ public:
 	~controller();
 	int claim();
 	int get_eeprom();
-	int set_eeprom(int which = ~0);
-	int save_image(const char *);
-	int load_image(const char *);
+	int set_eeprom(unsigned int from, unsigned int to);
+	int save_image_file(const char *);
+	int load_image_file(const char *);
 	int show_input_reports();
-	int dump_internal_data();
 	bool is_dirty() const { return _dirty; }
 
 	const std::string &bus_address() const { return _bus_address; }
@@ -71,6 +70,7 @@ public:
 	const std::string &serial() const { return _serial; }
 	const std::string &release() const { return _release; }
 	const std::string &jsid() const { return _jsid; }
+	const unsigned char *eeprom() const { return reinterpret_cast<const unsigned char *>(&_eeprom); }
 
 	void set_invert(int axis, bool value) {
 		uint8_t mask = 1 << axis;
@@ -106,7 +106,7 @@ public:
 	int sync() {
 		if (!_dirty)
 			return 0;
-		int ret = set_eeprom(0x3);
+		int ret = set_eeprom(0x0b, 0x1a);
 		if (!ret)
 			_dirty = false;
 		return ret;

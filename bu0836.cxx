@@ -273,20 +273,16 @@ int controller::get_eeprom()
 
 
 
-int controller::set_eeprom(int which)
+int controller::set_eeprom(unsigned int from, unsigned int to)
 {
-	cerr << "SET IMAGE" << endl;  // FIXME
-	return 0;
-
-	unsigned char buf[17];
-	for (unsigned char i = 0; i < 16; i++) {
-		if (!(which & (1 << i)))
-			continue;
-
-		buf[0] = i << 4;
-		memcpy(buf + 1, reinterpret_cast<uint8_t *>(&_eeprom) + buf[0], 16);
+	unsigned char buf[2];
+	unsigned char *e = reinterpret_cast<uint8_t *>(&_eeprom);
+	for (unsigned char i = from; i <= to; i++) {
+		buf[0] = i;
+		buf[1] = e[i];
+		//cerr << magenta << bytes(buf, 2) << reset << endl; // FIXME
 		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
-				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
+				/* FEATURE */ 0x0300, 0, buf, 2, 1000 /* ms */);
 		if (ret < 0) {
 			log(ALERT) << "set_eeprom/libusb_control_transfer: " << usb_strerror(ret) << endl;
 			return -1;
@@ -297,7 +293,7 @@ int controller::set_eeprom(int which)
 
 
 
-int controller::save_image(const char *path)
+int controller::save_image_file(const char *path)
 {
 	ofstream file(path, ofstream::binary | ofstream::trunc);
 	if (!file)
@@ -314,7 +310,7 @@ int controller::save_image(const char *path)
 
 
 
-int controller::load_image(const char *path)
+int controller::load_image_file(const char *path)
 {
 	ifstream file(path, ifstream::binary);
 	if (!file)
@@ -365,21 +361,6 @@ int controller::show_input_reports()
 		usleep(100000);
 	} while (!interrupted);
 
-	return 0;
-}
-
-
-
-int controller::dump_internal_data()
-{
-	// display EEPROM image
-	if (get_eeprom())
-		throw string(ORIGIN);
-	log(ALWAYS) << setfill('0') << hex;
-	for (int i = 0; i < 16; i++)
-		log(ALWAYS) << setw(2) << i * 16 << ' '
-				<< bytes(reinterpret_cast<unsigned char *>(&_eeprom) + i * 16, 16) << endl;
-	log(ALWAYS) << dec;
 	return 0;
 }
 

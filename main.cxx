@@ -365,19 +365,20 @@ int main(int argc, const char *argv[]) try
 
 		case SAVE_OPTION:
 			log(INFO) << "saving image to file '" << ctx.argument << '\'' << endl;
-			if (!dev.selected()->get_eeprom() && !dev.selected()->save_image(ctx.argument))
+			if (!dev.selected()->get_eeprom() && !dev.selected()->save_image_file(ctx.argument))
 				log(INFO) << "saved" << endl;
 			break;
 
 		case LOAD_OPTION:
 			log(INFO) << "loading image from file '" << ctx.argument << '\'' << endl;
-			if (!dev.selected()->load_image(ctx.argument)) // && !dev.selected()->set_eeprom()
+			if (!dev.selected()->load_image_file(ctx.argument) && !dev.selected()->set_eeprom(0x00, 0xff))
 				log(INFO) << "loaded" << endl;
 			break;
 
 		case DUMP_OPTION:
 			log(INFO) << "EEPROM image" << endl;
-			dev.selected()->dump_internal_data();
+			for (int i = 0; i < 16; i++)
+				cout << bytes(dev.selected()->eeprom() + i * 16, 16) << endl;
 			break;
 
 		case AXES_OPTION:
