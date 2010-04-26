@@ -27,8 +27,6 @@
 
 namespace hid {
 
-
-
 struct hid_global_data {
 	hid_global_data() :
 		usage_table(0),
@@ -197,8 +195,6 @@ private:
 	int _bitpos;
 	int _depth;
 };
-
-
 
 } // namespace hid
 

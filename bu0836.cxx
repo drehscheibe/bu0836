@@ -113,10 +113,12 @@ string strip(const string &s)
 
 
 
-controller::controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc) :
+controller::controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc,
+		int capabilities) :
 	_handle(handle),
 	_device(device),
 	_desc(desc),
+	_capabilities(capabilities),
 	_hid_descriptor(0),
 	_claimed(false),
 	_kernel_detached(false),
@@ -279,7 +281,6 @@ int controller::set_eeprom(unsigned int from, unsigned int to)
 	for (unsigned char i = from; i <= to; i++) {
 		buf[0] = i;
 		buf[1] = e[i];
-		//cerr << magenta << bytes(buf, 2) << reset << endl; // FIXME
 		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
 				/* FEATURE */ 0x0300, 0, buf, 2, 1000 /* ms */);
 		if (ret < 0) {
@@ -409,13 +410,14 @@ manager::manager(int debug_level)
 
 		} else if (desc.idVendor == 0x1dd2) {
 			switch (desc.idProduct) {
-			case 0x1001: case 0x1002: case 0x2001: case 0x2002: case 0x2003:
+			case 0x1001: // BU0836X
+			case 0x1002: case 0x2001: case 0x2002: case 0x2003:
 				capa |= ENCODER;
 			}
 		}
 
 		if (capa)
-			_devices.push_back(new controller(handle, dev, desc)); // TODO add capa
+			_devices.push_back(new controller(handle, dev, desc, capa));
 		else
 			libusb_close(handle);
 	}

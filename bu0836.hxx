@@ -48,7 +48,13 @@ struct usb_hid_descriptor {
 		uint8_t bDescriptorType;	// 34 -> LIBUSB_DT_REPORT
 		uint8_t wDescriptorLength1;	// 103
 		uint8_t wDescriptorLength2;	// 103
-	} descriptors[];
+	} descriptors
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
+	[]
+#else
+	[0]
+#endif
+	;
 
 	inline int wDescriptorLength(int n) const {
 		return libusb_le16_to_cpu(descriptors[n].wDescriptorLength2 << 8 | descriptors[n].wDescriptorLength1);
@@ -59,7 +65,8 @@ struct usb_hid_descriptor {
 
 class controller {
 public:
-	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc);
+	controller(libusb_device_handle *handle, libusb_device *device, libusb_device_descriptor desc,
+			int capabilities);
 	~controller();
 	int claim();
 	int get_eeprom();
@@ -134,6 +141,7 @@ private:
 	libusb_device_handle *_handle;
 	libusb_device *_device;
 	libusb_device_descriptor _desc;
+	int _capabilities;
 	usb_hid_descriptor *_hid_descriptor;
 	bool _claimed;
 	bool _kernel_detached;
