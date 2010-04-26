@@ -1,6 +1,5 @@
 DEBUG=-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g
 FLAGS=-mtune=native -pipe -O3 -Wall
-FLAGS:=${FLAGS} ${DEBUG} # FIXME DEBUG BUILD
 
 SHA=`git log master --pretty=format:%h -1`
 TAG=`git tag -l|grep ^[0-9]|head -1`
@@ -23,7 +22,13 @@ ifeq ($(MAKECMDGOALS),static)
 	CXX:="g++ -m32"
 endif
 
+ifeq ($(MAKECMDGOALS),debug)
+	FLAGS:=${FLAGS} ${DEBUG} # FIXME DEBUG BUILD
+endif
+
 all: bu0836 makefile
+
+debug: bu0836 makefile
 	@echo DEBUG BUILD # FIXME
 
 bu0836: logging.o options.o hid.o bu0836.o main.o makefile

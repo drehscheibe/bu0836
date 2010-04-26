@@ -74,6 +74,7 @@ public:
 	int save_image_file(const char *);
 	int load_image_file(const char *);
 	int show_input_reports();
+	int capabilities() const { return _capabilities; }
 	bool is_dirty() const { return _dirty; }
 
 	const std::string &bus_address() const { return _bus_address; }
