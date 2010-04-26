@@ -36,7 +36,7 @@ void help(void)
 	cout << endl;
 	cout << "  -h, --help             show this help screen and exit" << endl;
 	cout << "      --version          show version number and exit" << endl;
-	cout << "  -v, --verbose          increase verbosity level (up to four times)" << endl;
+	cout << "  -v, --verbose          increase verbosity level (up to three times)" << endl;
 	cout << "  -l, --list             list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
 	cout << "  -d, --device <s>       select device by bus id or serial number (or significant ending thereof);" << endl;
 	cout << "                         not needed if only one device is attached" << endl;

@@ -278,7 +278,7 @@ int controller::set_eeprom(unsigned int from, unsigned int to)
 {
 	unsigned char buf[2];
 	unsigned char *e = reinterpret_cast<uint8_t *>(&_eeprom);
-	for (unsigned char i = from; i <= to; i++) {
+	for (unsigned int i = from; i <= to; i++) {
 		buf[0] = i;
 		buf[1] = e[i];
 		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
