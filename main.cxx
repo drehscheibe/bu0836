@@ -318,10 +318,18 @@ int main(int argc, const char *argv[]) try
 				if (dev.selected()->claim())
 					throw string("cannot access device '") + dev[0].serial() + '\'';
 			}
-			if (options[option].ext[0] == 'a' && !selected_axes)
-				throw string("no axes selected for ") + options[option].long_opt + " option";
-			if (options[option].ext[0] == 'b' && !selected_buttons)
-				throw string("no buttons selected for ") + options[option].long_opt + " option";
+			if (options[option].ext[0] == 'a') {
+				if (!(dev.selected()->capabilities() & bu0836::CONFIG))
+					throw string("device '") + dev[0].serial() + "' doesn't support axis configuration";
+				if (!selected_axes)
+					throw string("no axes selected for ") + options[option].long_opt + " option";
+			}
+			if (options[option].ext[0] == 'b') {
+				if (!(dev.selected()->capabilities() & bu0836::ENCODER))
+					throw string("device '") + dev[0].serial() + "' doesn't support button/encoder configuration";
+				if (!selected_buttons)
+					throw string("no buttons selected for ") + options[option].long_opt + " option";
+			}
 		}
 
 		switch (option) {
