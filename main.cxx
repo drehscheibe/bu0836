@@ -221,7 +221,7 @@ void commit_changes(bu0836::manager& dev)
 		if (!dev[i].is_dirty())
 			continue;
 
-		cerr << endl << endl << endl << endl;
+		cerr << endl << endl << endl;
 		print_status(&dev[i]);
 		int key;
 		do {
@@ -315,7 +315,8 @@ int main(int argc, const char *argv[]) try
 							+ options[option].long_opt + " option, for\n       example with -d"
 							+ dev[0].bus_address() + " or -d" + dev[0].serial()
 							+ ". Use the --list option for available devices.";
-				dev.selected()->claim();
+				if (dev.selected()->claim())
+					throw string("cannot access device '") + dev[0].serial() + '\'';
 			}
 			if (options[option].ext[0] == 'a' && !selected_axes)
 				throw string("no axes selected for ") + options[option].long_opt + " option";
@@ -404,8 +405,12 @@ int main(int argc, const char *argv[]) try
 
 		case ZOOM_OPTION: {
 			istringstream x(ctx.argument);
-			unsigned int zoom;
+			int zoom;
 			x >> zoom;
+			if (zoom < 0)
+				zoom = 0;
+			else if (zoom > 255)
+				zoom = 255;
 			log(INFO) << "setting axes to zoom=" << zoom << endl;
 			for (uint32_t i = 0; i < 8; i++)
 				if (selected_axes & (1 << i))

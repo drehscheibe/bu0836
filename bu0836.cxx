@@ -16,7 +16,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
-#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
@@ -49,7 +48,7 @@ bool interrupted = false;
 
 void interrupt_handler(int)
 {
-	log(INFO) << red << "Interrupted" << reset << endl;
+	log(INFO) << "Interrupted" << endl;
 	interrupted = true;
 }
 
@@ -102,7 +101,7 @@ string bcd2str(int n)
 
 
 
-string strip(string s)
+string strip(const string &s)
 {
 	const char spaces[] = " \t\n\r\b";
 	string::size_type start = s.find_first_not_of(spaces, 0);
@@ -123,8 +122,6 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 	_kernel_detached(false),
 	_dirty(false)
 {
-	assert(sizeof(_eeprom) == 0x100); // FIXME + <cassert>
-
 	ostringstream s;
 	s << int(libusb_get_bus_number(_device)) << ':' << int(libusb_get_device_address(_device));
 	_bus_address = s.str();
@@ -146,7 +143,7 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 		_serial = strip(string((char *)buf));
 
 	_jsid = _manufacturer;
-	if (!_manufacturer.empty() && !_product.empty())
+	if (!_jsid.empty() && !_product.empty())
 		_jsid += ' ';
 	_jsid += _product;
 	if (!_jsid.empty() && !_serial.empty())
@@ -196,7 +193,9 @@ int controller::claim()
 			return ret;
 		}
 		_claimed = true;
-		parse_hid();
+		ret = parse_hid();
+		if (ret)
+			return ret;
 
 		ret = get_eeprom();
 		if (ret)
@@ -322,7 +321,6 @@ int controller::load_image_file(const char *path)
 		throw string("file '") + path + "' has wrong size";
 
 	file.close();
-	_dirty = true;
 	return 0;
 }
 
@@ -374,14 +372,13 @@ manager::manager(int debug_level)
 	libusb_set_debug(_CONTEXT, debug_level);
 
 	libusb_device **list;
-	ret = libusb_get_device_list(_CONTEXT, &list);
-	if (ret < 0)
+	int num = libusb_get_device_list(_CONTEXT, &list);
+	if (num < 0)
 		throw string("libusb_get_device_list: ") + usb_strerror(ret);
 
-	for (int i = 0; i < ret; i++) {
+	for (int i = 0; i < num; i++) {
 		libusb_device_handle *handle;
-		int ret = libusb_open(list[i], &handle);
-
+		ret = libusb_open(list[i], &handle);
 		if (ret) {
 			log(ALERT) << "\terror: libusb_open: " << usb_strerror(ret) << endl;
 			continue;
@@ -399,7 +396,6 @@ manager::manager(int debug_level)
 			_devices.push_back(new controller(handle, dev, desc));
 	}
 	libusb_free_device_list(list, 1);
-
 	_selected = size() == 1 ? _devices[0] : 0;
 }
 

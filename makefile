@@ -3,7 +3,7 @@ FLAGS=-mtune=native -pipe -O3 -Wall
 FLAGS:=${FLAGS} ${DEBUG} # FIXME DEBUG BUILD
 
 SHA=`git log master --pretty=format:%h -1`
-TAG=`git tag -l|head -1`
+TAG=`git tag -l|grep ^[0-9]|head -1`
 MOD=`git diff --shortstat|wc -l`
 
 LIBUSB_CFLAGS=`libusb-config --cflags`
