@@ -221,7 +221,7 @@ int controller::parse_hid()
 		return ret;
 	}
 
-	_hid_descriptor = (usb_hid_descriptor *)new unsigned char[ret];
+	_hid_descriptor = reinterpret_cast<usb_hid_descriptor *>(new unsigned char[ret]);
 	memcpy(_hid_descriptor, buf, ret);
 	int numreports = _hid_descriptor->bNumDescriptors;
 
@@ -412,7 +412,7 @@ manager::manager(int debug_level)
 				capa |= ENCODER;
 			}
 
-		} else if (desc.idVendor == 0x1dd2) {
+		} else if (desc.idVendor == 0x1dd2) { // Leo Bodnar
 			switch (desc.idProduct) {
 			case 0x1001: // BU0836X
 			case 0x1002: case 0x2001: case 0x2002: case 0x2003:
