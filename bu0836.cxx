@@ -202,6 +202,9 @@ int controller::claim()
 		ret = get_eeprom();
 		if (ret)
 			return ret;
+
+		if (_eeprom.pulse == 0xff)
+			_capabilities &= ~ENCODER;
 	}
 
 	return 0;

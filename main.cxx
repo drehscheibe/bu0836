@@ -36,7 +36,7 @@ void help(void)
 	cout << endl;
 	cout << "  -h, --help             show this help screen and exit" << endl;
 	cout << "      --version          show version number and exit" << endl;
-	cout << "  -v, --verbose          increase verbosity level (up to three times)" << endl;
+	cout << "  -v, --verbose          increase verbosity level (up to four times)" << endl;
 	cout << "  -l, --list             list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
 	cout << "  -d, --device <s>       select device by bus id or serial number (or significant ending thereof);" << endl;
 	cout << "                         not needed if only one device is attached" << endl;
@@ -52,7 +52,7 @@ void help(void)
 	cout << endl;
 	cout << "  -a, --axes <list>      select axes (overrides prior axis selection)" << endl;
 	cout << "  -i, --invert <s>       set inverted mode \"on\" or \"off\", respectively 1 or 0" << endl;
-	cout << "  -z, --zoom <s>         set zoom mode \"on\" (1980) or \"off\" (0), or a zoom factor in the range 0-255" << endl;
+	cout << "  -z, --zoom <s>         set zoom mode \"on\" (198) or \"off\" (0), or to a zoom factor in the range 0-255" << endl;
 	cout << endl;
 	cout << "  -b, --buttons <list>   select buttons (overrides prior button selection)" << endl;
 	cout << "  -e, --encoder <s>      set encoder mode for selected buttons (and their associated siblings):" << endl;
@@ -173,46 +173,54 @@ void list_devices(bu0836::manager& dev)
 
 void print_status(bu0836::controller *c)
 {
-	cout << bold << c->jsid() << endl;
-	cout << black << "_____________________________ Axes ____________________________"
-			<< reset << endl << endl;
-	cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
+	cout << bg_cyan << bold << white << ' ' << setw(62) << left << c->jsid() << right << reset << endl << endl;
 
-	cout << "inverted:    ";
-	for (int i = 0; i < 8; i++)
-		if (c->get_invert(i))
-			cout << red << "I      ";
-		else
-			cout << green << "-      ";
-	cout << reset << endl;
+	if (c->capabilities() & bu0836::CONFIG) {
+		cout << bold << black << "_____________________________ Axes ____________________________"
+				<< reset << endl << endl;
+		cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
 
-	cout << "zoom:  ";
-	for (int i = 0; i < 8; i++) {
-		int zoom = c->get_zoom(i);
-		cout << (zoom ? red : green) << setw(7) << zoom;
+		cout << "inverted:    ";
+		for (int i = 0; i < 8; i++)
+			if (c->get_invert(i))
+				cout << red << "I      ";
+			else
+				cout << green << "-      ";
+		cout << reset << endl;
+
+		cout << "zoom:  ";
+		for (int i = 0; i < 8; i++) {
+			int zoom = c->get_zoom(i);
+			cout << (zoom ? red : green) << setw(7) << zoom;
+		}
+		cout << reset << endl;
+
+		if (c->capabilities() & bu0836::ENCODER)
+			cout << endl << endl;
 	}
-	cout << reset << endl << endl << endl;
 
-	const char *s[4] = { " -   -  ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
-	cout << bold << black << "_______________________ Buttons/Encoders ______________________"
-			<< reset << endl << endl;
-	cout << "#00 #01 #02 #03 #04 #05 #06 #07 #08 #09 #10 #11 #12 #13 #14 #15" << endl;
-	for (int i = 0; i < 16; i += 2) {
-		int m = c->get_encoder_mode(i);
-		cout << (m ? red : green) << s[m];
+	if (c->capabilities() & bu0836::ENCODER) {
+		const char *s[4] = { " -   -  ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
+		cout << bold << black << "_______________________ Buttons/Encoders ______________________"
+				<< reset << endl << endl;
+		cout << "#00 #01 #02 #03 #04 #05 #06 #07 #08 #09 #10 #11 #12 #13 #14 #15" << endl;
+		for (int i = 0; i < 16; i += 2) {
+			int m = c->get_encoder_mode(i);
+			cout << (m ? red : green) << s[m];
+		}
+		cout << reset << endl << endl;
+
+		cout << "#16 #17 #18 #19 #20 #21 #22 #23 #24 #25 #26 #27 #28 #29 #30 #31" << endl;
+		for (int i = 16; i < 32; i += 2) {
+			int m = c->get_encoder_mode(i);
+			cout << (m ? red : green) << s[m];
+		}
+		cout << reset << endl << endl;
+
+		cout << "pulse width: ";
+		int pulse = c->get_pulse_width();
+		cout << (pulse == 6 ? green : red) << pulse * 8 << " ms" << reset << endl;
 	}
-	cout << reset << endl << endl;
-
-	cout << "#16 #17 #18 #19 #20 #21 #22 #23 #24 #25 #26 #27 #28 #29 #30 #31" << endl;
-	for (int i = 16; i < 32; i += 2) {
-		int m = c->get_encoder_mode(i);
-		cout << (m ? red : green) << s[m];
-	}
-	cout << reset << endl << endl;
-
-	cout << "pulse width: ";
-	int pulse = c->get_pulse_width();
-	cout << (pulse == 6 ? green : red) << pulse * 8 << " ms" << reset << endl << endl;
 }
 
 
@@ -223,8 +231,9 @@ void commit_changes(bu0836::manager& dev)
 		if (!dev[i].is_dirty())
 			continue;
 
-		cerr << endl << endl << endl;
+		cerr << endl;
 		print_status(&dev[i]);
+		cout << endl;
 		int key;
 		do {
 			cerr << cyan << "Write configuration to controller? [Y/n] " << reset;

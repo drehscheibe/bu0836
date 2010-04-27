@@ -32,8 +32,8 @@
 namespace bu0836 {
 
 enum capabilities {
-	CONFIG = 0x1,   // accepted by BU0836\ configuration.exe
-	ENCODER = 0x2,  // accepted by BU0836_encoders.exe
+	CONFIG = 0x1,   // device accepted by BU0836\ configuration.exe: axis configuration (invert/zoom)
+	ENCODER = 0x2,  // device accepted by BU0836_encoders.exe: button configuration (encoder/pulse width)
 };
 
 
