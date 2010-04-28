@@ -100,22 +100,8 @@ public:
 	void set_pulse_width(int n) { _eeprom.pulse = n < 1 ? 1 : n > 11 ? 11 : n, _dirty = true; }
 	int get_pulse_width() const { return _eeprom.pulse; }
 
-	void set_encoder_mode(int b, int mode) {
-		uint16_t b0 = _eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8);
-		uint16_t b1 = _eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8);
-		uint16_t mask = 1 << b / 2;
-		b0 = mode & 1 ? b0 | mask : b0 & ~mask;
-		b1 = mode & 2 ? b1 | mask : b1 & ~mask;
-		_eeprom.rotenc0[0] = b0 & 0xff, _eeprom.rotenc0[1] = (b0 >> 8) & 0xff;
-		_eeprom.rotenc1[0] = b1 & 0xff, _eeprom.rotenc1[1] = (b1 >> 8) & 0xff;
-		_dirty = true;
-	}
-
-	int get_encoder_mode(int b) const {
-		uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b / 2) & 1;
-		uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b / 2) & 1;
-		return b0 | (b1 << 1);
-	}
+	void set_encoder_mode(int b, int mode);
+	int get_encoder_mode(int b) const;
 
 	int sync() {
 		if (!_dirty)

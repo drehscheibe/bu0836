@@ -279,11 +279,14 @@ int controller::get_eeprom()
 
 int controller::set_eeprom(unsigned int from, unsigned int to)
 {
+	if (to < from || to >= sizeof(_eeprom))
+		throw(ORIGIN"internal error");
+
 	unsigned char buf[2];
-	unsigned char *e = reinterpret_cast<uint8_t *>(&_eeprom);
+	unsigned char *eeprom = reinterpret_cast<uint8_t *>(&_eeprom);
 	for (unsigned int i = from; i <= to; i++) {
 		buf[0] = i;
-		buf[1] = e[i];
+		buf[1] = eeprom[i];
 		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
 				/* FEATURE */ 0x0300, 0, buf, 2, 1000 /* ms */);
 		if (ret < 0) {
@@ -364,6 +367,29 @@ int controller::show_input_reports()
 	} while (!interrupted);
 
 	return 0;
+}
+
+
+
+void controller::set_encoder_mode(int b, int mode)
+{
+	uint16_t b0 = _eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8);
+	uint16_t b1 = _eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8);
+	uint16_t mask = 1 << b / 2;
+	b0 = mode & 1 ? b0 | mask : b0 & ~mask;
+	b1 = mode & 2 ? b1 | mask : b1 & ~mask;
+	_eeprom.rotenc0[0] = b0 & 0xff, _eeprom.rotenc0[1] = (b0 >> 8) & 0xff;
+	_eeprom.rotenc1[0] = b1 & 0xff, _eeprom.rotenc1[1] = (b1 >> 8) & 0xff;
+	_dirty = true;
+}
+
+
+
+int controller::get_encoder_mode(int b) const
+{
+	uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b / 2) & 1;
+	uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b / 2) & 1;
+	return b0 | (b1 << 1);
 }
 
 
