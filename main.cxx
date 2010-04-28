@@ -23,6 +23,8 @@
 #include "logging.hxx"
 #include "options.h"
 
+#define EMAIL "<melchior.franz@gmail.com>"
+
 using namespace std;
 using namespace logging;
 
@@ -32,54 +34,45 @@ namespace {
 
 void help(void)
 {
-	cout << "Usage:  bu0836 [<options>]" << endl;
+	//      |---------1---------2---------3---------4---------5---------6---------7---------8
+	cout << "Usage: bu0836 [OPTION]..." << endl;
 	cout << endl;
-	cout << "  -h, --help             show this help screen and exit" << endl;
-	cout << "      --version          show version number and exit" << endl;
-	cout << "  -v, --verbose          increase verbosity level (up to four times)" << endl;
-	cout << "  -l, --list             list BU0836 devices (bus id, vendor, product, serial number, version)" << endl;
-	cout << "  -d, --device <s>       select device by bus id or serial number (or significant ending thereof);" << endl;
-	cout << "                         not needed if only one device is attached" << endl;
+	cout << "  -h, --help               show this help screen and exit" << endl;
+	cout << "      --version            show version number and exit" << endl;
+	cout << "  -v, --verbose            increase verbosity level (up to four times)" << endl;
+	cout << "  -l, --list               list BU0836 devices" << endl;
 	cout << endl;
-	cout << "  -s, --status           show current device configuration" << endl;
-	cout << "  -m, --monitor          monitor device output (terminate with Ctrl-c)" << endl;
-	cout << "  -r, --reset            reset device configuration to \"factory default\"" << endl;
-	cout << "                         (equivalent of --axes=0-7 --invert=0 --zoom=0 --buttons=0-31 --encoder=0)" << endl;
-	cout << "  -y, --sync             write current changes to the controller's EEPROM *now*, without prompting" << endl;
-	cout << "  -O, --save <s>         save EEPROM image buffer to file <s>" << endl;
-	cout << "  -I, --load <s>         load EEPROM image buffer from file <s>" << endl;
-	cout << "  -X, --dump             display EEPROM image buffer" << endl;
+	cout << "Device options:" << endl;
+	cout << "  -d, --device=STRING      select device by bus id or (ending of) serial number" << endl;
+	cout << "  -s, --status             show current device configuration" << endl;
+	cout << "  -m, --monitor            monitor device output (terminate with Ctrl-c)" << endl;
+	cout << "  -r, --reset              reset device configuration to \"factory default\"" << endl;
+	cout << "                           (equivalent of -a0-7 -i0 -z0 -b0-31 -e0 -p6)" << endl;
+	cout << "  -y, --sync               write current changes to the controller's EEPROM" << endl;
+	cout << "  -O, --save=FILE          save EEPROM image buffer to file <s>" << endl;
+	cout << "  -I, --load=FILE          load EEPROM image from file <s> and flash EEPROM" << endl;
+	cout << "  -X, --dump               display EEPROM image buffer" << endl;
 	cout << endl;
-	cout << "  -a, --axes <list>      select axes (overrides prior axis selection)" << endl;
-	cout << "  -i, --invert <s>       set inverted mode \"on\" or \"off\", respectively 1 or 0" << endl;
-	cout << "  -z, --zoom <s>         set zoom mode \"on\" (198) or \"off\" (0), or to a zoom factor in the range 0-255" << endl;
+	cout << "Axis options:" << endl;
+	cout << "  -a, --axes=LIST          select axes (overrides prior axis selection)" << endl;
+	cout << "  -i, --invert=STRING      set inverted mode (\"on\" and \"off\", or 1 and 0)" << endl;
+	cout << "  -z, --zoom=STRING        set zoom mode/factor (\"on\" (198), \"off\" (0))" << endl;
 	cout << endl;
-	cout << "  -b, --buttons <list>   select buttons (overrides prior button selection)" << endl;
-	cout << "  -e, --encoder <s>      set encoder mode for selected buttons (and their associated siblings):" << endl;
-	cout << "                         \"off\" or 0 for normal button function," << endl;
-	cout << "                         \"1:1\" or 1 for quarter wave encoder," << endl;
-	cout << "                         \"1:2\" or 2 for half wave encoder," << endl;
-	cout << "                         \"1:4\" or 3 for full wave encoder" << endl;
-	cout << "  -p, --pulse-width <n>  set pulse width for all encoders; <n> is an integer number in the range 1-11 " << endl;
-	cout << "                         which, multiplied with 8, denotes the pulse width in ms; alternatively, the" << endl;
-	cout << "                         pulse width can be entered directly in ms by appending \"ms\". This number" << endl;
-	cout << "                         is then rounded to the nearest available 8ms step; e.g. -p6 or -p48ms" << endl;
+	cout << "Encoder options:" << endl;
+	cout << "  -b, --buttons=LIST       select buttons (overrides prior button selection)" << endl;
+	cout << "  -e, --encoder=STRING     set encoder mode for selected buttons:" << endl;
+	cout << "                           \"off\" or 0 for normal button function," << endl;
+	cout << "                           \"1:1\" or 1 for quarter wave encoder," << endl;
+	cout << "                           \"1:2\" or 2 for half wave encoder," << endl;
+	cout << "                           \"1:4\" or 3 for full wave encoder" << endl;
+	cout << "  -p, --pulse-width=STRING set pulse width for all encoders (number from 1-11" << endl;
+	cout << "                           or number from 8-88 followed by \"ms\")" << endl;
 	cout << endl << endl;
-	cout << "  <list> is a number or number range, or a list thereof separated by commas," << endl;
-	cout << "         e.g. \"0\" or \"1,3,5\" or \"0-5\" or \"0,2,6-10,30\"" << endl;
-	cout << endl << endl;
-	cout << "Examples:" << endl;
-	cout << "  $ bu0836 -l" << endl;
-	cout << "                         ... list available devices" << endl;
-	cout << "  $ bu0836 -d2:4 -a0,2 -i1" << endl;
-	cout << "                         ... invert first and third axis of device with USB bus address 2:4" << endl;
-	cout << "  $ bu0836 -dA12136 -a0-7 -z0" << endl;
-	cout << "                         ... turn zoom off for all axes of device with serial number A12136" << endl;
-	cout << "  $ bu0836 -d36 -b4 -e1:2" << endl;
-	cout << "                         ... configure buttons 4 and 5 of device (whose serial" << endl;
-	cout << "                             number ends with) 36 for half wave encoder" << endl;
-	cout << "  $ bu0836 --reset --sync" << endl;
-	cout << "                         ... reset single attached device and write immediately to EEPROM" << endl;
+	cout << "  LIST is a number or number range, or a list thereof separated by commas," << endl;
+	cout << "       e.g. \"0\" or \"1,3,5\" or \"0-5\" or \"0,2,6-10,30\"" << endl;
+	cout << endl;
+	cout << "Report bugs to " EMAIL << endl;
+	//      |---------1---------2---------3---------4---------5---------6---------7---------8
 }
 
 
@@ -95,7 +88,7 @@ void version(void)
 #else
 	cout << "??" << endl;
 #endif
-	cout << "Copyright (C)  Melchior FRANZ  <melchior.franz@gmail.com>" << endl;
+	cout << "Copyright (C)  Melchior FRANZ  " EMAIL << endl;
 }
 
 
@@ -159,10 +152,10 @@ void list_devices(bu0836::manager& dev)
 {
 	for (size_t i = 0; i < dev.size(); i++) {
 		const char *marker = &dev[i] == dev.selected() ? " <<" : "";
-		cout << brown << dev[i].bus_address() << reset
+		cout << magenta << dev[i].bus_address() << reset
 				<< "\t" << dev[i].manufacturer()
 				<< ", " << dev[i].product()
-				<< ", " << brown << dev[i].serial() << reset
+				<< ", " << magenta << dev[i].serial() << reset
 				<< ", v" << dev[i].release()
 				<< green << marker << reset
 				<< endl;
@@ -289,6 +282,12 @@ int main(int argc, const char *argv[]) try
 		OPTIONS_LAST
 	};
 
+	// option extensions:
+	// "d" ... requires device
+	// "a" ... requires axis support & selection
+	// "b" ... requires encoder support & button selection
+	// "e" ... requires encoder support
+
 	int option;
 	struct option_parser_context ctx;
 
@@ -316,9 +315,10 @@ int main(int argc, const char *argv[]) try
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 
-		// check for option dependencies
+		// check for option requirements
 		if (option >= 0) {
-			if (options[option].ext[0]) {
+			char req = options[option].ext[0];
+			if (req) {
 				if (dev.empty())
 					throw string("no BU0836 device found");
 				if (!dev.selected())
@@ -330,7 +330,7 @@ int main(int argc, const char *argv[]) try
 					throw string("cannot access device '") + dev[0].serial() + '\'';
 			}
 
-			if (options[option].ext[0] == 'a') {
+			if (req == 'a') {
 				if (!(dev.selected()->capabilities() & bu0836::CONFIG))
 					throw string("device '") + dev.selected()->serial()
 							+ "' doesn't support axis configuration";
@@ -338,12 +338,12 @@ int main(int argc, const char *argv[]) try
 					throw string("no axes selected for ") + options[option].long_opt + " option";
 			}
 
-			if (options[option].ext[0] == 'b' || options[option].ext[0] == 'e')
+			if (req == 'b' || req == 'e')
 				if (!(dev.selected()->capabilities() & bu0836::ENCODER))
 					throw string("device '") + dev.selected()->serial()
 							+ "' doesn't support button/encoder configuration";
 
-			if (options[option].ext[0] == 'b' && !selected_buttons)
+			if (req == 'b' && !selected_buttons)
 					throw string("no buttons selected for ") + options[option].long_opt + " option";
 		}
 
