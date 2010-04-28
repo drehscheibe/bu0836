@@ -1,5 +1,9 @@
 set(CMAKE_MODULE_PATH "CMake" ${CMAKE_MODULE_PATH} cache path)
 cmake_minimum_required(VERSION 2.6)
+execute_process(COMMAND git log master --pretty=format:%h -1 OUTPUT_VARIABLE SHA)
+execute_process(COMMAND git tag -l "[0-9].*" COMMAND tail -1 COMMAND tr -d '\n' OUTPUT_VARIABLE TAG)
+execute_process(COMMAND git diff --shortstat COMMAND wc -l OUTPUT_VARIABLE MOD)
+add_definitions(-DSHA=${SHA} -DTAG=${TAG} -DMOD=${MOD})
 
 project(bu0836)
 find_package(USB1)

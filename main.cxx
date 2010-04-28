@@ -80,7 +80,7 @@ void help(void)
 void version(void)
 {
 #ifdef TAG
-	cout << "bu0836  v"STRINGIZE(TAG)"  ("STRINGIZE(SHA)")";
+	cout << "bu0836 "STRINGIZE(TAG)" ("STRINGIZE(SHA)")";
 #if MOD
 	cout << "++";
 #endif
@@ -88,7 +88,7 @@ void version(void)
 #else
 	cout << "??" << endl;
 #endif
-	cout << "Copyright (C)  Melchior FRANZ  " EMAIL << endl;
+	cout << "Copyright (C) Melchior FRANZ " EMAIL << endl;
 }
 
 

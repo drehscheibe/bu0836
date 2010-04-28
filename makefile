@@ -2,7 +2,7 @@ DEBUG=-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -
 FLAGS=-mtune=native -pipe -O3 -Wall
 
 SHA=`git log master --pretty=format:%h -1`
-TAG=`git tag -l|grep ^[0-9]|head -1`
+TAG=`git tag -l '[0-9].*'|tail -1|tr -d '\n'`
 MOD=`git diff --shortstat|wc -l`
 
 LIBUSB_CFLAGS=`pkg-config libusb-1.0 --cflags`
