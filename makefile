@@ -68,6 +68,9 @@ vg: bu0836
 massif: bu0836
 	valgrind --tool=massif ./bu0836 -vvvvv --list --device=00 --monitor
 
+pdf:
+	@man -lt bu0836.1 >bu0836.ps && ps2pdf bu0836.ps && rm bu0836.ps
+
 install: bu0836 bu0836.1
 	$(INSTALL) -m755 bu0836 $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) -m644 bu0836.1 $(DESTDIR)$(MANDIR)/man1
@@ -80,8 +83,9 @@ help:
 	@echo "    all"
 	@echo "    check            (requires cppcheck)"
 	@echo "    vg               (requires valgrind)"
+	@echo "    pdf              make pdf verion of man page"
 	@echo "    massif"
 	@echo "    static           build 32 bit version with statically linked libusb"
 	@echo "    clean"
 
-.PHONY: all debug static check vg massif install clean help
+.PHONY: all debug static check vg massif pdf install clean help

@@ -1,5 +1,6 @@
 *.o
 bu0836
 bu0836-static32
+bu0836.pdf
 core.bu0836.*
 ...
