@@ -1,29 +1,35 @@
-DEBUG=-D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g
-FLAGS=-mtune=native -pipe -O3 -Wall
+PREFIX ?= /usr/local
+MANDIR ?= $(PREFIX)/share/man
+INSTALL ?= install
 
-SHA=`git log master --pretty=format:%h -1`
-TAG=`git tag -l '[0-9].*'|tail -1|tr -d '\n'`
-MOD=`git diff --shortstat|wc -l`
+CXXFLAGS ?= -mtune=native -pipe -O3 -Wall
+CFLAGS ?= -mtune=native -pipe -O3 -Wall
+LDFLAGS ?= -g
 
-LIBUSB_CFLAGS=`pkg-config libusb-1.0 --cflags`
-LIBUSB_LIBS=`pkg-config libusb-1.0 --libs`
+DEBUG = -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g
+SHA = $(shell git log master --pretty=format:%h -1)
+TAG = $(shell git tag -l '[0-9].*'|tail -1|tr -d '\n')
+MOD = $(shell git diff --shortstat|wc -l)
+
+LIBUSB_CFLAGS = $(shell pkg-config libusb-1.0 --cflags)
+LIBUSB_LIBS = $(shell pkg-config libusb-1.0 --libs)
 
 ifeq ($(MAKECMDGOALS),vg)
-	VALGRIND=-DVALGRIND
+VALGRIND = -DVALGRIND
 endif
 
 ifeq ($(MAKECMDGOALS),massif)
-	VALGRIND=-DVALGRIND
+VALGRIND = -DVALGRIND
 endif
 
 ifeq ($(MAKECMDGOALS),static)
-	FLAGS:=${FLAGS} -m32
-	CC:="gcc -m32"
-	CXX:="g++ -m32"
+CXXFLAGS += -m32
+CFLAGS += -m32
 endif
 
 ifeq ($(MAKECMDGOALS),debug)
-	FLAGS:=${FLAGS} ${DEBUG} # FIXME DEBUG BUILD
+CXXFLAGS += $(DEBUG) # FIXME DEBUG BUILD
+CFLAGS += -g
 endif
 
 all: bu0836 makefile
@@ -32,25 +38,25 @@ debug: bu0836 makefile
 	@echo DEBUG BUILD # FIXME
 
 bu0836: logging.o options.o hid.o bu0836.o main.o makefile
-	g++ -g -o bu0836 logging.o options.o bu0836.o hid.o main.o -lm ${LIBUSB_LIBS}
+	g++ $(LDFLAGS) -o bu0836 logging.o options.o bu0836.o hid.o main.o -lm $(LIBUSB_LIBS)
 
 main.o: bu0836.hxx logging.hxx options.h main.cxx makefile
-	g++ ${FLAGS} -DSHA=${SHA} -DTAG=${TAG} -DMOD=${MOD} -I/usr/include/libusb-1.0 -c main.cxx
+	g++ $(CXXFLAGS) -DSHA=$(SHA) -DTAG=$(TAG) -DMOD=$(MOD) -I/usr/include/libusb-1.0 -c main.cxx
 
 bu0836.o: bu0836.cxx bu0836.hxx hid.hxx logging.hxx makefile
-	g++ ${FLAGS} ${VALGRIND} -I/usr/include/libusb-1.0 -c bu0836.cxx
+	g++ $(CXXFLAGS) $(VALGRIND) -I/usr/include/libusb-1.0 -c bu0836.cxx
 
 hid.o: hid.cxx hid.hxx logging.hxx makefile
-	g++ ${FLAGS} -c hid.cxx
+	g++ $(CXXFLAGS) -c hid.cxx
 
 logging.o: logging.cxx logging.hxx makefile
-	g++ ${FLAGS} -c logging.cxx
+	g++ $(CXXFLAGS) -c logging.cxx
 
 options.o: options.c options.h makefile
-	g++ ${FLAGS} -c options.c
+	g++ $(CFLAGS) -c options.c
 
 static: logging.o options.o hid.o bu0836.o main.o makefile
-	g++ -m32 -g -o bu0836-static32 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
+	g++ -m32 $(LDFLAGS) -o bu0836-static32 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
 
 check: bu0836
 	cppcheck -f -q --enable=all .
@@ -62,8 +68,12 @@ vg: bu0836
 massif: bu0836
 	valgrind --tool=massif ./bu0836 -vvvvv --list --device=00 --monitor
 
+install: bu0836 bu0836.1
+	$(INSTALL) -m755 bu0836 $(DESTDIR)$(PREFIX)/bin
+	$(INSTALL) -m644 bu0836.1 $(DESTDIR)$(MANDIR)/man1
+
 clean:
-	rm -rf *.o bu0836 bu0836-static32 core.bu0836.* cmake_install.cmake CMakeFiles CMakeCache.txt
+	rm -rf *.o bu0836 bu0836-static32 core.bu0836.* cmake_install.cmake install_manifest.txt Makefile CMakeFiles CMakeCache.txt
 
 help:
 	@echo "targets:"
@@ -73,3 +83,5 @@ help:
 	@echo "    massif"
 	@echo "    static           build 32 bit version with statically linked libusb"
 	@echo "    clean"
+
+.PHONY: all debug static check vg massif install clean help
