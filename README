@@ -1,0 +1,80 @@
+Get sources:
+------------
+
+  $ git clone git://gitorious.org/bu0836/bu0836.git
+
+
+
+Update sources:
+---------------
+
+  $ cd bu0836/
+  $ git pull
+
+
+
+Build:
+------
+
+  $ make
+  $ sudo make install
+
+    or:
+
+  $ cmake .
+  $ make -f Makefile
+  $ sudo make -f Makefile install
+
+
+
+Dependencies:
+-------------
+
+  libusb-1.0 + devel
+
+
+
+Run:                                   ===  I M P O R T A N T ! ===
+----
+
+Before you write changes to your controller use the --save option to save the
+original EEPROM contents to a file. That way you can in the worst case restore
+it. Never play with the --load option. Only use it if you've run into problems
+and don't see another way to solve them. (You may want to search for WARRANTY
+in the COPYING file.  :-)
+
+   $ bu0836 --save=my_eeprom
+   $ chmod 444 my_eeprom
+
+
+
+
+
+
+For pretty-printing of the man page make sure you have the pstools installed,
+and do this:
+
+  $ man -t bu0836|psbook|psnup -2|psselect -o|lpr
+  ### turn paper stack
+  $ man -t bu0836|psbook|psnup -2|psselect -e -r|lpr
+
+or this to get it as pdf file:
+
+  $ man -t bu0836 >bu0836.ps && ps2pdf bu0836
+
+
+
+Remarks:
+
+- The application includes its own option parser instead of using getopt as
+  this seemed easier to port to other systems. It works pretty much like
+  what you are used to, though.
+
+- A (still just rudimentary) HID parser is included because this is necessary
+  for interpreting the device's joystick data output. One could just look at
+  the respective bytes of the HID report instead, but then the slightest change
+  in the firmware could break this application. The reason why all the description
+  strings are included is that it's supposed to be a generic HID parser, not
+  one tailored for bu0836. This might be changed later -- in either direction:
+  dropping all those strings, or adding even more of them.  :-)
+

@@ -1,0 +1,255 @@
+'\"
+'\" bu0836(1) man page
+'\"
+'\" Copyright (C) 2010  Melchior FRANZ  <melchior.franz@gmail.com>
+'\"
+'\" This program is free software; you can redistribute it and/or
+'\" modify it under the terms of the GNU General Public License as
+'\" published by the Free Software Foundation; either version 2 of the
+'\" License, or (at your option) any later version.
+'\"
+'\" This program is distributed in the hope that it will be useful, but
+'\" WITHOUT ANY WARRANTY; without even the implied warranty of
+'\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+'\" General Public License for more details.
+'\"
+'\" You should have received a copy of the GNU General Public License
+'\" along with this program; if not, write to the Free Software
+'\" Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+'\"
+.MA ""
+.TH BU0836 1 "30 April 2010"
+'\"
+'\" left align & no hyphenation
+.ad l
+.nh
+'\"
+'\"
+'\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.SH NAME
+bu0836 \- configuration utility for joystick controllers of the BU0836 family
+'\"
+'\"
+'\"
+'\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.SH SYNOPSIS
+\fBbu0836\fR [\fB\-v\fR] [\fB\-d\fI device\fR] [\fB\-l\fR] [\fB\-s\fR] [\fB\-m\fR]
+.br
+\fBbu0836\fR [\fB\-v\fR] [\fB\-d\fI device\fR] [\fB\-r\fR]
+[\fB\-a\fI list\fR [\fB\-i \fIinvert\fR] [\fB\-z \fIzoom\fR]]
+[\fB\-b\fI list\fR [\fB\-e \fIencoder\fR]] [\fB\-p\fR \fIpulse-width\fR]
+[\fB\-y\fR]
+.br
+\fBbu0836\fR [\fB\-v\fR] [\fB\-d\fI device\fR] [\fB\-X\fR] [\fB\-O\fI file\fR] [\fB\-I\fI file\fR]
+.br
+\fBbu0836\fR [\fB\-h\fR|\fB\-\-version\fR]
+'\"
+'\"
+'\"
+'\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.SH DESCRIPTION
+.B bu0836
+is an implementation of Leo Bodnar's configuration utilities \*(lqBU0836\ configuration.exe\*(rq and
+\*(lqBU0836_encoders.exe\*(rq. All configuration changes are made in a local copy of the controller's
+EEPROM and only copied to the device at the end after confirmation by the user, or whenever the
+\fB\-\-sync\fR option is executed. The only exception is the \fB\-\-load\fR option, which flashes
+the controller's EEPROM immediately. Before making any changes to the EEPROM its original state
+should be saved to a file using the \fB\-\-save\fR option.
+'\"
+'\"
+'\"
+'\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.SH OPTIONS
+'\"
+'\"
+'\"
+.SS "General Options"
+'\"
+'\"
+'\"
+.TP
+.BR \-h ", " \-\-help
+Show help screen and exit.
+'\"""""
+.TP
+.B \-\-version
+Show version number and exit.
+'\"""""
+.TP
+.BR \-v ", " \-\-verbose
+Increase verbosity level. The option can be used up to three times. It is evaluated before any
+other option and can, thus, be placed anywhere.
+'\"""""
+.TP
+.BR \-l ", " \-\-list
+List BU0836 devices with \fIUSB bus id\fR, \fIvendor\fR, \fIproduct\fR, \fIserial number\fR,
+and \fIfirmware version\fR. The output could look like in this example:
+.LP
+.RS 12
+$ bu0836 \-\-list
+.br
+\m[magenta]2:2\m[]     Leo Bodnar, BU0836A Interface, \m[magenta]A12104\m[], v01.22
+.br
+\m[magenta]2:3\m[]     Leo Bodnar, BU0836A Interface, \m[magenta]A12116\m[], v01.22
+.br
+\m[magenta]2:9\m[]     Leo Bodnar, BU0836A Interface, \m[magenta]A12136\m[], v01.22
+.RE -12
+.LP
+.RS
+Colorized elements can be used as search terms for the \fB\-\-device\fR option.
+A trailing double angle marker (\m[green]<<\m[]) shows which device is currently selected (if any).
+.RE
+'\"""""
+'\"
+'\"
+'\"
+.SS "Device Options"
+'\"
+'\"
+'\"
+.TP
+\fB\-d \fIdevice\fR, \fB\-\-device\fR=\fIdevice
+Select device by \fIbus id\fR or \fIserial number\fR or an unambiguous ending of the
+\fIserial number\fR. Using this option is only required if there is more than one
+device attached. A single device is automatically selected. In the above example,
+the first device could be selected with one of \-\-device=2:2, \-\-device=A12104,
+or just  \-d4. Because two serial numbers end with 6, the second device would
+have to be selected with at least \-d16.
+'\"""""
+.TP
+.BR \-s ", " \-\-status
+Show current device configuration. All default settings are shown in green color,
+non-default values in red color.
+'\"""""
+.TP
+.BR \-m ", " \-\-monitor
+Continuously monitor a device's output until terminated with Ctrl-c.
+'\"""""
+.TP
+.BR \-r ", " \-\-reset
+Reset device configuration to \*(lqfactory default\*(rq. This is an equivalent of \fB\-\-axes\fR=0\-7
+\fB\-\-invert\fR=off \fB\-\-zoom\fR=off \fB\-\-buttons\fR=0\-31 \fB\-\-encoder\fR=off
+\fB\-\-pulse\-width\fR=48ms).
+'\"""""
+.TP
+.BR \-y ", " \-\-sync
+Write all changes so far to the controller's EEPROM. If there are no uncommitted changes
+left at exit, then the confirmation prompt is skipped, which makes this option useful for batch
+processing.
+'\"""""
+.TP
+.BR \-X ", " \-\-dump
+Display the contents of the EEPROM image buffer. If used before any configuration
+change it shows the actual EEPROM contents.
+'\"""""
+.TP
+\fB\-O \fIfile\fR, \fB\-\-save\fR=\fIfile
+Save EEPROM image buffer to \fIfile\fR. This should be done before making changes
+to the device's EEPROM for the first time, so that its original state can be restored
+if necessary.
+'\"""""
+.TP
+\fB\-I \fIfile\fR, \fB\-\-load\fR=\fIfile
+Load EEPROM image from \fIfile\fR and flash the controller's EEPROM with it. This
+happens immediately and without asking for confirmation. Try to avoid using this
+option! Applying the \fB\-\-reset\fR option instead should be enough.
+'\"""""
+'\"
+'\"
+'\"
+.SS "Axis Options"
+'\"
+'\"
+'\"
+.TP
+\fB\-a \fIlist\fR, \fB\-\-axes\fR=\fIlist
+Select axes that the following axis operations shall be applied to. \fIlist\fR is an axis
+number or number range, or a list thereof separated by commas, e\&.g\&. \*(lq0\*(rq or
+\*(lq1,3,5\*(rq or \*(lq0\-5\*(rq or \*(lq0,2\-5,7\*(rq. Numbers must be in a range from
+0 to 7. The list overrides a prior axis selection.
+'\"""""
+.TP
+\fB\-i \fIinvert\fR, \fB\-\-invert\fR=\fIinvert
+Set inverted mode for selected axes. The \fIinvert\fR string can be \*(lqon\*(rq and \*(lqoff\*(rq,
+or 1 and 0.
+'\"""""
+.TP
+\fB\-z \fIzoom\fR, \fB\-\-zoom\fR=\fIzoom
+Set zoom mode for selected axes. The \fIzoom\fR string can be \*(lqon\*(rq and \*(lqoff\*(rq, or a
+zoom factor in a range from 0 to 255. \*(lqon\*(rq corresponds to factor 198, and \*(lqoff\*(rq
+to factor 0.
+'\"""""
+'\"
+'\"
+'\"
+.SS "Button/Encoder Options"
+'\"
+'\"
+'\"
+.TP
+\fB\-b \fIlist\fR, \fB\-\-buttons\fR=\fIlist
+Select buttons that the following button operations shall be applied to. This works
+just like the \fB\-\-axes\fR option, but with numbers ranging from 0 to 31.
+'\"""""
+.TP
+\fB\-e \fIencoder\fR, \fB\-\-encoder\fR=\fIencoder
+Set encoder mode for selected buttons (and their associated pair-buttons). \fIencoder\fR can be
+.LP
+.RS 12
+\*(lqoff\*(rq or 0 for normal button function,
+.br
+\*(lq1:1\*(rq or 1 for quarter wave encoder,
+.br
+\*(lq1:2\*(rq or 2 for half wave encoder,
+.br
+\*(lq1:4\*(rq or 3 for full wave encoder (one detent produces four state changes).
+.RE -12
+.LP
+.RS
+A button pair always consists of an even numbered button and the next odd numbered one.
+It doesn't matter which of them is used for configuring an encoder. \-b0, \-b1, and \-b0,1
+yield the same result. Most encoders are of the 1:2 kind, so this is a good mode to start
+with if one doesn't know the details.
+.RE
+'\"""""
+.TP
+\fB\-p \fIpulse-width\fR, \fB\-\-pulse\-width\fR=\fIpulse-width
+Set pulse width for all encoders. \fIpulse-width\fR is either an integer number in the range
+1 to 11, which, multiplied with 8, denotes the pulse width in \fIms\fR. Alternatively, the pulse
+width can be entered directly in \fIms\fR by appending \*(lqms\*(rq. This number is then rounded to
+the nearest available 8 ms step. \-p48ms is equivalent to \-p6, and is the factory default.
+'\"""""
+'\"
+'\"
+'\"
+'\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.SH EXAMPLES
+.TP
+$ bu0836 \-\-reset \-\-sync
+Reset controller to \fI\*(lqfactory default\*(rq\fR and commit the changes immediately.
+'\"""""
+.TP
+$ bu0836 \-\-axes=0\-7 \-\-invert=on
+Set inverted mode for all axes. The user will be asked for confirmation before committing.
+'\"""""
+.TP
+$ bu0836 \-\-buttons=0,4,9 \-\-encoder=1:2 \-\-sync
+Configure button pairs 0/1, 4/5, and 8/9 for half wave encoder and commit the changes immediately.
+'\"""""
+.TP
+$ bu0836 \-r \-a0\-7 \-i1 \-b0,4,8 \-e2 \-y \-s
+The first three examples combined using short options and followed by a status report.
+'\"
+'\"
+'\"
+'\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.SH NOTES
+\fBbu0836\fR supports 31 different devices. Only few of those offer axis configuration \fIand\fR
+encoder configuration \(em most support only encoders. In case of problems don't hesitate to
+contact the author.
+'\"
+'\"
+'\"
+'\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.SH AUTHOR
+2010 \- Melchior FRANZ <melchior.franz@gmail.com>
