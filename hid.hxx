@@ -179,7 +179,7 @@ public:
 
 	void parse(const unsigned char *data, int len);
 	void print_input_report(hid_main_item *, const unsigned char *data);
-	const std::vector<hid_main_item *> data() const { return _item_stack; }
+	const std::vector<hid_main_item *> &data() const { return _item_stack; }
 
 private:
 	void do_main(int tag, uint32_t value);

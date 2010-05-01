@@ -522,11 +522,7 @@ string unit_string(uint32_t u)
 	i = (u >>= 4) & 0x0f; // nibble 3
 	if (i) {
 		string s = "Time(";
-		switch (i) {
-		case 0: s += "None"; break;
-		default: s += "Seconds"; break;
-		}
-		v.push_back(s + ')');
+		v.push_back(s + (i ? "Seconds" : "None") + ')');
 	}
 
 	i = (u >>= 4) & 0x0f; // nibble 4
@@ -543,21 +539,13 @@ string unit_string(uint32_t u)
 	i = (u >>= 4) & 0x0f; // nibble 5
 	if (i) {
 		string s = "Current(";
-		switch (i) {
-		case 0: s += "None"; break;
-		default: s += "Ampere"; break;
-		}
-		v.push_back(s + ')');
+		v.push_back(s + (i ? "Ampere" : "None") + ')');
 	}
 
 	i = (u >>= 4) & 0x0f; // nibble 6
 	if (i) {
 		string s = "Luminous-intensity=";
-		switch (i) {
-		case 0: s += "None"; break;
-		default: s += "Candela"; break;
-		}
-		v.push_back(s);
+		v.push_back(s + (i ? "Candela" : "None") + ')');
 	}
 
 	i = (u >>= 4) & 0x0f; // nibble 7

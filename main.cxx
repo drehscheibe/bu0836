@@ -39,7 +39,7 @@ void help(void)
 	cout << endl;
 	cout << "  -h, --help               show this help screen and exit" << endl;
 	cout << "      --version            show version number and exit" << endl;
-	cout << "  -v, --verbose            increase verbosity level (up to four times)" << endl;
+	cout << "  -v, --verbose            increase verbosity level (can be used three times)" << endl;
 	cout << "  -l, --list               list BU0836 devices" << endl;
 	cout << endl;
 	cout << "Device options:" << endl;
@@ -89,6 +89,9 @@ void version(void)
 	cout << "??" << endl;
 #endif
 	cout << "Copyright (C) Melchior FRANZ " EMAIL << endl;
+	cout << "License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl-2.0.html>" << endl;
+	cout << "This is free software; see the source for copying conditions.  There is NO" << endl;
+	cout << "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE." << endl;
 }
 
 
@@ -229,11 +232,11 @@ void commit_changes(bu0836::manager& dev)
 		cout << endl;
 		int key;
 		do {
-			cerr << cyan << "Write configuration to controller? [Y/n] " << reset;
+			cerr << cyan << "Write configuration to controller? [y/N] " << reset;
 			key = cin.get();
 			cin.clear();
 			if (key == '\n')
-				key = 'y';
+				key = 'n';
 			else
 				cin.ignore(80, cin.widen('\n'));
 		} while (!cin.fail() && key != 'n' && key != 'N' && key != 'y' && key != 'Y');
@@ -292,6 +295,7 @@ int main(int argc, const char *argv[]) try
 	struct option_parser_context ctx;
 
 	// first pass options
+	set_log_level(WARN);
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 		if (option == HELP_OPTION) {
@@ -404,9 +408,14 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case DUMP_OPTION:
-			log(INFO) << "EEPROM image" << endl;
+			cout << dev.selected()->jsid() << endl << magenta << "-- " << hex << setfill('0');
 			for (int i = 0; i < 16; i++)
-				cout << bytes(dev.selected()->eeprom() + i * 16, 16) << endl;
+				cout << setw(2) << i << ' ';
+			cout << reset << endl;
+			for (int i = 0; i < 16; i++)
+				cout << magenta << setw(2) << i * 16 << ' ' << reset
+						<< bytes(dev.selected()->eeprom() + i * 16, 16) << endl;
+			cout << dec << endl;
 			break;
 
 		case AXES_OPTION:
