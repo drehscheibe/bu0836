@@ -567,17 +567,21 @@ hid_main_item::hid_main_item(main_type t, uint32_t dt, hid_main_item *p, hid_glo
 {
 	size_t usize = _local.usage.size();
 	for (uint32_t i = 0; i < _global.report_count; i++) {
+		uint32_t usage = ~0u;
 		std::string ustr;
+
 		if (i < usize) {
-			ustr = usage_string(_global.usage_table, _local.usage[i]);
+			usage = _local.usage[i];
+			ustr = usage_string(_global.usage_table, usage);
 		} else {
+			usage = _local.usage_minimum + i;
 			ostringstream x;
-			x << '#' << _local.usage_minimum + i;
+			x << '#' << usage;
 			ustr = x.str();
 		}
 
 		if (_global.report_size) {
-			_values.push_back(hid_value(ustr, bitpos, _global.report_size));
+			_values.push_back(hid_value(this, usage, ustr, bitpos, _global.report_size));
 			bitpos += _global.report_size;
 		} else {
 			log(WARN) << "data field with zero width" << endl;

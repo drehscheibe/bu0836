@@ -114,6 +114,7 @@ public:
 
 private:
 	int parse_hid(void);
+	void print_input(hid::hid_main_item *, const unsigned char *data);
 
 	hid::hid _hid;
 

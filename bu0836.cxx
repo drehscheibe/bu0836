@@ -360,13 +360,52 @@ int controller::show_input_reports()
 		}
 
 		log(BULK) << endl << bytes(buf, len) << endl;
-		log(INFO) << endl;
-		_hid.print_input_report(_hid.data()[0], buf);
+		print_input(_hid.data()[0], buf);
+		cout << endl;
 
 		usleep(100000);
 	} while (!interrupted);
 
 	return 0;
+}
+
+
+
+void controller::print_input(hid::hid_main_item *item, const unsigned char *data)
+{
+	vector<hid::hid_main_item *>::const_iterator it, end = item->children().end();
+	for (it = item->children().begin(); it != end; ++it)
+		print_input(*it, data);
+
+	if (item->type() != hid::INPUT || (item->data_type() & 1)) // no padding
+		return;
+
+	uint32_t colltype = item->parent() ? item->parent()->data_type() : 0;
+
+	vector<hid::hid_value>::const_iterator vit, vend = item->values().end();
+	int index = 0;
+	for (vit = item->values().begin(); vit != vend; ++vit, index++) {
+		uint32_t v = vit->get_unsigned(data);
+		if (colltype == 0) { // axis
+			int num = vit->usage() - 48; // Usage 'X' == 0x30
+			double norm = double(v) / item->global().logical_maximum;
+			cout << "A" << num << '=' << cyan << setfill(' ') << setw(4) << v << reset
+					<< " (" << magenta << fixed << setprecision(4) << norm << reset << ") ";
+
+		} else if (item->global().usage_table == 0x09) { // button
+			if (index == 16)
+				cout << endl;
+			cout << "B" << setw(2) << setfill('0') << index << '='
+					<< (v ? red : green) << v << reset << ' ';
+
+		} else if (item->global().usage_table == 0x01 && vit->usage() == 0x39) { // hat
+			cout << "H" << '=' <<  brown << v << reset << ' ';
+
+		} else {
+			log(WARN) << "something " << vit->name() << " " << vit->usage() << endl;
+		}
+	}
+	cout << endl;
 }
 
 

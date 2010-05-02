@@ -101,9 +101,14 @@ enum main_type {
 
 
 
+class hid_main_item;
+
 class hid_value {
 public:
-	hid_value(const std::string &name, unsigned int offset, unsigned int width) :
+	hid_value(const hid_main_item *parent, uint32_t usage, const std::string &name,
+			unsigned int offset, unsigned int width) :
+		_parent(parent),
+		_usage(usage),
 		_name(name),
 		_byte_offset(offset >> 3),
 		_bit_offset(offset & 7),
@@ -133,9 +138,13 @@ public:
 		return _width && v & _msb ? v | ~_mask : v;
 	}
 
+	const hid_main_item *parent() const { return _parent; }
+	int usage() const { return _usage; }
 	const std::string &name() const { return _name; }
 
 private:
+	const hid_main_item *_parent;
+	uint32_t _usage;
 	std::string _name;
 	unsigned int _byte_offset;
 	unsigned int _bit_offset;
