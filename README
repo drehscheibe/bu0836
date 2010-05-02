@@ -60,7 +60,7 @@ and do this:
 
 or this to get it as pdf file:
 
-  $ man -t bu0836 >bu0836.ps && ps2pdf bu0836
+  $ make pdf
 
 
 

@@ -44,10 +44,10 @@ bu0836: logging.o options.o hid.o bu0836.o main.o makefile
 	g++ $(LDFLAGS) -o bu0836 logging.o options.o bu0836.o hid.o main.o -lm $(LIBUSB_LIBS)
 
 main.o: bu0836.hxx logging.hxx options.h main.cxx makefile
-	g++ $(CXXFLAGS) -DSHA=$(SHA) -DTAG=$(TAG) -DMOD=$(MOD) -I/usr/include/libusb-1.0 -c main.cxx
+	g++ $(CXXFLAGS) -DSHA=$(SHA) -DTAG=$(TAG) -DMOD=$(MOD) $(LIBUSB_CFLAGS) -c main.cxx
 
 bu0836.o: bu0836.cxx bu0836.hxx hid.hxx logging.hxx makefile
-	g++ $(CXXFLAGS) $(VALGRIND) -I/usr/include/libusb-1.0 -c bu0836.cxx
+	g++ $(CXXFLAGS) $(VALGRIND) $(LIBUSB_CFLAGS) -c bu0836.cxx
 
 hid.o: hid.cxx hid.hxx logging.hxx makefile
 	g++ $(CXXFLAGS) -c hid.cxx
