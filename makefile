@@ -6,7 +6,7 @@ CXXFLAGS ?= -mtune=native -pipe -O3 -Wall
 CFLAGS ?= -mtune=native -pipe -O3 -Wall
 LDFLAGS ?= -g
 
-DEBUG = -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g
+DEBUG = -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g -Wall
 SHA = $(shell git log master --pretty=format:%h -1)
 TAG = $(shell git tag -l '[0-9].*'|tail -1|tr -d '\n')
 MOD = $(shell git diff --shortstat|wc -l)
@@ -76,14 +76,15 @@ install: bu0836 bu0836.1
 	$(INSTALL) -m644 bu0836.1 $(DESTDIR)$(MANDIR)/man1
 
 clean:
-	rm -rf *.o bu0836 bu0836-static32 core.bu0836.* cmake_install.cmake install_manifest.txt Makefile CMakeFiles CMakeCache.txt
+	@rm -f *.o bu0836 bu0836-static32 core.bu0836.* bu0836.ps bu0836.pdf
+	@rm -rf cmake_install.cmake install_manifest.txt Makefile CMakeFiles CMakeCache.txt
 
 help:
 	@echo "targets:"
 	@echo "    all"
 	@echo "    check            (requires cppcheck)"
 	@echo "    vg               (requires valgrind)"
-	@echo "    pdf              make pdf verion of man page"
+	@echo "    pdf              make pdf version of man page"
 	@echo "    massif"
 	@echo "    static           build 32 bit version with statically linked libusb"
 	@echo "    clean"
