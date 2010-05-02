@@ -667,7 +667,7 @@ void hid::parse(const unsigned char *data, int len)
 				log(BULK) << reset << endl;
 
 			} else {                // Reserved
-				log(BULK) << _indent << "Reserved" << endl; // FIXME
+				log(BULK) << _indent << bold << red << "Reserved" << reset << endl;
 				log(ALERT) << ORIGIN"short item: skipping item of reserved type" << endl;
 			}
 		}

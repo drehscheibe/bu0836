@@ -103,6 +103,8 @@ enum main_type {
 
 class hid_main_item;
 
+
+
 class hid_value {
 public:
 	hid_value(const hid_main_item *parent, uint32_t usage, const std::string &name,

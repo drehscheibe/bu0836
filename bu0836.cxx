@@ -16,8 +16,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
-#include <cstdio>
-#include <cstring>
+#include <cstring> // memcpy
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -48,7 +47,7 @@ bool interrupted = false;
 
 void interrupt_handler(int)
 {
-	log(INFO) << "Interrupted" << endl;
+	log(BULK) << "Interrupted" << endl;
 	interrupted = true;
 }
 
@@ -203,7 +202,7 @@ int controller::claim()
 		if (ret)
 			return ret;
 
-		if (_eeprom.pulse == 0xff)
+		if (_eeprom.pulse == 0xff)  // older BU0836A (v1.16) without encoder support have 0xff here
 			_capabilities &= ~ENCODER;
 	}
 
@@ -234,14 +233,14 @@ int controller::parse_hid()
 
 		unsigned char *buf = new unsigned char[len];
 		ret = libusb_get_descriptor(_handle, LIBUSB_DT_REPORT, 0, buf, len);
-		if (ret < 0) {
+		if (ret < 0)
 			log(ALERT) << "libusb_get_descriptor/LIBUSB_DT_REPORT: " << usb_strerror(ret) << endl;
-		} else if (ret != len) {
+		else if (ret != len)
 			log(ALERT) << "libusb_get_descriptor/LIBUSB_DT_REPORT: only " << ret << " of " << len
 					<< " bytes delivered" << endl;
-		} else {
+		else
 			_hid.parse(buf, ret);
-		}
+
 		delete [] buf;
 	}
 	return 0;
@@ -255,8 +254,8 @@ int controller::get_eeprom()
 	int progress = 0xffff;
 	int maxtries = 50;
 	while (progress && maxtries--) {
-		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1, /* GET_REPORT */ 0x01,
-				/* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
+		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST IN */ 0xa1,
+				/* GET_REPORT */ 0x01, /* FEATURE */ 0x0300, 0, buf, sizeof(buf), 1000 /* ms */);
 		if (ret < 0) {
 			log(ALERT) << "get_eeprom/libusb_control_transfer: " << usb_strerror(ret) << endl;
 			return -1;
@@ -269,7 +268,7 @@ int controller::get_eeprom()
 		memcpy(reinterpret_cast<uint8_t *>(&_eeprom) + buf[0], buf + 1, 16);
 	}
 	if (!maxtries) {
-		log(ALERT) << "get_eeprom: maxtries" << endl;  // FIXME msg
+		log(ALERT) << "get_eeprom: unable to read whole EEPROM" << endl;
 		return -2;
 	}
 	return 0;
@@ -280,15 +279,15 @@ int controller::get_eeprom()
 int controller::set_eeprom(unsigned int from, unsigned int to)
 {
 	if (to < from || to >= sizeof(_eeprom))
-		throw(ORIGIN"internal error");
+		throw(ORIGIN"set_eeprom: internal error");
 
 	unsigned char buf[2];
 	unsigned char *eeprom = reinterpret_cast<uint8_t *>(&_eeprom);
 	for (unsigned int i = from; i <= to; i++) {
 		buf[0] = i;
 		buf[1] = eeprom[i];
-		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21, /* SET_REPORT */ 0x09,
-				/* FEATURE */ 0x0300, 0, buf, 2, 1000 /* ms */);
+		int ret = libusb_control_transfer(_handle, /* CLASS SPECIFIC REQUEST OUT */ 0x21,
+				/* SET_REPORT */ 0x09, /* FEATURE */ 0x0300, 0, buf, 2, 1000 /* ms */);
 		if (ret < 0) {
 			log(ALERT) << "set_eeprom/libusb_control_transfer: " << usb_strerror(ret) << endl;
 			return -1;
@@ -350,11 +349,12 @@ int controller::show_input_reports()
 	sigaction(SIGQUIT, &sa, NULL);
 
 	unsigned char buf[1024];
+	int len;
 	do {
-		int len;
 		int ret = libusb_interrupt_transfer(_handle, LIBUSB_ENDPOINT_IN | 1, buf, sizeof(buf), &len, 100 /* ms */);
 		if (ret < 0) {
-			log(ALERT) << "transfer: " << usb_strerror(ret) << ", " << len << endl;
+			log(ALERT) << "show_input_reports/libusb_interrupt_transfer: "
+					<< usb_strerror(ret) << ", " << len << endl;
 			sleep(2);
 			continue;
 		}
@@ -365,7 +365,6 @@ int controller::show_input_reports()
 
 		usleep(100000);
 	} while (!interrupted);
-
 	return 0;
 }
 
@@ -386,7 +385,7 @@ void controller::print_input(hid::hid_main_item *item, const unsigned char *data
 	int index = 0;
 	for (vit = item->values().begin(); vit != vend; ++vit, index++) {
 		uint32_t v = vit->get_unsigned(data);
-		if (colltype == 0) { // axis
+		if (colltype == 0) { // axis (physical)
 			int num = vit->usage() - 48; // Usage 'X' == 0x30
 			double norm = double(v) / item->global().logical_maximum;
 			cout << "A" << num << '=' << cyan << setfill(' ') << setw(4) << v << reset
@@ -426,8 +425,9 @@ void controller::set_encoder_mode(int b, int mode)
 
 int controller::get_encoder_mode(int b) const
 {
-	uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b / 2) & 1;
-	uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b / 2) & 1;
+	b /= 2;
+	uint16_t b0 = ((_eeprom.rotenc0[0] | (_eeprom.rotenc0[1] << 8)) >> b) & 1;
+	uint16_t b1 = ((_eeprom.rotenc1[0] | (_eeprom.rotenc1[1] << 8)) >> b) & 1;
 	return b0 | (b1 << 1);
 }
 

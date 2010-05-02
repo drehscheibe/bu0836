@@ -432,7 +432,7 @@ int main(int argc, const char *argv[]) try
 			else if (arg == "1" || arg == "on")
 				invert = true;
 			else
-				throw string("invalid argument to --invert option; use 0/false and 1/true");
+				throw string("invalid argument to --invert: use \"on\"/1 or \"off\"/0");
 			for (uint32_t i = 0; i < 8; i++)
 				if (selected_axes & (1 << i))
 					dev.selected()->set_invert(i, invert);
@@ -450,7 +450,8 @@ int main(int argc, const char *argv[]) try
 				istringstream x(ctx.argument);
 				x >> zoom;
 				if (x.fail() || !x.eof() || zoom < 0 || zoom > 255)
-					throw string("invalid argument to --zoom: use 'on', 'off', or number in range 0-255");
+					throw string("invalid argument to --zoom: use \"on\"/198, \"off\"/0, "
+							"or number in range 0-255");
 			}
 			log(INFO) << "setting axes to zoom=" << zoom << endl;
 			for (uint32_t i = 0; i < 8; i++)
@@ -476,7 +477,8 @@ int main(int argc, const char *argv[]) try
 			else if (arg == "1:4" || arg == "3")
 				enc = 3;
 			else
-				throw string("bad --encoder option \"") + arg + "\" (use \"off\", \"1:1\", \"1:2\", or \"1:4\")";
+				throw string("invalid argument to --encoder: "
+						"use \"off\"/0, \"1:1\"/1, \"1:2\"/2, or \"1:4\"/3");
 			log(INFO) << "configuring buttons for encoder mode " << enc << endl;
 			for (uint32_t i = 0; i < 31; i++)
 				if (selected_buttons & (1 << i))
@@ -492,7 +494,7 @@ int main(int argc, const char *argv[]) try
 				string ms;
 				x >> ms;
 				if (ms != "ms")
-					throw string("malformed argument to --pulse-width option; must be integer in the range "
+					throw string("invalid argument to --pulse-width: must be integer in the range "
 							"1-11, or in the range 8-88 and followed by \"ms\", e.g. 48ms");
 				if (p < 8)
 					p = 8;

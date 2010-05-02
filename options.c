@@ -20,6 +20,7 @@
 #include "options.h"
 
 
+
 void init_options_context(struct option_parser_context *ctx, int argc, const char *argv[],
 		const struct command_line_option *options)
 {
@@ -30,6 +31,7 @@ void init_options_context(struct option_parser_context *ctx, int argc, const cha
 	ctx->option = ctx->argument = ctx->aggregate = "";
 	ctx->buf[0] = '-', ctx->buf[1] = ' ', ctx->buf[2] = '\0';
 }
+
 
 
 int get_option(struct option_parser_context *ctx)

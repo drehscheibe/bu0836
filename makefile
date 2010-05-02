@@ -2,11 +2,14 @@ PREFIX ?= /usr/local
 MANDIR ?= $(PREFIX)/share/man
 INSTALL ?= install
 
-CXXFLAGS ?= -mtune=native -pipe -O3 -Wall
-CFLAGS ?= -mtune=native -pipe -O3 -Wall
+CXXFLAGS ?= -mtune=native -pipe -O3
+CFLAGS ?= -mtune=native -pipe -O3
 LDFLAGS ?= -g
 
-DEBUG = -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g -Wall
+CXXFLAGS += -Wall
+CFLAGS += -Wall
+
+DEBUG = -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g
 SHA = $(shell git log master --pretty=format:%h -1)
 TAG = $(shell git tag -l '[0-9].*'|tail -1|tr -d '\n')
 MOD = $(shell git diff --shortstat|wc -l)
@@ -28,14 +31,14 @@ CFLAGS += -m32
 endif
 
 ifeq ($(MAKECMDGOALS),debug)
-CXXFLAGS += $(DEBUG) # FIXME DEBUG BUILD
+CXXFLAGS += $(DEBUG)
 CFLAGS += -g
 endif
 
 all: bu0836 makefile
 
 debug: bu0836 makefile
-	@echo DEBUG BUILD # FIXME
+	@echo DEBUG BUILD
 
 bu0836: logging.o options.o hid.o bu0836.o main.o makefile
 	g++ $(LDFLAGS) -o bu0836 logging.o options.o bu0836.o hid.o main.o -lm $(LIBUSB_LIBS)

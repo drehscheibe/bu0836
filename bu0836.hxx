@@ -57,7 +57,8 @@ struct usb_hid_descriptor {
 	;
 
 	inline int wDescriptorLength(int n) const {
-		return libusb_le16_to_cpu(descriptors[n].wDescriptorLength2 << 8 | descriptors[n].wDescriptorLength1);
+		return libusb_le16_to_cpu(descriptors[n].wDescriptorLength2 << 8
+				| descriptors[n].wDescriptorLength1);
 	}
 };
 

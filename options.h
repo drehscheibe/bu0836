@@ -85,6 +85,7 @@ extern "C" {
 #define OPTIONS_LAST { 0, 0 }           /* can be used to terminate command_line_option array */
 
 
+
 struct command_line_option {
 	const char *long_opt;
 	const char *short_opt;
@@ -92,6 +93,7 @@ struct command_line_option {
 
 	const char *ext;                /* unused; free for application extensions */
 };
+
 
 
 struct option_parser_context {
@@ -109,6 +111,7 @@ struct option_parser_context {
 	const char *aggregate;
 	char buf[3];
 };
+
 
 
 void init_options_context(struct option_parser_context *ctx, int argc, const char *argv[],
