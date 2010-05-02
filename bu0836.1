@@ -86,13 +86,13 @@ List BU0836 devices with \fIUSB bus id\fR, \fIvendor\fR, \fIproduct\fR, \fIseria
 and \fIfirmware version\fR. The output could look like in this example:
 .LP
 .RS 12
-$ bu0836 \-\-list
+\fC$ bu0836 \-\-list
 .br
 \m[magenta]2:2\m[]     Leo Bodnar, BU0836A Interface, \m[magenta]A12104\m[], v01.22
 .br
 \m[magenta]2:3\m[]     Leo Bodnar, BU0836A Interface, \m[magenta]A12116\m[], v01.22
 .br
-\m[magenta]2:9\m[]     Leo Bodnar, BU0836A Interface, \m[magenta]A12136\m[], v01.22
+\m[magenta]2:9\m[]     Leo Bodnar, BU0836A Interface, \m[magenta]A12136\m[], v01.22\fR
 .RE -12
 .LP
 .RS
@@ -111,10 +111,10 @@ A trailing double angle marker (\m[green]<<\m[]) shows which device is currently
 \fB\-d \fIdevice\fR, \fB\-\-device\fR=\fIdevice
 Select device by \fIbus id\fR or \fIserial number\fR or an unambiguous ending of the
 \fIserial number\fR. Using this option is only required if there is more than one
-device attached. A single device is automatically selected. In the above example,
-the first device could be selected with one of \-\-device=2:2, \-\-device=A12104,
-or just  \-d4. Because two serial numbers end with 6, the second device would
-have to be selected with at least \-d16.
+device attached. A single device is automatically selected. In the above example
+the first device could be selected with \-\-device=2:2, \-\-device=A12104,
+or just\ \-d4. Because two serial numbers end with 6, the second device would
+have to be selected with at least\ \-d16.
 '\"""""
 .TP
 .BR \-s ", " \-\-status
@@ -127,9 +127,9 @@ Continuously monitor a device's output until terminated with Ctrl-c.
 '\"""""
 .TP
 .BR \-r ", " \-\-reset
-Reset device configuration to \*(lqfactory default\*(rq. This is an equivalent of \fB\-\-axes\fR=0\-7
-\fB\-\-invert\fR=off \fB\-\-zoom\fR=off \fB\-\-buttons\fR=0\-31 \fB\-\-encoder\fR=off
-\fB\-\-pulse\-width\fR=48ms).
+Reset device configuration to \*(lqfactory default\*(rq. This is an equivalent of \-\-axes=0\-7
+\-\-invert=off \-\-zoom=off \-\-buttons=0\-31 \-\-encoder=off
+\-\-pulse\-width=48ms.
 '\"""""
 .TP
 .BR \-y ", " \-\-sync
@@ -140,7 +140,7 @@ processing.
 .TP
 .BR \-X ", " \-\-dump
 Display the contents of the EEPROM image buffer. If used before any configuration
-change it shows the actual EEPROM contents.
+changes or right after a \fB\-\-sync\fR option it shows the actual EEPROM contents.
 '\"""""
 .TP
 \fB\-O \fIfile\fR, \fB\-\-save\fR=\fIfile
@@ -165,19 +165,19 @@ option! Applying the \fB\-\-reset\fR option instead should be enough.
 \fB\-a \fIlist\fR, \fB\-\-axes\fR=\fIlist
 Select axes that the following axis operations shall be applied to. \fIlist\fR is an axis
 number or number range, or a list thereof separated by commas, e\&.g\&. \*(lq0\*(rq or
-\*(lq1,3,5\*(rq or \*(lq0\-5\*(rq or \*(lq0,2\-5,7\*(rq. Numbers must be in a range from
-0 to 7. The list overrides a prior axis selection.
+\*(lq1,3,5\*(rq or \*(lq0\-5\*(rq or\ \*(lq0,2\-5,7\*(rq. Numbers must be in a range from
+0 to\ 7. The list overrides a prior axis selection.
 '\"""""
 .TP
 \fB\-i \fIinvert\fR, \fB\-\-invert\fR=\fIinvert
 Set inverted mode for selected axes. The \fIinvert\fR string can be \*(lqon\*(rq and \*(lqoff\*(rq,
-or 1 and 0.
+or 1 and\ 0.
 '\"""""
 .TP
 \fB\-z \fIzoom\fR, \fB\-\-zoom\fR=\fIzoom
 Set zoom mode for selected axes. The \fIzoom\fR string can be \*(lqon\*(rq and \*(lqoff\*(rq, or a
-zoom factor in a range from 0 to 255. \*(lqon\*(rq corresponds to factor 198, and \*(lqoff\*(rq
-to factor 0.
+zoom factor in a range from 0 to\ 255. \*(lqon\*(rq corresponds to factor\ 198, and \*(lqoff\*(rq
+to factor\ 0.
 '\"""""
 '\"
 '\"
@@ -189,7 +189,7 @@ to factor 0.
 .TP
 \fB\-b \fIlist\fR, \fB\-\-buttons\fR=\fIlist
 Select buttons that the following button operations shall be applied to. This works
-just like the \fB\-\-axes\fR option, but with numbers ranging from 0 to 31.
+just like the \fB\-\-axes\fR option, but with numbers ranging from 0 to\ 31.
 '\"""""
 .TP
 \fB\-e \fIencoder\fR, \fB\-\-encoder\fR=\fIencoder
@@ -207,17 +207,17 @@ Set encoder mode for selected buttons (and their associated pair-buttons). \fIen
 .LP
 .RS
 A button pair always consists of an even numbered button and the next odd numbered one.
-It doesn't matter which of them is used for configuring an encoder. \-b0, \-b1, and \-b0,1
-yield the same result. Most encoders are of the 1:2 kind, so this is a good mode to start
+It doesn't matter which of them is used for configuring an encoder. \-b0, \-b1, and\ \-b0,1
+yield the same result. Most encoders are of the 1:2\ kind, so this is a good mode to start
 with if one doesn't know the details.
 .RE
 '\"""""
 .TP
 \fB\-p \fIpulse-width\fR, \fB\-\-pulse\-width\fR=\fIpulse-width
 Set pulse width for all encoders. \fIpulse-width\fR is either an integer number in the range
-1 to 11, which, multiplied with 8, denotes the pulse width in \fIms\fR. Alternatively, the pulse
+1 to\ 11, which, multiplied with\ 8, denotes the pulse width in \fIms\fR. Alternatively, the pulse
 width can be entered directly in \fIms\fR by appending \*(lqms\*(rq. This number is then rounded to
-the nearest available 8 ms step. \-p48ms is equivalent to \-p6, and is the factory default.
+the nearest available 8\ ms step. \-p48ms is equivalent to\ \-p6, and is the factory default.
 '\"""""
 '\"
 '\"
@@ -225,31 +225,38 @@ the nearest available 8 ms step. \-p48ms is equivalent to \-p6, and is the facto
 '\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 .SH EXAMPLES
 .TP
-$ bu0836 \-\-reset \-\-sync
+\fC$ bu0836 \-\-reset \-\-sync
 Reset controller to \fI\*(lqfactory default\*(rq\fR and commit the changes immediately.
 '\"""""
 .TP
-$ bu0836 \-\-axes=0\-7 \-\-invert=on
+\fC$ bu0836 \-\-axes=0\-7 \-\-invert=on
 Set inverted mode for all axes. The user will be asked for confirmation before committing.
 '\"""""
 .TP
-$ bu0836 \-\-buttons=0,4,9 \-\-encoder=1:2 \-\-sync
-Configure button pairs 0/1, 4/5, and 8/9 for half wave encoder and commit the changes immediately.
+\fC$ bu0836 \-\-buttons=0,4,9 \-\-encoder=1:2 \-\-sync
+Configure button pairs 0/1, 4/5, and\ 8/9 for half wave encoder and commit the changes immediately.
 '\"""""
 .TP
-$ bu0836 \-r \-a0\-7 \-i1 \-b0,4,8 \-e2 \-y \-s
+\fC$ bu0836 \-r \-a0\-7 \-i1 \-b0,4,8 \-e2 \-y \-s
 The first three examples combined using short options and followed by a status report.
 '\"
 '\"
 '\"
 '\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 .SH NOTES
-\fBbu0836\fR supports 31 different devices. Only few of those offer axis configuration \fIand\fR
-encoder configuration \(em most support only encoders. In case of problems don't hesitate to
-contact the author.
+Theoretically, \fBbu0836\fR supports 31 different devices \(em the same that Leo Bodnar's tools support. Only few
+of those devices offer axis configuration \fIand\fR encoder configuration \(em most support only
+encoders. So, if the \fB\-\-status\fR option doesn't display axes, this probably means that your
+device doesn't support them.
+.P
+\fBbu0836\fR numbers axes and buttons beginning with\ 0, because this is more logical in a
+programming context and also the way the Linux kernel sees it. Bodnar's tools, however, start
+numbering with 1, and so does the firmware.
+.P
+In case of problems don't hesitate to contact the author.
 '\"
 '\"
 '\"
 '\"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 .SH AUTHOR
-2010 \- Melchior FRANZ <melchior.franz@gmail.com>
+2010 \- Melchior FRANZ <\m[blue]melchior.franz@gmail.com\m[]>
