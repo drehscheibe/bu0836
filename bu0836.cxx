@@ -471,7 +471,7 @@ manager::manager(int debug_level)
 		libusb_device_handle *handle;
 		ret = libusb_open(list[i], &handle);
 		if (ret) {
-			log(ALERT) << "\terror: libusb_open: " << usb_strerror(ret) << endl;
+			log(ALERT) << "error: libusb_open: " << usb_strerror(ret) << endl;
 			continue;
 		}
 
