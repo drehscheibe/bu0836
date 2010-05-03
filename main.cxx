@@ -174,7 +174,13 @@ void print_status(bu0836::controller *c)
 	if (c->capabilities() & bu0836::CONFIG) {
 		cout << bold << black << "_____________________________ Axes ____________________________"
 				<< reset << endl << endl;
-		cout << "            #0     #1     #2     #3     #4     #5     #6     #7" << endl;
+		cout << "       ";
+		for (int i = 0; i < 8; i++)
+			if (c->active_axes() & (1 << i))
+				cout << bold << "     #" << i << reset;
+			else
+				cout << bold << black << "      " << i << reset;
+		cout << endl;
 
 		cout << "inverted:    ";
 		for (int i = 0; i < 8; i++)

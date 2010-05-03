@@ -76,6 +76,7 @@ public:
 	int load_image_file(const char *);
 	int show_input_reports();
 	int capabilities() const { return _capabilities; }
+	int active_axes() const { return _active_axes; }
 	bool is_dirty() const { return _dirty; }
 
 	const std::string &bus_address() const { return _bus_address; }
@@ -116,6 +117,7 @@ public:
 private:
 	int parse_hid(void);
 	void print_input(hid::hid_main_item *, const unsigned char *data);
+	int get_active_axes(hid::hid_main_item *);
 
 	hid::hid _hid;
 
@@ -130,6 +132,7 @@ private:
 	libusb_device_handle *_handle;
 	libusb_device *_device;
 	libusb_device_descriptor _desc;
+	int _active_axes;
 	int _capabilities;
 	usb_hid_descriptor *_hid_descriptor;
 	bool _claimed;
