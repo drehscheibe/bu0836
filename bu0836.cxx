@@ -418,14 +418,13 @@ int controller::get_active_axes(hid::hid_main_item *item)
 	for (it = item->children().begin(); it != end; ++it)
 		axes |= get_active_axes(*it);
 
-	if (item->type() != hid::INPUT || (item->data_type() & 1)) // no padding
-		return axes;
-
-	uint32_t colltype = item->parent() ? item->parent()->data_type() : 0;
-	vector<hid::hid_value>::const_iterator vit, vend = item->values().end();
-	for (vit = item->values().begin(); vit != vend; ++vit)
-		if (colltype == 0)
-			axes |= 1 << (vit->usage() - 48);
+	if (item->type() == hid::INPUT && !(item->data_type() & 1)) { // non-padding input
+		uint32_t colltype = item->parent() ? item->parent()->data_type() : 0;
+		vector<hid::hid_value>::const_iterator vit, vend = item->values().end();
+		for (vit = item->values().begin(); vit != vend; ++vit)
+			if (colltype == 0)
+				axes |= 1 << (vit->usage() - 48);
+	}
 	return axes;
 }
 
