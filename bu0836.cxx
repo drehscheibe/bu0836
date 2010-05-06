@@ -203,9 +203,6 @@ int controller::claim()
 		ret = get_eeprom();
 		if (ret)
 			return ret;
-
-		if (_eeprom.pulse == 0xff)  // older BU0836A (v1.16) without encoder support have 0xff here
-			_capabilities &= ~ENCODER;
 	}
 
 	return 0;
@@ -477,7 +474,8 @@ manager::manager(int debug_level)
 		libusb_device *dev = libusb_get_device(handle);
 		libusb_device_descriptor desc;
 		ret = libusb_get_device_descriptor(dev, &desc);
-		int capa = 0;
+
+		int capabilities = 0;
 
 		if (ret) {
 			log(ALERT) << "error: libusb_get_device_descriptor: " << usb_strerror(ret) << endl;
@@ -485,31 +483,44 @@ manager::manager(int debug_level)
 		} else if (desc.idVendor == 0x16c0) { // VOTI
 			switch (desc.idProduct) {
 			case 0x05b5: // BU0836
+				capabilities = INVERT | ENCODER1 | ENCODER2;
+				break;
 			case 0x278a:
 			case 0x2795:
 			case 0x05ba: // BU0836A
-				capa |= CONFIG;
-				// fall through
+				capabilities = INVERT | ZOOM | ENCODER1 | ENCODER2;
+				break;
 			case 0x05b7: case 0x27bb: case 0x27be: case 0x27c4: case 0x27b9:
 			case 0x27bd: case 0x279a: case 0x27a8: case 0x27a3: case 0x05bb:
 			case 0x279b: case 0x27c7: case 0x27c8: case 0x27c9: case 0x27ca:
 			case 0x27cc: case 0x27cd: case 0x27cf: case 0x27d0: case 0x27d1:
 			case 0x27d2: case 0x2794:
-				capa |= ENCODER;
+				capabilities = ENCODER1 | ENCODER2;
+				break;
 			}
 
 		} else if (desc.idVendor == 0x1dd2) { // Leo Bodnar
 			switch (desc.idProduct) {
 			case 0x1001: // BU0836X
 			case 0x1002: case 0x2001: case 0x2002: case 0x2003:
-				capa |= ENCODER;
+				capabilities = ENCODER1 | ENCODER2;
+				break;
 			}
 		}
 
-		if (capa)
-			_devices.push_back(new controller(handle, dev, desc, capa));
-		else
+		if (!capabilities) {
 			libusb_close(handle);
+			continue;
+		}
+
+		if (desc.bcdDevice < 0x0118)
+			capabilities &= ~ZOOM;
+		if (desc.bcdDevice < 0x0120)
+			capabilities &= ~ENCODER1;
+		if (desc.bcdDevice < 0x0121)
+			capabilities &= ~ENCODER2;
+
+		_devices.push_back(new controller(handle, dev, desc, capabilities));
 	}
 	libusb_free_device_list(list, 1);
 	_selected = size() == 1 ? _devices[0] : 0;

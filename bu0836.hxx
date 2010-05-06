@@ -32,8 +32,10 @@
 namespace bu0836 {
 
 enum capabilities {
-	CONFIG = 0x1,   // device accepted by BU0836\ configuration.exe: axis configuration (invert/zoom)
-	ENCODER = 0x2,  // device accepted by BU0836_encoders.exe: button configuration (encoder/pulse width)
+	INVERT = 0x1,
+	ZOOM = 0x2,
+	ENCODER1 = 0x4, // 1:1 encoder
+	ENCODER2 = 0x8, // 1:2 and 1:4 encoder
 };
 
 
@@ -163,7 +165,7 @@ public:
 	controller *selected() const { return _selected; }
 	size_t size() const { return _devices.size(); }
 	bool empty() const { return _devices.empty(); }
-	controller& operator[](unsigned int index) { return *_devices[index]; }
+	controller &operator[](unsigned int index) { return *_devices[index]; }
 
 private:
 	std::vector<controller *> _devices;

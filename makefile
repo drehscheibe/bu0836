@@ -62,6 +62,10 @@ static: logging.o options.o hid.o bu0836.o main.o makefile
 	g++ -m32 $(LDFLAGS) -o bu0836-static32 logging.o options.o bu0836.o hid.o main.o /usr/lib/libusb-1.0.a -lrt -pthread -lm
 
 check: bu0836
+	@echo checking for trailing spaces ...
+	@grep "[ 	]$$" *.?xx *.[ch]; true
+	@echo checking for misplaced operators ...
+	@grep "[^& ]& " *.?xx; true
 	cppcheck -f -q --enable=all .
 
 vg: bu0836

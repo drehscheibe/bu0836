@@ -171,7 +171,7 @@ void print_status(bu0836::controller *c)
 {
 	cout << bg_cyan << bold << white << ' ' << setw(62) << left << c->jsid() << right << reset << endl << endl;
 
-	if (c->capabilities() & bu0836::CONFIG) {
+	if (c->capabilities() & bu0836::INVERT) {
 		cout << bold << black << "_____________________________ Axes ____________________________"
 				<< reset << endl << endl;
 		cout << "       ";
@@ -190,18 +190,20 @@ void print_status(bu0836::controller *c)
 				cout << green << "-      ";
 		cout << reset << endl;
 
-		cout << "zoom:  ";
-		for (int i = 0; i < 8; i++) {
-			int zoom = c->get_zoom(i);
-			cout << (zoom ? red : green) << setw(7) << zoom;
+		if (c->capabilities() & bu0836::ZOOM) {
+			cout << "zoom:  ";
+			for (int i = 0; i < 8; i++) {
+				int zoom = c->get_zoom(i);
+				cout << (zoom ? red : green) << setw(7) << zoom;
+			}
+			cout << reset << endl;
 		}
-		cout << reset << endl;
 
-		if (c->capabilities() & bu0836::ENCODER)
+		if (c->capabilities() & bu0836::ENCODER1)
 			cout << endl << endl;
 	}
 
-	if (c->capabilities() & bu0836::ENCODER) {
+	if (c->capabilities() & bu0836::ENCODER1) {
 		const char *s[4] = { " -   -  ", "\\_1:1_/ ", "\\_1:2_/ ", "\\_1:4_/ " };
 		cout << bold << black << "_______________________ Buttons/Encoders ______________________"
 				<< reset << endl << endl;
@@ -227,7 +229,7 @@ void print_status(bu0836::controller *c)
 
 
 
-void commit_changes(bu0836::manager& dev)
+void commit_changes(bu0836::manager &dev)
 {
 	for (size_t i = 0; i < dev.size(); i++) {
 		if (!dev[i].is_dirty())
@@ -252,6 +254,24 @@ void commit_changes(bu0836::manager& dev)
 	}
 }
 
+
+
+void require(bu0836::manager &dev, int capa, const char *msg)
+{
+	if ((dev.selected()->capabilities() & capa) != capa)
+		throw string("device '") + dev.selected()->serial() + "' doesn't support " + msg;
+}
+
+
+
+template<typename T>
+string num_to_str(T n)
+{
+	ostringstream x;
+	x << n;
+	return x.str();
+}
+
 } // namespace
 
 
@@ -259,35 +279,37 @@ void commit_changes(bu0836::manager& dev)
 int main(int argc, const char *argv[]) try
 {
 	enum {
-		HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION,
-		LIST_OPTION, DEVICE_OPTION, STATUS_OPTION, MONITOR_OPTION,
-		RESET_OPTION, SYNC_OPTION, SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
-		AXES_OPTION, INVERT_OPTION, ZOOM_OPTION,
+		HELP_OPTION, VERSION_OPTION, VERBOSE_OPTION, LIST_OPTION, DEVICE_OPTION,
+		STATUS_OPTION, MONITOR_OPTION, RESET_OPTION, SYNC_OPTION,
+		SAVE_OPTION, LOAD_OPTION, DUMP_OPTION,
+		AXES_OPTION, INVERT_OPTION, ZOOM_OPTION, AUTODISCOVERY_OPTION, SHUTOFF_OPTION,
 		BUTTONS_OPTION, ENCODER_OPTION, PULSEWIDTH_OPTION,
 	};
 
 	const struct command_line_option options[] = {
-		{ "--help",        "-h", 0, "\0" },
-		{ "--version",        0, 0, "\0" },
-		{ "--verbose",     "-v", 0, "\0" },
-		{ "--list",        "-l", 0, "\0" },
-		{ "--device",      "-d", 1, "\0" },
+		{ "--help",           "-h", 0, "\0" },
+		{ "--version",           0, 0, "\0" },
+		{ "--verbose",        "-v", 0, "\0" },
+		{ "--list",           "-l", 0, "\0" },
+		{ "--device",         "-d", 1, "\0" },
 		//
-		{ "--status",      "-s", 0, "d" },
-		{ "--monitor",     "-m", 0, "d" },
-		{ "--reset",       "-r", 0, "d" },
-		{ "--sync",        "-y", 0, "d" },
-		{ "--save",        "-O", 1, "d" },
-		{ "--load",        "-I", 1, "d" },
-		{ "--dump",        "-X", 0, "d" },
+		{ "--status",         "-s", 0, "d"  },
+		{ "--monitor",        "-m", 0, "d"  },
+		{ "--reset",          "-r", 0, "d"  },
+		{ "--sync",           "-y", 0, "d"  },
+		{ "--save",           "-O", 1, "d"  },
+		{ "--load",           "-I", 1, "d"  },
+		{ "--dump",           "-X", 0, "d"  },
 		//
-		{ "--axes",        "-a", 1, "\0" },
-		{ "--invert",      "-i", 1, "a" },
-		{ "--zoom",        "-z", 1, "a" },
+		{ "--axes",           "-a", 1, "\0" },
+		{ "--invert",         "-i", 1, "a"  },
+		{ "--zoom",           "-z", 1, "a"  },
+		{ "--autodiscovery",  "-u", 1, "d"  },
+		{ "--shut-off",       "-f", 1, "a"  },
 		//
-		{ "--buttons",     "-b", 1, "\0" },
-		{ "--encoder",     "-e", 1, "b" },
-		{ "--pulse-width", "-p", 1, "e" },
+		{ "--buttons",        "-b", 1, "\0" },
+		{ "--encoder",        "-e", 1, "b"  },
+		{ "--pulse-width",    "-p", 1, "b"  },
 		OPTIONS_LAST
 	};
 
@@ -295,7 +317,6 @@ int main(int argc, const char *argv[]) try
 	// "d" ... requires device
 	// "a" ... requires axis support & selection
 	// "b" ... requires encoder support & button selection
-	// "e" ... requires encoder support
 
 	int option;
 	struct option_parser_context ctx;
@@ -325,7 +346,7 @@ int main(int argc, const char *argv[]) try
 	init_options_context(&ctx, argc, argv, options);
 	while ((option = get_option(&ctx)) != OPTIONS_DONE) {
 
-		// check for option requirements
+		// check for basic option requirements
 		if (option >= 0) {
 			char req = options[option].ext[0];
 			if (req) {
@@ -340,21 +361,10 @@ int main(int argc, const char *argv[]) try
 					throw string("cannot access device '") + dev[0].serial() + '\'';
 			}
 
-			if (req == 'a') {
-				if (!(dev.selected()->capabilities() & bu0836::CONFIG))
-					throw string("device '") + dev.selected()->serial()
-							+ "' doesn't support axis configuration";
-				if (!selected_axes)
-					throw string("no axes selected for ") + options[option].long_opt + " option";
-			}
-
-			if (req == 'b' || req == 'e')
-				if (!(dev.selected()->capabilities() & bu0836::ENCODER))
-					throw string("device '") + dev.selected()->serial()
-							+ "' doesn't support button/encoder configuration";
-
+			if (req == 'a' && !selected_axes)
+				throw string("no axes selected for ") + options[option].long_opt + " option";
 			if (req == 'b' && !selected_buttons)
-					throw string("no buttons selected for ") + options[option].long_opt + " option";
+				throw string("no buttons selected for ") + options[option].long_opt + " option";
 		}
 
 		switch (option) {
@@ -367,7 +377,7 @@ int main(int argc, const char *argv[]) try
 			if (num == 1)
 				log(INFO) << "selecting device '" << dev.selected()->serial() << '\'' << endl;
 			else if (num)
-				throw string("ambiguous device specifier");
+				throw string("ambiguous device specifier (") + num_to_str<int>(num) + " matching devices found)";
 			else
 				throw string("no matching device found");
 			break;
@@ -383,13 +393,13 @@ int main(int argc, const char *argv[]) try
 
 		case RESET_OPTION:
 			log(INFO) << "resetting configuration to \"factory default\"" << endl;
-			if (dev.selected()->capabilities() & bu0836::CONFIG) {
+			if (dev.selected()->capabilities() & bu0836::INVERT) {
 				for (int i = 0; i < 8; i++) {
 					dev.selected()->set_invert(i, false);
 					dev.selected()->set_zoom(i, 0);
 				}
 			}
-			if (dev.selected()->capabilities() & bu0836::ENCODER) {
+			if (dev.selected()->capabilities() & bu0836::ENCODER1) {
 				for (int i = 0; i < 32; i += 2)
 					dev.selected()->set_encoder_mode(i, 0);
 				dev.selected()->set_pulse_width(6);
@@ -430,6 +440,7 @@ int main(int argc, const char *argv[]) try
 			break;
 
 		case INVERT_OPTION: {
+			require(dev, bu0836::INVERT, "axis configuration");
 			log(INFO) << "setting axes to inverted=" << ctx.argument << endl;
 			string arg = ctx.argument;
 			bool invert;
@@ -446,6 +457,7 @@ int main(int argc, const char *argv[]) try
 		}
 
 		case ZOOM_OPTION: {
+			require(dev, bu0836::ZOOM, "--zoom option (BU0836 or v < 1.18)");
 			string arg = ctx.argument;
 			int zoom = -1;
 			if (arg == "off") {
@@ -466,12 +478,19 @@ int main(int argc, const char *argv[]) try
 			break;
 		}
 
+		case AUTODISCOVERY_OPTION:
+			break;
+
+		case SHUTOFF_OPTION:
+			break;
+
 		case BUTTONS_OPTION:
 			selected_buttons = numlist_to_bitmap(ctx.argument, 31);
 			log(INFO) << "selecting buttons 0x" << hex << selected_buttons << dec << endl;
 			break;
 
 		case ENCODER_OPTION: {
+			require(dev, bu0836::ENCODER1, "encoder configuration");
 			string arg = ctx.argument;
 			int enc;
 			if (arg == "off" || arg == "0")
@@ -483,8 +502,15 @@ int main(int argc, const char *argv[]) try
 			else if (arg == "1:4" || arg == "3")
 				enc = 3;
 			else
-				throw string("invalid argument to --encoder: "
-						"use \"off\"/0, \"1:1\"/1, \"1:2\"/2, or \"1:4\"/3");
+				throw string("invalid argument to --encoder: use \"off\"/0, \"1:1\"/1")
+						+ (dev.selected()->capabilities() & bu0836::ENCODER2
+						? ", \"1:2\"/2, or \"1:4\"/3" : "");
+
+			if (enc == 1)
+				require(dev, bu0836::ENCODER1, "--encoder=1:1 (v < 1.20)");
+			if (enc > 1)
+				require(dev, bu0836::ENCODER2, "--encoder=1:2 and 1:4 (v < 1.21)");
+
 			log(INFO) << "configuring buttons for encoder mode " << enc << endl;
 			for (uint32_t i = 0; i < 31; i++)
 				if (selected_buttons & (1 << i))
@@ -493,6 +519,7 @@ int main(int argc, const char *argv[]) try
 		}
 
 		case PULSEWIDTH_OPTION: {
+			require(dev, bu0836::ENCODER1, "encoder/pulse width configuration");
 			istringstream x(ctx.argument);
 			unsigned int p;
 			x >> p;
