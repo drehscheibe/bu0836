@@ -151,17 +151,33 @@ uint32_t numlist_to_bitmap(const char *list, unsigned int max = 31)
 
 
 
-void list_devices(bu0836::manager& dev)
+void list_devices(bu0836::manager &dev)
 {
 	for (size_t i = 0; i < dev.size(); i++) {
-		const char *marker = &dev[i] == dev.selected() ? " <<" : "";
-		cout << magenta << dev[i].bus_address() << reset
-				<< "\t" << dev[i].manufacturer()
-				<< ", " << dev[i].product()
-				<< ", " << magenta << dev[i].serial() << reset
-				<< ", v" << dev[i].release()
-				<< green << marker << reset
-				<< endl;
+		// find smallest unique ending of the serial number
+		string shared, unique = dev[i].serial();
+		for (int pos = dev[i].serial().size() - 1; pos >= 0; pos--) {
+			size_t num = 0;
+			string sub = dev[i].serial().substr(pos);
+			for (size_t k = 0; k < dev.size(); k++)
+				if (dev[k].serial().substr(dev[k].serial().size() - sub.size()) == sub)
+					num++;
+
+			if (num == 1) {
+				unique = sub;
+				shared = dev[i].serial().substr(0, pos);
+				break;
+			}
+		}
+
+		cout << magenta << dev[i].bus_address() << reset << "\t"
+				<< dev[i].manufacturer() << ", "
+				<< dev[i].product() << ", "
+				<< shared << magenta << unique << reset << ", v"
+				<< dev[i].release();
+		if (&dev[i] == dev.selected())
+			cout << green << "<<" << reset;
+		cout << endl;
 	}
 }
 
