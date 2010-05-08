@@ -79,6 +79,8 @@ extern color bg_white;
 
 
 std::ostream &operator<<(std::ostream &, const color &);
+std::string operator+(const std::string &, int);
+
 int get_log_level();
 void set_log_level(int);
 std::ostream &log(int log_level);

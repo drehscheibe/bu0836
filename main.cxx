@@ -280,12 +280,13 @@ void require(bu0836::manager &dev, int capa, const char *msg)
 
 
 
-template<typename T>
-string num_to_str(T n)
+bool boolify(const string &in)
 {
-	ostringstream x;
-	x << n;
-	return x.str();
+	if (in == "1" || in == "on" || in == "true" || in == "yes")
+		return true;
+	if (in == "0" || in == "off" || in == "false" || in == "no")
+		return false;
+	throw in;
 }
 
 } // namespace
@@ -393,7 +394,7 @@ int main(int argc, const char *argv[]) try
 			if (num == 1)
 				log(INFO) << "selecting device '" << dev.selected()->serial() << '\'' << endl;
 			else if (num)
-				throw string("ambiguous device specifier (") + num_to_str<int>(num) + " matching devices found)";
+				throw string("ambiguous device specifier (") + num + " matching devices found)";
 			else
 				throw string("no matching device found");
 			break;
@@ -581,8 +582,7 @@ int main(int argc, const char *argv[]) try
 			throw string("missing argument for option '") + ctx.option + '\'';
 
 		default:
-			log(ALERT) << "this can't happen: " << option << '/' << ctx.option << endl;
-			return EXIT_FAILURE;
+			throw string("this can't happen (") + option + '/' + ctx.option + ')';
 		}
 	}
 

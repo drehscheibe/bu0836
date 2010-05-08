@@ -88,6 +88,15 @@ ostream &operator<<(ostream &os, const color &c) {
 
 
 
+string operator+(const string &s, int i)
+{
+	ostringstream x;
+	x << i;
+	return s + x.str();
+}
+
+
+
 int get_log_level()
 {
 	return log_level;
