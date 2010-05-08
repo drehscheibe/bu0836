@@ -90,12 +90,21 @@ public:
 	const std::string &jsid() const { return _jsid; }
 	const unsigned char *eeprom() const { return reinterpret_cast<const unsigned char *>(&_eeprom); }
 
+	void set_autodiscovery(bool b) { _eeprom.autodiscovery = b ? 1 : 0, _dirty = true; }
+	bool get_autodiscovery() const { return _eeprom.autodiscovery != 0; }
+
+	void set_shutoff(int axis, bool value) {
+		uint8_t mask = 1 << axis;
+		_eeprom.shutoff = value ? _eeprom.shutoff | mask : _eeprom.shutoff & ~mask;
+		_dirty = true;
+	}
+	bool get_shutoff(int axis) const { return (_eeprom.shutoff & (1 << axis)) != 0; }
+
 	void set_invert(int axis, bool value) {
 		uint8_t mask = 1 << axis;
 		_eeprom.invert = value ? _eeprom.invert | mask : _eeprom.invert & ~mask;
 		_dirty = true;
 	}
-
 	bool get_invert(int axis) const { return (_eeprom.invert & (1 << axis)) != 0; }
 
 	void set_zoom(int axis, unsigned char value) { _eeprom.zoom[axis & 7] = value, _dirty = true; }
@@ -142,14 +151,15 @@ private:
 	bool _dirty;
 
 	struct {
-		uint8_t ___a[11];
-		uint8_t invert;
-		uint8_t ___b[2];
-		uint8_t zoom[8];
-		uint8_t rotenc0[2];
-		uint8_t rotenc1[2];
-		uint8_t pulse;
-		uint8_t ___c[229];
+		uint8_t ___a[11];      // 0x00
+		uint8_t invert;        // 0x0b
+		uint8_t autodiscovery; // 0x0c
+		uint8_t shutoff;       // 0x0d
+		uint8_t zoom[8];       // 0x0e-0x15
+		uint8_t rotenc0[2];    // 0x16
+		uint8_t rotenc1[2];    // 0x18
+		uint8_t pulse;         // 0x1a
+		uint8_t ___b[229];     // 0x1b
 	} _eeprom;
 
 	static const int _INTERFACE = 0;

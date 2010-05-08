@@ -32,6 +32,11 @@ using namespace logging;
 
 namespace {
 
+const int NUM_AXES = 8u;
+const int NUM_BUTTONS = 32u;
+
+
+
 void help(void)
 {
 	//      |---------1---------2---------3---------4---------5---------6---------7---------8
@@ -55,8 +60,10 @@ void help(void)
 	cout << endl;
 	cout << "Axis options:" << endl;
 	cout << "  -a, --axes=LIST          select axes (overrides prior axis selection)" << endl;
-	cout << "  -i, --invert=STRING      set inverted mode (\"on\" and \"off\", or 1 and 0)" << endl;
-	cout << "  -z, --zoom=STRING        set zoom mode/factor (\"on\" (198), \"off\" (0))" << endl;
+	cout << "  -i, --invert=BOOL        set inverted mode on/off" << endl;
+	cout << "  -z, --zoom={NUMBER|BOOL} set zoom factor or mode (\"on\" = 198, \"off\" = 0)" << endl;
+	cout << "  -u, --autodiscovery=BOOL set autodiscovery of axes on/off" << endl;
+	cout << "  -f, --shut-off=BOOL      set shut-off mode to on/off" << endl;
 	cout << endl;
 	cout << "Encoder options:" << endl;
 	cout << "  -b, --buttons=LIST       select buttons (overrides prior button selection)" << endl;
@@ -70,6 +77,8 @@ void help(void)
 	cout << endl << endl;
 	cout << "  LIST is a number or number range, or a list thereof separated by commas," << endl;
 	cout << "       e.g. \"0\" or \"1,3,5\" or \"0-5\" or \"0,2,6-10,30\"" << endl;
+	cout << endl;
+	cout << "  BOOL is one of {1|on|true|yes} or {0|off|false|no}" << endl;
 	cout << endl;
 	cout << "Report bugs to " EMAIL << endl;
 	//      |---------1---------2---------3---------4---------5---------6---------7---------8
@@ -191,15 +200,23 @@ void print_status(bu0836::controller *c)
 		cout << bold << black << "_____________________________ Axes ____________________________"
 				<< reset << endl << endl;
 		cout << "       ";
-		for (int i = 0; i < 8; i++)
+		for (int i = 0; i < NUM_AXES; i++)
 			if (c->active_axes() & (1 << i))
 				cout << bold << "     #" << i << reset;
 			else
 				cout << bold << black << "      " << i << reset;
 		cout << endl;
 
+		cout << "shut off:    ";
+		for (int i = 0; i < NUM_AXES; i++)
+			if (c->get_shutoff(i))
+				cout << red << "X      ";
+			else
+				cout << green << "-      ";
+		cout << reset << endl;
+
 		cout << "inverted:    ";
-		for (int i = 0; i < 8; i++)
+		for (int i = 0; i < NUM_AXES; i++)
 			if (c->get_invert(i))
 				cout << red << "I      ";
 			else
@@ -208,12 +225,15 @@ void print_status(bu0836::controller *c)
 
 		if (c->capabilities() & bu0836::ZOOM) {
 			cout << "zoom:  ";
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < NUM_AXES; i++) {
 				int zoom = c->get_zoom(i);
 				cout << (zoom ? red : green) << setw(7) << zoom;
 			}
 			cout << reset << endl;
 		}
+
+		bool ad = c->get_autodiscovery();
+		cout << endl << "axis autodiscovery: " << (ad ? green : red) << (ad ? "on" : "off") << reset << endl;
 
 		if (c->capabilities() & bu0836::ENCODER1)
 			cout << endl << endl;
@@ -224,22 +244,21 @@ void print_status(bu0836::controller *c)
 		cout << bold << black << "_______________________ Buttons/Encoders ______________________"
 				<< reset << endl << endl;
 		cout << "#00 #01 #02 #03 #04 #05 #06 #07 #08 #09 #10 #11 #12 #13 #14 #15" << endl;
-		for (int i = 0; i < 16; i += 2) {
+		for (int i = 0; i < NUM_BUTTONS / 2; i += 2) {
 			int m = c->get_encoder_mode(i);
 			cout << (m ? red : green) << s[m];
 		}
 		cout << reset << endl << endl;
 
 		cout << "#16 #17 #18 #19 #20 #21 #22 #23 #24 #25 #26 #27 #28 #29 #30 #31" << endl;
-		for (int i = 16; i < 32; i += 2) {
+		for (int i = NUM_BUTTONS / 2; i < NUM_BUTTONS; i += 2) {
 			int m = c->get_encoder_mode(i);
 			cout << (m ? red : green) << s[m];
 		}
 		cout << reset << endl << endl;
 
-		cout << "pulse width: ";
 		int pulse = c->get_pulse_width();
-		cout << (pulse == 6 ? green : red) << pulse * 8 << " ms" << reset << endl;
+		cout << "pulse width: " << (pulse == 6 ? green : red) << pulse * 8 << " ms" << reset << endl;
 	}
 }
 
@@ -358,6 +377,7 @@ int main(int argc, const char *argv[]) try
 	bu0836::manager dev;
 	uint32_t selected_axes = 0;
 	uint32_t selected_buttons = 0;
+	const string boolmsg("bool (one of {1|on|true|yes} or {0|off|false|no})");
 
 	// second pass options
 	init_options_context(&ctx, argc, argv, options);
@@ -410,16 +430,23 @@ int main(int argc, const char *argv[]) try
 
 		case RESET_OPTION:
 			log(INFO) << "resetting configuration to \"factory default\"" << endl;
+			dev.selected()->set_autodiscovery(true);
+
 			if (dev.selected()->capabilities() & bu0836::INVERT) {
-				for (int i = 0; i < 8; i++) {
+				for (int i = 0; i < NUM_AXES; i++) {
 					dev.selected()->set_invert(i, false);
-					dev.selected()->set_zoom(i, 0);
+					dev.selected()->set_shutoff(i, false);
 				}
 			}
+
+			if (dev.selected()->capabilities() & bu0836::ZOOM)
+				for (int i = 0; i < NUM_AXES; i++)
+					dev.selected()->set_zoom(i, 0);
+
 			if (dev.selected()->capabilities() & bu0836::ENCODER1) {
-				for (int i = 0; i < 32; i += 2)
-					dev.selected()->set_encoder_mode(i, 0);
 				dev.selected()->set_pulse_width(6);
+				for (int i = 0; i < NUM_BUTTONS; i += 2)
+					dev.selected()->set_encoder_mode(i, 0);
 			}
 			break;
 
@@ -458,48 +485,65 @@ int main(int argc, const char *argv[]) try
 
 		case INVERT_OPTION: {
 			require(dev, bu0836::INVERT, "axis configuration");
+			bool onoff;
+			try {
+				onoff = boolify(ctx.argument);
+			} catch (...) {
+				throw string("--invert expects a ") + boolmsg;
+			}
 			log(INFO) << "setting axes to inverted=" << ctx.argument << endl;
-			string arg = ctx.argument;
-			bool invert;
-			if (arg == "0" || arg == "off")
-				invert = false;
-			else if (arg == "1" || arg == "on")
-				invert = true;
-			else
-				throw string("invalid argument to --invert: use \"on\"/1 or \"off\"/0");
-			for (uint32_t i = 0; i < 8; i++)
+			for (int i = 0; i < NUM_AXES; i++)
 				if (selected_axes & (1 << i))
-					dev.selected()->set_invert(i, invert);
+					dev.selected()->set_invert(i, onoff);
 			break;
 		}
 
 		case ZOOM_OPTION: {
 			require(dev, bu0836::ZOOM, "--zoom option (BU0836 or v < 1.18)");
-			string arg = ctx.argument;
-			int zoom = -1;
-			if (arg == "off") {
-				zoom = 0;
-			} else if (arg == "on") {
-				zoom = 198;
-			} else {
-				istringstream x(ctx.argument);
-				x >> zoom;
-				if (x.fail() || !x.eof() || zoom < 0 || zoom > 255)
-					throw string("invalid argument to --zoom: use \"on\"/198, \"off\"/0, "
-							"or number in range 0-255");
+			istringstream x(ctx.argument);
+			int zoom;
+			x >> zoom;
+			try {
+				if (x.fail())
+					zoom = boolify(ctx.argument) ? 198 : 0;
+				else if (!x.eof() || zoom < 0 || zoom > 255)
+					throw;
+			} catch (...) {
+				throw string("invalid argument to --zoom: use \"on\"/198, \"off\"/0, "
+						"or number in range 0-255");
 			}
 			log(INFO) << "setting axes to zoom=" << zoom << endl;
-			for (uint32_t i = 0; i < 8; i++)
+			for (int i = 0; i < NUM_AXES; i++)
 				if (selected_axes & (1 << i))
 					dev.selected()->set_zoom(i, zoom);
 			break;
 		}
 
-		case AUTODISCOVERY_OPTION:
+		case AUTODISCOVERY_OPTION: {
+			bool onoff;
+			try {
+				onoff = boolify(ctx.argument);
+			} catch (...) {
+				throw string("--autodiscovery expects a ") + boolmsg;
+			}
+			log(INFO) << "setting autodiscovery to " << onoff << endl;
+			dev.selected()->set_autodiscovery(onoff);
 			break;
+		}
 
-		case SHUTOFF_OPTION:
+		case SHUTOFF_OPTION: {
+			bool onoff;
+			try {
+				onoff = boolify(ctx.argument);
+			} catch (...) {
+				throw string("--shut-off expects a ") + boolmsg;
+			}
+			log(INFO) << "setting axes to shutoff=" << onoff << endl;
+			for (int i = 0; i < NUM_AXES; i++)
+				if (selected_axes & (1 << i))
+					dev.selected()->set_shutoff(i, onoff);
 			break;
+		}
 
 		case BUTTONS_OPTION:
 			selected_buttons = numlist_to_bitmap(ctx.argument, 31);
@@ -529,7 +573,7 @@ int main(int argc, const char *argv[]) try
 				require(dev, bu0836::ENCODER2, "--encoder=1:2 and 1:4 (v < 1.21)");
 
 			log(INFO) << "configuring buttons for encoder mode " << enc << endl;
-			for (uint32_t i = 0; i < 31; i++)
+			for (int i = 0; i < 31; i++)
 				if (selected_buttons & (1 << i))
 					dev.selected()->set_encoder_mode(i, enc);
 			break;
