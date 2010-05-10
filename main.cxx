@@ -299,13 +299,13 @@ void require(bu0836::manager &dev, int capa, const char *msg)
 
 
 
-bool boolify(const string &in)
+bool boolify(const string &in, const string &err = "bool expected")
 {
 	if (in == "1" || in == "on" || in == "true" || in == "yes")
 		return true;
 	if (in == "0" || in == "off" || in == "false" || in == "no")
 		return false;
-	throw in;
+	throw err;
 }
 
 } // namespace
@@ -377,7 +377,7 @@ int main(int argc, const char *argv[]) try
 	bu0836::manager dev;
 	uint32_t selected_axes = 0;
 	uint32_t selected_buttons = 0;
-	const string boolmsg("bool (one of {1|on|true|yes} or {0|off|false|no})");
+	const char *boolmsg = "bool (one of {1|on|true|yes} or {0|off|false|no})";
 
 	// second pass options
 	init_options_context(&ctx, argc, argv, options);
@@ -485,16 +485,11 @@ int main(int argc, const char *argv[]) try
 
 		case INVERT_OPTION: {
 			require(dev, bu0836::INVERT, "axis configuration");
-			bool onoff;
-			try {
-				onoff = boolify(ctx.argument);
-			} catch (...) {
-				throw string("--invert expects a ") + boolmsg;
-			}
+			bool b = boolify(ctx.argument, string("--invert expects a ") + boolmsg);
 			log(INFO) << "setting axes to inverted=" << ctx.argument << endl;
 			for (int i = 0; i < NUM_AXES; i++)
 				if (selected_axes & (1 << i))
-					dev.selected()->set_invert(i, onoff);
+					dev.selected()->set_invert(i, b);
 			break;
 		}
 
@@ -507,7 +502,7 @@ int main(int argc, const char *argv[]) try
 				if (x.fail())
 					zoom = boolify(ctx.argument) ? 198 : 0;
 				else if (!x.eof() || zoom < 0 || zoom > 255)
-					throw;
+					throw zoom;
 			} catch (...) {
 				throw string("invalid argument to --zoom: use \"on\"/198, \"off\"/0, "
 						"or number in range 0-255");
@@ -520,28 +515,18 @@ int main(int argc, const char *argv[]) try
 		}
 
 		case AUTODISCOVERY_OPTION: {
-			bool onoff;
-			try {
-				onoff = boolify(ctx.argument);
-			} catch (...) {
-				throw string("--autodiscovery expects a ") + boolmsg;
-			}
-			log(INFO) << "setting autodiscovery to " << onoff << endl;
-			dev.selected()->set_autodiscovery(onoff);
+			bool b = boolify(ctx.argument, string("--autodiscovery expects a ") + boolmsg);
+			log(INFO) << "setting autodiscovery to " << b << endl;
+			dev.selected()->set_autodiscovery(b);
 			break;
 		}
 
 		case SHUTOFF_OPTION: {
-			bool onoff;
-			try {
-				onoff = boolify(ctx.argument);
-			} catch (...) {
-				throw string("--shut-off expects a ") + boolmsg;
-			}
-			log(INFO) << "setting axes to shutoff=" << onoff << endl;
+			bool b = boolify(ctx.argument, string("--shut-off expects a ") + boolmsg);
+			log(INFO) << "setting axes to shutoff=" << b << endl;
 			for (int i = 0; i < NUM_AXES; i++)
 				if (selected_axes & (1 << i))
-					dev.selected()->set_shutoff(i, onoff);
+					dev.selected()->set_shutoff(i, b);
 			break;
 		}
 
