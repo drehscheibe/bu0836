@@ -71,8 +71,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 		strncpy(path + 17, files[n]->d_name, PATH_MAX - 17);
 
 		struct stat st;
-		int ret = stat(path, &st);
-		if (ret < 0) {
+		if (stat(path, &st) < 0) {
 			perror("stat");
 			continue;
 		}
@@ -102,13 +101,11 @@ void __attribute__((constructor)) js_preload_begin(void)
 
 void __attribute__((destructor)) js_preload_end(void)
 {
-	if (!joysticks)
-		return;
-
-	for (struct jsinfo *js = joysticks; js->name; js++)
-		free(js->name);
-
-	free(joysticks);
+	if (joysticks) {
+		for (struct jsinfo *js = joysticks; js->name; js++)
+			free(js->name);
+		free(joysticks);
+	}
 }
 
 
