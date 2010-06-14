@@ -40,7 +40,7 @@ struct jsinfo {
 
 int is_joystick_file(const struct dirent *d)
 {
-	int len = strlen(d->d_name);
+	size_t len = strlen(d->d_name);
 	if (len < 13 || strncmp(d->d_name, "usb-", 4) || strcmp(d->d_name + len - 9, "-joystick"))
 		return 0;
 	if (len > 15 && !strcmp(d->d_name + len - 15, "-event-joystick"))
@@ -133,7 +133,10 @@ int ioctl(int fd, unsigned long int request, void *data)
 		int size = _IOC_SIZE(request);
 
 		struct stat st;
-		fstat(fd, &st); // FIXME retval
+		if (fstat(fd, &st) < 0) {
+			perror("fstat");
+			goto out;
+		}
 #ifdef DEBUG
 		fprintf(stderr, "JSIOCGNAME(%d) = '%s' %ld:%ld <- %d\n", size,
 				(char *)data, (long)st.st_dev, (long)st.st_ino, ret);
@@ -141,7 +144,7 @@ int ioctl(int fd, unsigned long int request, void *data)
 
 		for (struct jsinfo *js = joysticks; js->name; js++) {
 			if (js->dev == st.st_dev && js->ino == st.st_ino) {
-				size_t len = strlen(js->name);  // FIXME size_t
+				size_t len = strlen(js->name);
 				if (len + 1 > size)
 					return -EFAULT;
 
@@ -150,5 +153,7 @@ int ioctl(int fd, unsigned long int request, void *data)
 			}
 		}
 	}
+
+out:
 	return ret;
 }
