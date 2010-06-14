@@ -50,7 +50,7 @@ int is_joystick_file(const struct dirent *d)
 
 
 
-void __attribute__((constructor)) js_preload_start(void)
+void __attribute__((constructor)) js_preload_begin(void)
 {
 	struct dirent **files;
 	int n = scandir("/dev/input/by-id/", &files, is_joystick_file, alphasort);
@@ -121,7 +121,7 @@ int ioctl(int fd, unsigned long int request, void *data)
 		dlerror();
 		_ioctl = dlsym(RTLD_NEXT, "ioctl");
 		char *error = dlerror();
-		if (error != NULL) {
+		if (error) {
 			fprintf(stderr, "%s\n", error);
 			exit(1);
 		}
@@ -129,14 +129,14 @@ int ioctl(int fd, unsigned long int request, void *data)
 
 	int ret = _ioctl(fd, request, data);
 
-	if (joysticks && _IOC_DIR(request) == _IOC_READ && _IOC_TYPE(request) == 'j' && _IOC_NR(request) == 0x13) {
-		int size = _IOC_SIZE(request);
-
+	if ((request & ~IOCSIZE_MASK) == _IOC(_IOC_READ, 'j', 0x13, 0)) {
 		struct stat st;
 		if (fstat(fd, &st) < 0) {
 			perror("fstat");
 			goto out;
 		}
+
+		int size = _IOC_SIZE(request);
 #ifdef DEBUG
 		fprintf(stderr, "JSIOCGNAME(%d) = '%s' %ld:%ld <- %d\n", size,
 				(char *)data, (long)st.st_dev, (long)st.st_ino, ret);
