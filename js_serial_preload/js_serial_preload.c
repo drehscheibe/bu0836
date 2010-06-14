@@ -141,15 +141,14 @@ int ioctl(int fd, unsigned long int request, void *data)
 		fprintf(stderr, "JSIOCGNAME(%d) = '%s' %ld:%ld <- %d\n", size,
 				(char *)data, (long)st.st_dev, (long)st.st_ino, ret);
 #endif
-
 		for (struct jsinfo *js = joysticks; js->name; js++) {
 			if (js->dev == st.st_dev && js->ino == st.st_ino) {
-				size_t len = strlen(js->name);
-				if (len + 1 > size)
+				ret = (int)strlen(js->name) + 1;
+				if (ret > size)
 					return -EFAULT;
 
 				strcpy(data, js->name);
-				return len + 1;
+				break;
 			}
 		}
 	}
