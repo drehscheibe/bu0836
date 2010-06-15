@@ -57,9 +57,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 		return;
 	}
 
-	// empty entry as stop condition
-	joysticks = (struct jsinfo *)calloc(sizeof(struct jsinfo), n + 1);
-	if (!joysticks) {
+	if ((joysticks = (struct jsinfo *)calloc(sizeof(struct jsinfo), n + 1)) == NULL) {
 		perror("calloc");
 		return;
 	}
@@ -69,28 +67,29 @@ void __attribute__((constructor)) js_preload_begin(void)
 		strncpy(path + 17, files[n]->d_name, PATH_MAX - 17);
 
 		struct stat st;
-		if (stat(path, &st) < 0) {
-			perror("stat");
-			continue;
-		}
+		if (stat(path, &st) == 0) {
+			joysticks[i].dev = st.st_dev;
+			joysticks[i].ino = st.st_ino;
 
-		// extract name from by-id link name
-		size_t len = strlen(files[n]->d_name);
-		joysticks[i].name = (char *)malloc(len - 12);
-		strncpy(joysticks[i].name, files[n]->d_name + 4, len - 13);
-		joysticks[i].name[len - 13] = '\0';
-		joysticks[i].dev = st.st_dev;
-		joysticks[i].ino = st.st_ino;
+			// extract name from by-id link name
+			size_t len = strlen(files[n]->d_name);
+			joysticks[i].name = (char *)malloc(len - 12);
+			strncpy(joysticks[i].name, files[n]->d_name + 4, len - 13);
+			joysticks[i].name[len - 13] = '\0';
 
-		char *s;
-		while ((s = index(joysticks[i].name, '_')) != NULL)
-			*s = ' ';
+			char *s;
+			while ((s = index(joysticks[i].name, '_')) != NULL)
+				*s = ' ';
 #ifdef DEBUG
-		fprintf(stderr, "JS '%s' -> '%s' (%ld:%ld)\n", path, joysticks[i].name,
-				(long)st.st_dev, (long)st.st_ino);
+			fprintf(stderr, "JS '%s' -> '%s' (%ld:%ld)\n", path, joysticks[i].name,
+					(long)st.st_dev, (long)st.st_ino);
 #endif
+			i++;
+
+		} else {
+			perror("stat");
+		}
 		free(files[n]);
-		i++;
 	}
 	free(files);
 }
@@ -147,6 +146,5 @@ int ioctl(int fd, unsigned long int request, void *data)
 			break;
 		}
 	}
-
 	return ret;
 }
