@@ -125,7 +125,7 @@ int ioctl(int fd, unsigned long int request, void *data)
 	}
 
 	int ret = _ioctl(fd, request, data);
-	if ((request & ~IOCSIZE_MASK) != _IOC(_IOC_READ, 'j', 0x13, 0))
+	if (!joysticks || (request & ~IOCSIZE_MASK) != _IOC(_IOC_READ, 'j', 0x13, 0))
 		return ret;
 
 	struct stat st;
