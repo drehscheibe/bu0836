@@ -24,7 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
+
+
+
+int get_js_name(const char *path, char *dest);
 
 
 
@@ -65,31 +68,37 @@ void __attribute__((constructor)) js_preload_begin(void)
 	char path[PATH_MAX] = "/dev/input/by-id/"; // 17 bytes
 	for (int i = 0; n--; ) {
 		strncpy(path + 17, files[n]->d_name, PATH_MAX - 17);
+		path[PATH_MAX - 1] = '\0';
+		free(files[n]);
 
 		struct stat st;
-		if (stat(path, &st) == 0) {
-			joysticks[i].dev = st.st_dev;
-			joysticks[i].ino = st.st_ino;
-
-			// extract name from by-id link name
-			size_t len = strlen(files[n]->d_name);
-			joysticks[i].name = (char *)malloc(len - 12);
-			strncpy(joysticks[i].name, files[n]->d_name + 4, len - 13);
-			joysticks[i].name[len - 13] = '\0';
-
-			char *s;
-			while ((s = index(joysticks[i].name, '_')) != NULL)
-				*s = ' ';
-#ifdef DEBUG
-			fprintf(stderr, "JS '%s' -> '%s' (%ld:%ld)\n", path, joysticks[i].name,
-					(long)st.st_dev, (long)st.st_ino);
-#endif
-			i++;
-
-		} else {
+		if (stat(path, &st) < 0) {
 			perror("stat");
+			continue;
 		}
-		free(files[n]);
+
+		joysticks[i].dev = st.st_dev;
+		joysticks[i].ino = st.st_ino;
+
+		size_t len = strlen(path) - 9;
+		strncpy(path + len, "-event-joystick", PATH_MAX - len);
+		path[PATH_MAX - 1] = '\0';
+
+		char name[512];
+		if (get_js_name(path, name))
+			continue;
+
+		if ((joysticks[i].name = (char *)malloc(strlen(name) + 1)) == NULL) {
+			perror("malloc");
+			continue;
+		}
+
+		strcpy(joysticks[i].name, name);
+		i++;
+#ifdef DEBUG
+		fprintf(stderr, "JS '%s' -> '%s'(%d) [%ld:%ld]\n", path, name,
+				(int)strlen(name) + 1, (long)st.st_dev, (long)st.st_ino);
+#endif
 	}
 	free(files);
 }
@@ -107,9 +116,9 @@ void __attribute__((destructor)) js_preload_end(void)
 
 
 
-int ioctl(int fd, unsigned long int request, void *data)
+int ioctl(int fd, unsigned long request, void *data)
 {
-	static int (*_ioctl)(int fd, unsigned long int request, void *data) = NULL;
+	static int (*_ioctl)(int fd, unsigned long request, void *data) = NULL;
 
 	if (!_ioctl) {
 		dlerror();
@@ -133,8 +142,8 @@ int ioctl(int fd, unsigned long int request, void *data)
 
 	int size = _IOC_SIZE(request);
 #ifdef DEBUG
-	fprintf(stderr, "JSIOCGNAME(%d) = '%s' (%ld:%ld) <- %d\n", size,
-			(char *)data, (long)st.st_dev, (long)st.st_ino, ret);
+	fprintf(stderr, "JSIOCGNAME(%d) = '%s'(%d) [%ld:%ld]\n", size,
+			(char *)data, ret, (long)st.st_dev, (long)st.st_ino);
 #endif
 	for (struct jsinfo *js = joysticks; js->name; js++) {
 		if (js->dev == st.st_dev && js->ino == st.st_ino) {
