@@ -125,31 +125,30 @@ int ioctl(int fd, unsigned long int request, void *data)
 	}
 
 	int ret = _ioctl(fd, request, data);
+	if ((request & ~IOCSIZE_MASK) != _IOC(_IOC_READ, 'j', 0x13, 0))
+		return ret;
 
-	if ((request & ~IOCSIZE_MASK) == _IOC(_IOC_READ, 'j', 0x13, 0)) {
-		struct stat st;
-		if (fstat(fd, &st) < 0) {
-			perror("fstat");
-			goto out;
-		}
+	struct stat st;
+	if (fstat(fd, &st) < 0) {
+		perror("fstat");
+		return ret;
+	}
 
-		int size = _IOC_SIZE(request);
+	int size = _IOC_SIZE(request);
 #ifdef DEBUG
-		fprintf(stderr, "JSIOCGNAME(%d) = '%s' %ld:%ld <- %d\n", size,
-				(char *)data, (long)st.st_dev, (long)st.st_ino, ret);
+	fprintf(stderr, "JSIOCGNAME(%d) = '%s' (%ld:%ld) <- %d\n", size,
+			(char *)data, (long)st.st_dev, (long)st.st_ino, ret);
 #endif
-		for (struct jsinfo *js = joysticks; js->name; js++) {
-			if (js->dev == st.st_dev && js->ino == st.st_ino) {
-				ret = (int)strlen(js->name) + 1;
-				if (ret > size)
-					return -EFAULT;
+	for (struct jsinfo *js = joysticks; js->name; js++) {
+		if (js->dev == st.st_dev && js->ino == st.st_ino) {
+			ret = (int)strlen(js->name) + 1;
+			if (ret > size)
+				return -EFAULT;
 
-				strcpy(data, js->name);
-				break;
-			}
+			strcpy(data, js->name);
+			break;
 		}
 	}
 
-out:
 	return ret;
 }
