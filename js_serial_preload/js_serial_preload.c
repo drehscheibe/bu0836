@@ -29,6 +29,16 @@
 
 
 
+// Note: macros JSIOCGNAME(), EVIOCGNAME() and EVIOCGUNIQ() can't be used from
+//       <linux/joystick.h> and <linux/input.h>, because either pulls in <sys/ioctl.h>,
+//       whose ioctl() prototype doesn't have a data argument and clashes with our function.
+
+#define JSIOCGNAME(len) _IOC(_IOC_READ, 'j', 0x13, len) // get identifier string
+#define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len) // get device name
+#define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
+
+
+
 int get_js_name(const char *path, char *dest);
 
 
@@ -133,7 +143,7 @@ int ioctl(int fd, unsigned long request, void *data)
 	}
 
 	int ret = _ioctl(fd, request, data);
-	if (!joysticks || (request & ~IOCSIZE_MASK) != _IOC(_IOC_READ, 'j', 0x13, 0))
+	if (!joysticks || (request & ~IOCSIZE_MASK) != JSIOCGNAME(0))
 		return ret;
 
 	struct stat st;
@@ -174,11 +184,11 @@ int get_js_name(const char *path, char *dest)
 	int ret = 0;
 	char name[256], uniq[256];
 
-	if (ioctl(fd, _IOC(_IOC_READ, 'E', 0x06, 256), name) < 0) {
+	if (ioctl(fd, EVIOCGNAME(256), name) < 0) {
 		perror("ioctl/EVIOCGNAME");
 		ret = -2;
 
-	} else if (ioctl(fd, _IOC(_IOC_READ, 'E', 0x08, 256), uniq) < 0) {
+	} else if (ioctl(fd, EVIOCGUNIQ(256), uniq) < 0) {
 		perror("ioctl/EVIOCGUNIQ");
 		ret = -3;
 
