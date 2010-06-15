@@ -37,4 +37,4 @@ install:
 	$(INSTALL) --strip --mode 755 js_serial_preload.so $(DESTDIR)$(PREFIX)/lib
 
 help:
-	@echo "targets: all debug check clean install help"
+	@echo "targets: all debug check vg test fg clean install help"

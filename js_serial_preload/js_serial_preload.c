@@ -28,7 +28,7 @@
 #include <unistd.h>
 
 // These macros can't be used from <linux/joystick.h> and <linux/input.h>, because
-// those pull in <sys/ioctl.h>, whose ioctl() prototype doesn't have a data argument.
+// those pull in <sys/ioctl.h>, whose ioctl() prototype conflicts with ours.
 
 #define JSIOCGNAME(len) _IOC(_IOC_READ, 'j', 0x13, len) // get identifier string
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len) // get device name
@@ -36,6 +36,7 @@
 
 
 char *get_js_id(const char *path);
+
 
 
 struct jsinfo {

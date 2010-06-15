@@ -1,0 +1,39 @@
+js_serial_preload.so is a library that is meant to be preloaded using the LD_PRELOAD
+environment variable. It then wraps libc's ioctl() function, catches all JSIOCGNAME
+requests, and supplies a unique joystick device identifier instead of the generic
+product name. Here's an example without using js_serial_preload.so:
+
+  $ js_demo|head -5|tail -3            # js_demo comes with the FlightGear simulator
+  Joystick 0: "SAITEK CYBORG 3D USB"
+  Joystick 1: "Leo Bodnar BU0836A Interface"
+  Joystick 2: "Leo Bodnar BU0836A Interface"
+
+As you can imagine, these joystick names aren't overly useful for an application
+that needs to assign particular functions to each of the joysticks. One of the two
+BU0836A might be DIY pedals driving the simulator's tail rotor, while the other
+might be driving cyclic trim. But which is which? Well, bad luck with that. The Linux
+input drivers don't support actually identifying joystick devices. They only offer
+the product's marketing names. Now the same example using the preload library:
+
+  $ LD_PRELOAD=/usr/local/lib/js_serial_preload.so  js_demo|head -5|tail -3
+  Joystick 0: "SAITEK CYBORG 3D USB"
+  Joystick 1: "Leo Bodnar BU0836A Interface A12100"
+  Joystick 2: "Leo Bodnar BU0836A Interface A12107"
+
+Now the devices' serial numbers are added if available. The Saitek Cyborg doesn't
+have one, like most joysticks -- so nothing changes for them. But the BU0836A
+circuit boards can now be distinguished by any software which reads out the
+joystick identifier with JSIOCGNAME.
+
+
+The preload environment variable can be set in ~/.profilerc -- the overhead is
+minimal. It's still preferable, though, to limit it to the few applications that
+actually need it. For this it's best to write shell functions:
+
+  fgfs() { LD_PRELOAD=/usr/local/lib/js_serial_preload.so /usr/local/bin/fgfs "$@"; }
+
+or wrapper scripts:
+
+  #!/bin/bash
+  LD_PRELOAD=/usr/local/lib/js_serial_preload.so  exec /usr/local/bin/fgfs "$@"
+
