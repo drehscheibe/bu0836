@@ -35,8 +35,9 @@ int get_js_name(const char *path, char *dest)
 
 	int ret = 0;
 	char name[256], uniq[256];
+
 	if (ioctl(fd, EVIOCGNAME(256), name) < 0) {
-		perror("ioctl/EVIOCGUNIQ");
+		perror("ioctl/EVIOCGNAME");
 		ret = -2;
  	} else if (ioctl(fd, EVIOCGUNIQ(256), uniq) < 0) {
 		perror("ioctl/EVIOCGUNIQ");
