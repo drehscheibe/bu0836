@@ -19,11 +19,13 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <linux/ioctl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 
 
@@ -155,5 +157,37 @@ int ioctl(int fd, unsigned long request, void *data)
 			break;
 		}
 	}
+	return ret;
+}
+
+
+
+// dest must be of at least size 512
+int get_js_name(const char *path, char *dest)
+{
+	int fd = open(path, O_NONBLOCK);
+	if (fd < 0) {
+		perror("open");
+		return -1;
+	}
+
+	int ret = 0;
+	char name[256], uniq[256];
+
+	if (ioctl(fd, _IOC(_IOC_READ, 'E', 0x06, 256), name) < 0) {
+		perror("ioctl/EVIOCGNAME");
+		ret = -2;
+ 	} else if (ioctl(fd, _IOC(_IOC_READ, 'E', 0x08, 256), uniq) < 0) {
+		perror("ioctl/EVIOCGUNIQ");
+		ret = -3;
+	} else {
+		strcpy(dest, name);
+		if (name[0] && uniq[0])
+			strcat(dest, " ");
+		strcat(dest, uniq);
+	}
+
+	if (close(fd) < 0)
+		perror("close");
 	return ret;
 }
