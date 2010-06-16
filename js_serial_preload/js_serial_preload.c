@@ -18,9 +18,9 @@
 //
 #include <dirent.h>
 #include <dlfcn.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <linux/ioctl.h>
+#include <linux/major.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,8 +34,6 @@
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len) // get device name
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
-#define IS_JOYDEV(s) ((s).st_mode & S_IFCHR && major((s).st_rdev) == 13 && minor((s).st_rdev) < 32)
-
 
 char *get_js_id(const char *path);
 
@@ -45,6 +43,22 @@ struct jsinfo {
 	unsigned num;
 	char *name;
 } *joysticks = NULL;
+
+
+
+int is_joydev(struct stat *s)
+{
+	if (!(s->st_mode & S_IFCHR))
+		return 0;
+
+	unsigned maj = major(s->st_rdev);
+	unsigned min = minor(s->st_rdev);
+	if (maj == INPUT_MAJOR && min < 32)
+		return 1;
+	if (maj == JOYSTICK_MAJOR)
+		return 1;
+	return 0;
+}
 
 
 
@@ -86,7 +100,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 			continue;
 		}
 
-		if (!IS_JOYDEV(st))
+		if (!is_joydev(&st))
 			continue;
 
 		joysticks[i].num = minor(st.st_rdev);
@@ -128,7 +142,7 @@ int ioctl(int fd, unsigned long request, void *data)
 		_ioctl = dlsym(RTLD_NEXT, "ioctl");
 		char *error = dlerror();
 		if (error) {
-			fprintf(stderr, "%s\n", error);
+			fprintf(stderr, __FILE__": %s\n", error);
 			exit(1);
 		}
 	}
@@ -143,7 +157,7 @@ int ioctl(int fd, unsigned long request, void *data)
 		return ret;
 	}
 
-	if (!IS_JOYDEV(st))
+	if (!is_joydev(&st))
 		return ret;
 
 	int size = _IOC_SIZE(request);
@@ -153,11 +167,11 @@ int ioctl(int fd, unsigned long request, void *data)
 #endif
 	for (struct jsinfo *js = joysticks; js->name; js++) {
 		if (js->num == num) {
-			ret = (int)strlen(js->name) + 1;
-			if (ret > size)
-				return -EFAULT;
-
-			strcpy(data, js->name);
+			int len = (int)strlen(js->name);
+			if (len < size) {
+				strcpy(data, js->name);
+				ret = ++len;
+			}
 			break;
 		}
 	}
