@@ -40,25 +40,25 @@ char *get_js_id(const char *path);
 
 
 struct jsinfo {
-	unsigned num;
+	int num;
 	char *name;
 } *joysticks = NULL;
 
 
 
-int is_joydev(const struct stat *s)
+int joystick_device(const struct stat *s)
 {
 	if (!(s->st_mode & S_IFCHR))
-		return 0;
+		return -1;
 
-	unsigned maj = major(s->st_rdev);
-	unsigned min = minor(s->st_rdev);
+	int maj = major(s->st_rdev);
+	int min = minor(s->st_rdev);
 
 	if (maj == INPUT_MAJOR && min < 32)
-		return 1;
+		return min;
 	if (maj == JOYSTICK_MAJOR)
-		return 1;
-	return 0;
+		return min;
+	return -1;
 }
 
 
@@ -101,10 +101,8 @@ void __attribute__((constructor)) js_preload_begin(void)
 			continue;
 		}
 
-		if (!is_joydev(&st))
+		if ((joysticks[i].num = joystick_device(&st)) < 0)
 			continue;
-
-		joysticks[i].num = minor(st.st_rdev);
 
 		size_t len = strlen(path) - 9;
 		strncpy(path + len, "-event-joystick", PATH_MAX - len);
@@ -158,11 +156,10 @@ int ioctl(int fd, unsigned long request, void *data)
 		return ret;
 	}
 
-	if (!is_joydev(&st))
+	int size = _IOC_SIZE(request), num;
+	if ((num = joystick_device(&st)) < 0)
 		return ret;
 
-	int size = _IOC_SIZE(request);
-	unsigned num = minor(st.st_rdev);
 #ifdef DEBUG
 	fprintf(stderr, "JSIOCGNAME(%d) = #%02u '%s'(%d)\n", size, num, (char *)data, ret);
 #endif
