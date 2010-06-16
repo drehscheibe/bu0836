@@ -46,13 +46,14 @@ struct jsinfo {
 
 
 
-int is_joydev(struct stat *s)
+int is_joydev(const struct stat *s)
 {
 	if (!(s->st_mode & S_IFCHR))
 		return 0;
 
 	unsigned maj = major(s->st_rdev);
 	unsigned min = minor(s->st_rdev);
+
 	if (maj == INPUT_MAJOR && min < 32)
 		return 1;
 	if (maj == JOYSTICK_MAJOR)
