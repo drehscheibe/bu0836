@@ -19,7 +19,7 @@ fg: js_serial_preload
 	LD_PRELOAD=js_serial_preload.so /usr/local/bin/fgfs --config=$$HOME/.fgfs/preferences.xml
 
 js_serial_preload: Makefile js_serial_preload.o
-	gcc $(CFLAGS) -rdynamic -shared -o js_serial_preload.so js_serial_preload.o -ldl
+	gcc $(LDFLAGS) -rdynamic -shared -o js_serial_preload.so js_serial_preload.o -ldl
 
 js_serial_preload.o: Makefile js_serial_preload.c
 	gcc $(CFLAGS) -std=c99 -Wall -fPIC -D_GNU_SOURCE -c js_serial_preload.c

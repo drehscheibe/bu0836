@@ -23,12 +23,12 @@ the product's marketing names. Now the same example using the preload library:
 Now the devices' serial numbers are added if available. The Saitek Cyborg doesn't
 have one, like most joysticks -- so nothing changes for them. But the BU0836A
 circuit boards can now be distinguished by any software which reads out the
-joystick identifier with JSIOCGNAME.
+joystick identifier using JSIOCGNAME.
 
 
 The preload environment variable can be set in ~/.profilerc -- the overhead is
 minimal. It's still preferable, though, to limit it to the few applications that
-actually need it. For this it's best to write shell functions:
+actually need it. For this it's best to write shell wrapper functions:
 
   fgfs() { LD_PRELOAD=/usr/local/lib/js_serial_preload.so /usr/local/bin/fgfs "$@"; }
 

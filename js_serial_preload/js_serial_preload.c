@@ -34,14 +34,15 @@
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len) // get device name
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
+#define IS_JOYDEV(s) ((s).st_mode & S_IFCHR && major((s).st_rdev) == 13 && minor((s).st_rdev) < 32)
+
 
 char *get_js_id(const char *path);
 
 
 
 struct jsinfo {
-	dev_t dev;
-	ino_t ino;
+	unsigned num;
 	char *name;
 } *joysticks = NULL;
 
@@ -85,8 +86,10 @@ void __attribute__((constructor)) js_preload_begin(void)
 			continue;
 		}
 
-		joysticks[i].dev = st.st_dev;
-		joysticks[i].ino = st.st_ino;
+		if (!IS_JOYDEV(st))
+			continue;
+
+		joysticks[i].num = minor(st.st_rdev);
 
 		size_t len = strlen(path) - 9;
 		strncpy(path + len, "-event-joystick", PATH_MAX - len);
@@ -95,8 +98,8 @@ void __attribute__((constructor)) js_preload_begin(void)
 		if ((joysticks[i].name = get_js_id(path)) == NULL)
 			continue;
 #ifdef DEBUG
-		fprintf(stderr, "JS '%s' -> '%s'(%d) [%ld:%ld]\n", path, joysticks[i].name,
-				(int)strlen(joysticks[i].name) + 1, (long)st.st_dev, (long)st.st_ino);
+		fprintf(stderr, "JS '%s'  ->  #%02u '%s'(%d)\n", path, joysticks[i].num,
+				joysticks[i].name, (int)strlen(joysticks[i].name) + 1);
 #endif
 		i++;
 	}
@@ -140,13 +143,16 @@ int ioctl(int fd, unsigned long request, void *data)
 		return ret;
 	}
 
+	if (!IS_JOYDEV(st))
+		return ret;
+
 	int size = _IOC_SIZE(request);
+	unsigned num = minor(st.st_rdev);
 #ifdef DEBUG
-	fprintf(stderr, "JSIOCGNAME(%d) = '%s'(%d) [%ld:%ld]\n", size,
-			(char *)data, ret, (long)st.st_dev, (long)st.st_ino);
+	fprintf(stderr, "JSIOCGNAME(%d) = #%02u '%s'(%d)\n", size, num, (char *)data, ret);
 #endif
 	for (struct jsinfo *js = joysticks; js->name; js++) {
-		if (js->dev == st.st_dev && js->ino == st.st_ino) {
+		if (js->num == num) {
 			ret = (int)strlen(js->name) + 1;
 			if (ret > size)
 				return -EFAULT;
@@ -170,10 +176,10 @@ char *get_js_id(const char *path)
 
 	char name[256], uniq[256], *id = NULL;
 
-	if (ioctl(fd, EVIOCGNAME(256), name) < 0) {
+	if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) < 0) {
 		perror("ioctl/EVIOCGNAME");
 
-	} else if (ioctl(fd, EVIOCGUNIQ(256), uniq) < 0) {
+	} else if (ioctl(fd, EVIOCGUNIQ(sizeof(uniq)), uniq) < 0) {
 		perror("ioctl/EVIOCGUNIQ");
 
 	} else if ((id = (char *)malloc(strlen(name) + strlen(uniq) + 2)) == NULL) {
