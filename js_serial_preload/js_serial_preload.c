@@ -183,7 +183,7 @@ int ioctl(int fd, unsigned long request, void *data)
 
 char *get_js_id(const char *path)
 {
-	int fd = open(path, O_NONBLOCK);
+	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
 		perror("open");
 		return NULL;
