@@ -35,7 +35,7 @@
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
 
-char *get_js_id(const char *path);
+static char *get_js_id(const char *path);
 
 
 
@@ -46,7 +46,7 @@ struct jsinfo {
 
 
 
-int joystick_device(const struct stat *s)
+static int joystick_device(const struct stat *s)
 {
 	if (!(s->st_mode & S_IFCHR))
 		return -1;
@@ -63,7 +63,7 @@ int joystick_device(const struct stat *s)
 
 
 
-int is_joystick_file(const struct dirent *d)
+static int is_joystick_file(const struct dirent *d)
 {
 	size_t len = strlen(d->d_name);
 	if (len < 13 || strncmp(d->d_name, "usb-", 4) || strcmp(d->d_name + len - 9, "-joystick"))
@@ -178,7 +178,7 @@ int ioctl(int fd, unsigned long request, void *data)
 
 
 
-char *get_js_id(const char *path)
+static char *get_js_id(const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
