@@ -35,7 +35,7 @@
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
 
-static char *get_js_id(const char *path);
+static char *get_event_id(const char *path);
 
 
 
@@ -108,7 +108,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 		strncpy(path + len, "-event-joystick", PATH_MAX - len);
 		path[PATH_MAX - 1] = '\0';
 
-		if ((joysticks[i].name = get_js_id(path)) == NULL)
+		if ((joysticks[i].name = get_event_id(path)) == NULL)
 			continue;
 #ifdef DEBUG
 		fprintf(stderr, "JS '%s'  ->  #%02u '%s'(%d)\n", path, joysticks[i].num,
@@ -178,7 +178,7 @@ int ioctl(int fd, unsigned long request, void *data)
 
 
 
-static char *get_js_id(const char *path)
+static char *get_event_id(const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
