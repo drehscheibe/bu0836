@@ -46,7 +46,7 @@ struct jsinfo {
 
 
 
-static int joystick_device(const struct stat *s)
+static int js_number(const struct stat *s)
 {
 	if (!(s->st_mode & S_IFCHR))
 		return -1;
@@ -63,7 +63,7 @@ static int joystick_device(const struct stat *s)
 
 
 
-static int is_joystick_file(const struct dirent *d)
+static int is_js_file(const struct dirent *d)
 {
 	size_t len = strlen(d->d_name);
 	if (len < 13 || strncmp(d->d_name, "usb-", 4) || strcmp(d->d_name + len - 9, "-joystick"))
@@ -78,7 +78,7 @@ static int is_joystick_file(const struct dirent *d)
 void __attribute__((constructor)) js_preload_begin(void)
 {
 	struct dirent **files;
-	int n = scandir("/dev/input/by-id/", &files, is_joystick_file, alphasort);
+	int n = scandir("/dev/input/by-id/", &files, is_js_file, alphasort);
 	if (n < 0) {
 		perror("scandir");
 		return;
@@ -101,7 +101,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 			continue;
 		}
 
-		if ((joysticks[i].num = joystick_device(&st)) < 0)
+		if ((joysticks[i].num = js_number(&st)) < 0)
 			continue;
 
 		size_t len = strlen(path) - 9;
@@ -157,7 +157,7 @@ int ioctl(int fd, unsigned long request, void *data)
 	}
 
 	int size = _IOC_SIZE(request), num;
-	if ((num = joystick_device(&st)) < 0)
+	if ((num = js_number(&st)) < 0)
 		return ret;
 
 #ifdef DEBUG
