@@ -37,3 +37,16 @@ or wrapper scripts:
   #!/bin/bash
   LD_PRELOAD=/usr/local/lib/js_serial_preload.so  exec /usr/local/bin/fgfs "$@"
 
+
+
+
+Building:
+---------
+
+  $ git clone git://gitorious.org/bu0836/bu0836.git
+  $ cd bu0836/js_serial_preload/
+  $ make
+  $ sudo make install
+
+  $ make test
+

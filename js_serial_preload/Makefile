@@ -8,30 +8,40 @@ ifeq ($(MAKECMDGOALS),debug)
 CFLAGS += -DDEBUG -g -O0
 endif
 
-all: js_serial_preload
+all: js_serial_preload.so lsjs
 
-test: js_serial_preload
-	LD_PRELOAD=js_serial_preload.so js_demo
+test: js_serial_preload.so lsjs
+	@echo -e "\n\e[35mwithout preloading js_serial_preload.so:\e[m\n"
+	./lsjs
+	@echo -e "\n\e[35mpreloading js_serial_preload.so:\e[m\n"
+	LD_PRELOAD=./js_serial_preload.so ./lsjs
+	@echo
 
 debug: clean all
 
-fg: js_serial_preload
-	LD_PRELOAD=js_serial_preload.so /usr/local/bin/fgfs --config=$$HOME/.fgfs/preferences.xml
+fg: js_serial_preload.so
+	LD_PRELOAD=./js_serial_preload.so /usr/local/bin/fgfs --config=$$HOME/.fgfs/preferences.xml
 
-js_serial_preload: Makefile js_serial_preload.o
+js_serial_preload.so: js_serial_preload.o
 	gcc $(LDFLAGS) -rdynamic -shared -o js_serial_preload.so js_serial_preload.o -ldl
 
-js_serial_preload.o: Makefile js_serial_preload.c
+js_serial_preload.o: js_serial_preload.c
 	gcc $(CFLAGS) -std=c99 -Wall -fPIC -D_GNU_SOURCE -c js_serial_preload.c
 
-check: js_serial_preload
+lsjs: lsjs.o
+	gcc $(LDLAGS) -o lsjs lsjs.c
+
+lsjs.o: lsjs.c
+	gcc $(CFLAGS) -std=c99 -Wall -D_GNU_SOURCE -c lsjs.c
+
+check: js_serial_preload.so
 	cppcheck -q -f --enable=all .
 
-vg:
-	LD_PRELOAD=js_serial_preload.so valgrind --tool=memcheck --leak-check=full js_demo
+vg: js_serial_preload.so
+	LD_PRELOAD=./js_serial_preload.so valgrind --tool=memcheck --leak-check=full ./lsjs
 
 clean:
-	rm -f js_serial_preload.so js_serial_preload.o core.[a-zA-Z].[0-9]*
+	rm -f js_serial_preload.so js_serial_preload.o lsjs lsjs.o core.[a-zA-Z].[0-9]*
 
 install:
 	$(INSTALL) --strip --mode 755 js_serial_preload.so $(DESTDIR)$(PREFIX)/lib
