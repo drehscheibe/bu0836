@@ -45,7 +45,7 @@
 int ioctl(int fd, unsigned long request, void *data);
 
 
-int (*_ioctl)(int fd, unsigned long request, void *data) = NULL;
+int (*sys_ioctl)(int fd, unsigned long request, void *data) = NULL;
 
 
 struct jsinfo {
@@ -120,7 +120,7 @@ static int is_js_file(const struct dirent *d)
 void __attribute__((constructor)) js_preload_begin(void)
 {
 	dlerror();
-	_ioctl = dlsym(RTLD_NEXT, "ioctl");
+	sys_ioctl = dlsym(RTLD_NEXT, "ioctl");
 	char *error = dlerror();
 	if (error) {
 		fprintf(stderr, __FILE__": %s\n", error);
@@ -183,7 +183,7 @@ void __attribute__((destructor)) js_preload_end(void)
 
 int ioctl(int fd, unsigned long request, void *data)
 {
-	int ret = _ioctl(fd, request, data);
+	int ret = sys_ioctl(fd, request, data);
 	if ((request & ~IOCSIZE_MASK) != JSIOCGNAME(0) || !joysticks)
 		return ret;
 
