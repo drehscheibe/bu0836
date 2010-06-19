@@ -34,6 +34,9 @@
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len) // get device name
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
+#define STRINGIZE(X) DO_STRINGIZE(X)
+#define DO_STRINGIZE(X) #X
+#define ORIGIN __FILE__":"STRINGIZE(__LINE__)": "
 
 #ifdef DEBUG
 #  define DBG(...) fprintf(stderr, __VA_ARGS__)
@@ -43,8 +46,6 @@
 
 
 int ioctl(int fd, unsigned long request, void *data);
-
-
 int (*sys_ioctl)(int fd, unsigned long request, void *data) = NULL;
 
 
@@ -59,20 +60,20 @@ static char *get_event_id(const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
-		perror("open");
+		perror(ORIGIN"open");
 		return NULL;
 	}
 
 	char name[256], uniq[256], *id = NULL;
 
 	if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) < 0) {
-		perror("ioctl/EVIOCGNAME");
+		perror(ORIGIN"ioctl/EVIOCGNAME");
 
 	} else if (ioctl(fd, EVIOCGUNIQ(sizeof(uniq)), uniq) < 0) {
-		perror("ioctl/EVIOCGUNIQ");
+		perror(ORIGIN"ioctl/EVIOCGUNIQ");
 
 	} else if ((id = (char *)malloc(strlen(name) + strlen(uniq) + 2)) == NULL) {
-		perror("malloc");
+		perror(ORIGIN"malloc");
 
 	} else {
 		strcpy(id, name);
@@ -82,7 +83,7 @@ static char *get_event_id(const char *path)
 	}
 
 	if (close(fd) < 0)
-		perror("close");
+		perror(ORIGIN"close");
 	return id;
 }
 
@@ -130,12 +131,12 @@ void __attribute__((constructor)) js_preload_begin(void)
 	struct dirent **files;
 	int n = scandir("/dev/input/by-id/", &files, is_js_file, alphasort);
 	if (n < 0) {
-		perror("scandir");
+		perror(ORIGIN"scandir");
 		return;
 	}
 
 	if ((joysticks = (struct jsinfo *)calloc(sizeof(struct jsinfo), n + 1)) == NULL) {
-		perror("calloc");
+		perror(ORIGIN"calloc");
 		return;
 	}
 
@@ -147,7 +148,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 
 		struct stat st;
 		if (stat(path, &st) < 0) {
-			perror("stat");
+			perror(ORIGIN"stat");
 			continue;
 		}
 
@@ -161,7 +162,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 		if ((joysticks[i].name = get_event_id(path)) == NULL)
 			continue;
 
-		DBG("{JS} '%s'  <-  #%u '%s'(%d)\n", path, joysticks[i].num,
+		DBG(__FILE__": '%s'  <-  #%u '%s'(%d)\n", path, joysticks[i].num,
 				joysticks[i].name, (int)strlen(joysticks[i].name) + 1);
 		i++;
 	}
@@ -189,7 +190,7 @@ int ioctl(int fd, unsigned long request, void *data)
 
 	struct stat st;
 	if (fstat(fd, &st) < 0) {
-		perror("fstat");
+		perror(ORIGIN"fstat");
 		return ret;
 	}
 
@@ -197,7 +198,7 @@ int ioctl(int fd, unsigned long request, void *data)
 	if ((num = get_js_number(&st)) < 0)
 		return ret;
 
-	DBG("{JS} JSIOCGNAME(%d) = #%u '%s'(%d)", size, num, (char *)data, ret);
+	DBG(__FILE__": JSIOCGNAME(%d) = #%u '%s'(%d)", size, num, (char *)data, ret);
 	for (struct jsinfo *js = joysticks; js->name; js++) {
 		if (js->num == num) {
 			int len = (int)strlen(js->name);
