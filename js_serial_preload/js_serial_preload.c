@@ -34,6 +34,7 @@
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len) // get device name
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
+
 #ifdef DEBUG
 #  define DBG(...) fprintf(stderr, __VA_ARGS__)
 #else
@@ -43,6 +44,8 @@
 
 int ioctl(int fd, unsigned long request, void *data);
 
+
+int (*_ioctl)(int fd, unsigned long request, void *data) = NULL;
 
 
 struct jsinfo {
@@ -116,6 +119,14 @@ static int is_js_file(const struct dirent *d)
 
 void __attribute__((constructor)) js_preload_begin(void)
 {
+	dlerror();
+	_ioctl = dlsym(RTLD_NEXT, "ioctl");
+	char *error = dlerror();
+	if (error) {
+		fprintf(stderr, __FILE__": %s\n", error);
+		exit(EXIT_FAILURE);
+	}
+
 	struct dirent **files;
 	int n = scandir("/dev/input/by-id/", &files, is_js_file, alphasort);
 	if (n < 0) {
@@ -172,18 +183,6 @@ void __attribute__((destructor)) js_preload_end(void)
 
 int ioctl(int fd, unsigned long request, void *data)
 {
-	static int (*_ioctl)(int fd, unsigned long request, void *data) = NULL;
-
-	if (!_ioctl) {
-		dlerror();
-		_ioctl = dlsym(RTLD_NEXT, "ioctl");
-		char *error = dlerror();
-		if (error) {
-			fprintf(stderr, __FILE__": %s\n", error);
-			exit(1);
-		}
-	}
-
 	int ret = _ioctl(fd, request, data);
 	if ((request & ~IOCSIZE_MASK) != JSIOCGNAME(0) || !joysticks)
 		return ret;
