@@ -43,7 +43,7 @@ vg: js_serial_preload.so
 clean:
 	rm -f js_serial_preload.so js_serial_preload.o lsjs lsjs.o core.[a-zA-Z].[0-9]*
 
-install:
+install: js_serial_preload.so
 	$(INSTALL) --strip --mode 755 js_serial_preload.so $(DESTDIR)$(PREFIX)/lib
 
 help:
