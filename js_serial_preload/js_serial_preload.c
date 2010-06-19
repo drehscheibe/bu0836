@@ -35,9 +35,9 @@
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
 #ifdef DEBUG
-#  define dbg(...) fprintf(stderr, __VA_ARGS__)
+#  define DBG(...) fprintf(stderr, __VA_ARGS__)
 #else
-#  define dbg(...)
+#  define DBG(...)
 #endif
 
 
@@ -150,7 +150,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 		if ((joysticks[i].name = get_event_id(path)) == NULL)
 			continue;
 
-		dbg("{JS} '%s'  <-  #%u '%s'(%d)\n", path, joysticks[i].num,
+		DBG("{JS} '%s'  <-  #%u '%s'(%d)\n", path, joysticks[i].num,
 				joysticks[i].name, (int)strlen(joysticks[i].name) + 1);
 		i++;
 	}
@@ -198,18 +198,18 @@ int ioctl(int fd, unsigned long request, void *data)
 	if ((num = get_js_number(&st)) < 0)
 		return ret;
 
-	dbg("{JS} JSIOCGNAME(%d) = #%u '%s'(%d)", size, num, (char *)data, ret);
+	DBG("{JS} JSIOCGNAME(%d) = #%u '%s'(%d)", size, num, (char *)data, ret);
 	for (struct jsinfo *js = joysticks; js->name; js++) {
 		if (js->num == num) {
 			int len = (int)strlen(js->name);
 			if (len < size) {
 				strcpy(data, js->name);
 				ret = ++len;
-				dbg("  ->  '%s'(%d)", (char *)data, ret);
+				DBG("  ->  '%s'(%d)", (char *)data, ret);
 			}
 			break;
 		}
 	}
-	dbg("\n");
+	DBG("\n");
 	return ret;
 }

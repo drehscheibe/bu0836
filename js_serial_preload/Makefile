@@ -11,11 +11,11 @@ endif
 all: js_serial_preload.so lsjs
 
 test: js_serial_preload.so lsjs
-	@echo -e "\n\e[35mwithout preloading js_serial_preload.so:\e[m\n"
+	@echo -en "\e[32m"
 	./lsjs
-	@echo -e "\n\e[35mpreloading js_serial_preload.so:\e[m\n"
+	@echo -en "\n\e[32m"
 	LD_PRELOAD=./js_serial_preload.so ./lsjs
-	@echo
+	@echo -en "\e[m"
 
 debug: clean all
 
