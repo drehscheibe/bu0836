@@ -37,7 +37,7 @@ int main(void)
 	struct dirent **joysticks;
 	int n = scandir("/dev/input/", &joysticks, is_js_file, alphasort);
 	if (n < 0) {
-		perror("scandir");
+		perror("scandir /dev/input/");
 	} else {
 		int i;
 		for (i = 0; i < n; i++) {
@@ -47,16 +47,20 @@ int main(void)
 
 			int fd = open(path, O_RDONLY);
 			if (fd < 0) {
-				perror("open");
+				perror(path);
 				continue;
 			}
 
-			char name[256];
+			unsigned char numaxes, numbuttons;
+			ioctl(fd, JSIOCGAXES, &numaxes);
+			ioctl(fd, JSIOCGBUTTONS, &numbuttons);
 
+			char name[256];
 			if (ioctl(fd, JSIOCGNAME(sizeof(name)), name) < 0)
 				perror("ioctl/EVIOCGNAME");
 			else
-				fprintf(stderr, "%s:\t\"%s\"\n", path, name);
+				fprintf(stderr, "%s:\t\"%s\"  (%d axes, %d buttons)\n",
+						path, name, (int)numaxes, (int)numbuttons);
 
 			if (close(fd) < 0)
 				perror("close");
@@ -65,4 +69,3 @@ int main(void)
 	}
 	return 0;
 }
-
