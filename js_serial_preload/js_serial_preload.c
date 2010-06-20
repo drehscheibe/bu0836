@@ -66,10 +66,10 @@ static char *get_event_id(const char *path)
 
 	char name[256], uniq[256], *id = NULL;
 
-	if (ioctl(fd, EVIOCGNAME(sizeof(name)), name) < 0) {
+	if (sys_ioctl(fd, EVIOCGNAME(sizeof(name)), name) < 0) {
 		perror(ORIGIN"ioctl/EVIOCGNAME");
 
-	} else if (ioctl(fd, EVIOCGUNIQ(sizeof(uniq)), uniq) < 0) {
+	} else if (sys_ioctl(fd, EVIOCGUNIQ(sizeof(uniq)), uniq) < 0) {
 		perror(ORIGIN"ioctl/EVIOCGUNIQ");
 
 	} else if ((id = (char *)malloc(strlen(name) + strlen(uniq) + 2)) == NULL) {
