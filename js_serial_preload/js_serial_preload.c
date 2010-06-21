@@ -111,7 +111,7 @@ static int is_js_file(const struct dirent *d)
 	size_t len = strlen(d->d_name);
 	if (len < 13 || strncmp(d->d_name, "usb-", 4) || strcmp(d->d_name + len - 9, "-joystick"))
 		return 0;
-	if (len > 15 && !strcmp(d->d_name + len - 15, "-event-joystick"))
+	if (len > 15 && !strncmp(d->d_name + len - 15, "-event", 6))
 		return 0;
 	return 1;
 }
