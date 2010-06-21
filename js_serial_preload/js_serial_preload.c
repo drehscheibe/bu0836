@@ -34,6 +34,9 @@
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len) // get device name
 #define EVIOCGUNIQ(len) _IOC(_IOC_READ, 'E', 0x08, len) // get unique identifier (serial number)
 
+#define JSDIR "/dev/input/by-id/"
+#define JSDIRLEN 17 // strlen(JSDIR)
+
 #define STRINGIZE(X) DO_STRINGIZE(X)
 #define DO_STRINGIZE(X) #X
 #define ORIGIN __FILE__":"STRINGIZE(__LINE__)": "
@@ -129,7 +132,7 @@ void __attribute__((constructor)) js_preload_begin(void)
 	}
 
 	struct dirent **files;
-	int num = scandir("/dev/input/by-id/", &files, is_js_file, alphasort);
+	int num = scandir(JSDIR, &files, is_js_file, alphasort);
 	if (num < 0) {
 		perror(ORIGIN"scandir");
 		return;
@@ -140,9 +143,9 @@ void __attribute__((constructor)) js_preload_begin(void)
 		goto out;
 	}
 
-	char path[PATH_MAX] = "/dev/input/by-id/"; // 17 bytes
+	char path[PATH_MAX] = JSDIR;
 	for (int i = 0, n = 0; n < num; n++) {
-		strncpy(path + 17, files[n]->d_name, PATH_MAX - 17);
+		strncpy(path + JSDIRLEN, files[n]->d_name, PATH_MAX - JSDIRLEN);
 		path[PATH_MAX - 1] = '\0';
 
 		struct stat st;
