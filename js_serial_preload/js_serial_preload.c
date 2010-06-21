@@ -129,22 +129,21 @@ void __attribute__((constructor)) js_preload_begin(void)
 	}
 
 	struct dirent **files;
-	int n = scandir("/dev/input/by-id/", &files, is_js_file, alphasort);
-	if (n < 0) {
+	int num = scandir("/dev/input/by-id/", &files, is_js_file, alphasort);
+	if (num < 0) {
 		perror(ORIGIN"scandir");
 		return;
 	}
 
-	if ((joysticks = (struct jsinfo *)calloc(sizeof(struct jsinfo), n + 1)) == NULL) {
+	if ((joysticks = (struct jsinfo *)calloc(sizeof(struct jsinfo), num + 1)) == NULL) {
 		perror(ORIGIN"calloc");
-		return;
+		goto out;
 	}
 
 	char path[PATH_MAX] = "/dev/input/by-id/"; // 17 bytes
-	for (int i = 0; n--; ) {
+	for (int i = 0, n = 0; n < num; n++) {
 		strncpy(path + 17, files[n]->d_name, PATH_MAX - 17);
 		path[PATH_MAX - 1] = '\0';
-		free(files[n]);
 
 		struct stat st;
 		if (stat(path, &st) < 0) {
@@ -166,6 +165,10 @@ void __attribute__((constructor)) js_preload_begin(void)
 				joysticks[i].name, (int)strlen(joysticks[i].name) + 1);
 		i++;
 	}
+
+out:
+	while (num--)
+		free(files[num]);
 	free(files);
 }
 
