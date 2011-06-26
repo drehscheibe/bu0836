@@ -57,7 +57,7 @@ int main(void)
 
 			char name[256];
 			if (ioctl(fd, JSIOCGNAME(sizeof(name)), name) < 0)
-				perror("ioctl/EVIOCGNAME");
+				perror("ioctl/JSIOCGNAME");
 			else
 				fprintf(stderr, "%s:\t\"%s\"  (%d axes, %d buttons)\n",
 						path, name, (int)numaxes, (int)numbuttons);

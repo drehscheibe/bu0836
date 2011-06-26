@@ -76,7 +76,7 @@ extern "C" {
 /* get_option() returns a "struct command_line_option" index, or one of the following codes */
 
 #define OPTIONS_DONE -1                 /* parsing done; no more options available */
-#define OPTIONS_TERMINATOR -2           /* "--" wass issued; remainder seen as arguments */
+#define OPTIONS_TERMINATOR -2           /* "--" was issued; remainder seen as arguments */
 #define OPTIONS_ARGUMENT -3             /* argument found ("-" or string not starting with '-' */
 #define OPTIONS_EXCESS_ARGUMENT -4      /* long option has argument, but shouldn't (e.g. --help=foo) */
 #define OPTIONS_MISSING_ARGUMENT -5     /* last option wants argument, but there are none left */
