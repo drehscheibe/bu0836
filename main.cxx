@@ -88,15 +88,7 @@ void help(void)
 
 void version(void)
 {
-#ifdef TAG
-	cout << "bu0836 "STRINGIZE(TAG)" ("STRINGIZE(SHA)")";
-#if MOD
-	cout << "++";
-#endif
-	cout << endl;
-#else
-	cout << "??" << endl;
-#endif
+	cout << STRINGIZE(VERSION) << endl << endl;
 	cout << "Copyright (C) Melchior FRANZ " EMAIL << endl;
 	cout << "License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl-2.0.html>" << endl;
 	cout << "This is free software; see the source for copying conditions.  There is NO" << endl;

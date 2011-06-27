@@ -10,9 +10,7 @@ CXXFLAGS += -Wall
 CFLAGS += -Wall
 
 DEBUG = -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -D_GLIBCXX_CONCEPT_CHECKS -O0 -g
-SHA = $(shell git log master --pretty=format:%h -1)
-TAG = $(shell git tag -l '[0-9].*'|tail -1|tr -d '\n')
-MOD = $(shell git diff --shortstat|wc -l)
+VERSION = $(shell git describe --tag 2>/dev/null || echo "0.1++")
 
 LIBUSB_CFLAGS = $(shell pkg-config libusb-1.0 --cflags)
 LIBUSB_LIBS = $(shell pkg-config libusb-1.0 --libs)
@@ -44,7 +42,7 @@ bu0836: logging.o options.o hid.o bu0836.o main.o makefile
 	g++ $(LDFLAGS) -o bu0836 logging.o options.o bu0836.o hid.o main.o -lm $(LIBUSB_LIBS)
 
 main.o: bu0836.hxx logging.hxx options.h main.cxx makefile
-	g++ $(CXXFLAGS) -DSHA=$(SHA) -DTAG=$(TAG) -DMOD=$(MOD) $(LIBUSB_CFLAGS) -c main.cxx
+	g++ $(CXXFLAGS) -DVERSION=$(VERSION) $(LIBUSB_CFLAGS) -c main.cxx
 
 bu0836.o: bu0836.cxx bu0836.hxx hid.hxx logging.hxx makefile
 	g++ $(CXXFLAGS) $(VALGRIND) $(LIBUSB_CFLAGS) -c bu0836.cxx
