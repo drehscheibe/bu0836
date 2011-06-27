@@ -117,6 +117,7 @@ controller::controller(libusb_device_handle *handle, libusb_device *device, libu
 	_handle(handle),
 	_device(device),
 	_desc(desc),
+	_active_axes(0),
 	_capabilities(capabilities),
 	_hid_descriptor(0),
 	_claimed(false),
@@ -362,7 +363,8 @@ int controller::show_input_reports()
 		print_input(_hid.data()[0], buf);
 		cout << endl;
 
-		usleep(100000);
+		const struct timespec ts = {0, 100000};
+		nanosleep(&ts, 0);
 	} while (!interrupted);
 	return 0;
 }
