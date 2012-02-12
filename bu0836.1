@@ -129,7 +129,7 @@ Continuously monitor a device's output until terminated with Ctrl-c.
 .TP
 .BR \-r ", " \-\-reset
 Reset device configuration to \*(lqfactory default\*(rq. This is an equivalent of \-\-axes=0\-7
-\-\-invert=off \-\-zoom=off \-\-buttons=0\-31 \-\-encoder=off
+\-\-shut\-off=off \-\-invert=off \-\-zoom=off \-\-buttons=0\-31 \-\-encoder=off
 \-\-pulse\-width=48ms.
 '\"""""
 .TP
@@ -250,7 +250,7 @@ of those devices offer axis configuration \fIand\fR encoder configuration \(em m
 encoders. So, if the \fB\-\-status\fR option doesn't display axes, this probably means that your
 device doesn't support them.
 .P
-\fBbu0836\fR numbers axes and buttons beginning with\ 0, because this is more logical in a
+\fBbu0836\fR enumerates axes and buttons beginning with\ 0, because this is more logical in a
 programming context and also the way the Linux kernel sees it. Bodnar's tools, however, start
 numbering with 1, and so does the firmware.
 .P

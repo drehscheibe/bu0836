@@ -507,6 +507,9 @@ manager::manager(int debug_level)
 			case 0x1002: case 0x2001: case 0x2002: case 0x2003:
 				capabilities = ENCODER1 | ENCODER2;
 				break;
+			case 0x200a:
+				capabilities = INVERT | ZOOM | ENCODER1 | ENCODER2;
+				break;
 			}
 		}
 

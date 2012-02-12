@@ -52,7 +52,7 @@ void help(void)
 	cout << "  -s, --status             show current device configuration" << endl;
 	cout << "  -m, --monitor            monitor device output (terminate with Ctrl-c)" << endl;
 	cout << "  -r, --reset              reset device configuration to \"factory default\"" << endl;
-	cout << "                           (equivalent of -a0-7 -i0 -z0 -b0-31 -e0 -p6)" << endl;
+	cout << "                           (equivalent of -a0-7 -f0 -i0 -z0 -b0-31 -e0 -p6)" << endl;
 	cout << "  -y, --sync               write current changes to the controller's EEPROM" << endl;
 	cout << "  -O, --save=FILE          save EEPROM image buffer to file <s>" << endl;
 	cout << "  -I, --load=FILE          load EEPROM image from file <s> and flash EEPROM" << endl;
