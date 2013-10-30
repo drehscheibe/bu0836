@@ -22,6 +22,7 @@
 #include <iostream>
 #include <signal.h>
 #include <sstream>
+#include <unistd.h>
 
 #include "bu0836.hxx"
 #include "hid.hxx"
@@ -507,7 +508,7 @@ manager::manager(int debug_level)
 			case 0x1002: case 0x2001: case 0x2002: case 0x2003:
 				capabilities = ENCODER1 | ENCODER2;
 				break;
-			case 0x200a:
+			case 0x200a: // BU0836X
 				capabilities = INVERT | ZOOM | ENCODER1 | ENCODER2;
 				break;
 			}
